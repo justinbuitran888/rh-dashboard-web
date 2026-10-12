@@ -61,7 +61,16 @@ body.ready #gate{display:none}
 .top-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12.5px;background:#fff;white-space:nowrap}
 .chip b{color:var(--green-d)}
-.menu-btn{display:none}
+.menu-btn{display:inline-flex;font-size:16px;line-height:1;padding:6px 10px}
+body.ready #app{transition:grid-template-columns .2s ease}
+@media (min-width:861px){
+  body.side-collapsed.ready #app{grid-template-columns:68px 1fr}
+  body.side-collapsed .side{padding:18px 10px;overflow-x:hidden}
+  body.side-collapsed .side .brand{justify-content:center;padding:4px 0 16px}
+  body.side-collapsed .side .brand>div:not(.logo),body.side-collapsed .nav-sec,body.side-collapsed .nav a .nl,body.side-collapsed .side .foot{display:none}
+  body.side-collapsed .nav a{justify-content:center;padding:10px 0}
+  body.side-collapsed .nav a svg{width:20px;height:20px}
+}
 .content{padding:20px 24px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;max-width:1500px}.content>*{min-width:0}.main{overflow-x:clip}
 
 /* ---------- thành phần ---------- */
@@ -1068,7 +1077,7 @@ function renderNav() {
   let sec = '';
   $('#nav').innerHTML = PAGES.filter((p) => !p.admin || isAdmin).map((p) => {
     const h = p.sec !== sec ? `<div class="nav-sec">${esc((sec = p.sec))}</div>` : '';
-    return `${h}<a href="#${p.id}" class="${S.page === p.id ? 'on' : ''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[p.id]}</svg>${esc(p.name)}</a>`;
+    return `${h}<a href="#${p.id}" title="${esc(p.name)}" class="${S.page === p.id ? 'on' : ''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[p.id]}</svg><span class="nl">${esc(p.name)}</span></a>`;
   }).join('');
   const bn = $('#bnav');
   if (bn) {
@@ -1089,7 +1098,13 @@ function route() {
   render();
 }
 window.addEventListener('hashchange', route);
-$('#menu-btn').onclick = () => document.body.classList.toggle('nav-open');
+try { if (localStorage.getItem('rh-side') === 'collapsed') document.body.classList.add('side-collapsed'); } catch {}
+$('#menu-btn').onclick = () => {
+  if (matchMedia('(max-width:860px)').matches) { document.body.classList.toggle('nav-open'); return; }
+  const on = document.body.classList.toggle('side-collapsed');
+  try { localStorage.setItem('rh-side', on ? 'collapsed' : 'open'); } catch {}
+  $('#menu-btn').setAttribute('aria-label', on ? 'Mở rộng menu' : 'Thu gọn menu');
+};
 
 function topControls() {
   if (!DS || !['overview', 'health', 'titles', 'plan', 'history'].includes(S.page)) return '';
