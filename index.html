@@ -101,7 +101,10 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .tbl th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600;background:#fafbfb;position:sticky;top:0;z-index:1}
 .tbl td.r,.tbl th.r{text-align:right}
 .tbl tr.click{cursor:pointer}.tbl tr.click:hover td{background:var(--green-ll)}
-.tbl tr.sel td{background:var(--green-ll)}.tbl tr.tot td{font-weight:700;background:#f2f4f7;border-top:2px solid var(--line)}.tbl th.c{text-align:center}.tbl td small{font-weight:400}
+.tbl tr.sel td{background:var(--green-ll)}.tbl tr.qsum td{background:#fafbfb;font-size:12.5px}
+.segsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:4px 0 12px}
+.segsum>div{border:1px solid var(--line-2);border-radius:10px;padding:8px 10px;background:#fff;display:grid;gap:2px}
+.segsum span{font-size:11.5px;color:var(--muted)}.segsum b{font-size:17px}.segsum small{font-size:11.5px;color:var(--muted)}.tbl tr.tot td{font-weight:700;background:#f2f4f7;border-top:2px solid var(--line)}.tbl th.c{text-align:center}.tbl td small{font-weight:400}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .input,.select{padding:8px 10px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;font-size:13px;min-width:0}
 .input:focus,.select:focus{outline:2px solid var(--green);outline-offset:0}
@@ -2056,6 +2059,7 @@ function planInput(body, Y, YM) {
     <tr>${M.slice(0, 3).map((m) => `<th class="r">${mLabel(m)}</th>`).join('')}<th class="r">FYP</th><th class="r">1mAA</th><th class="r">HĐ</th><th class="r">NR</th><th class="r">Case size</th></tr></thead>
     <tbody>${ref.filter((r) => r.id !== 'ALL').map(refRow).join('')}${refRow(ref.find((r) => r.id === 'ALL'))}</tbody></table></div>
     <p class="note">Màu % target: xanh = cao hơn mức tham chiếu, cam = thấp hơn, đỏ = cao hơn từ 30% trở lên (cần kế hoạch tuyển dụng / kích hoạt cụ thể). Cùng kỳ năm trước tính theo cơ cấu khu vực hiện tại; dòng ALL = tổng các đầu RH.</p></div></section>`;
+  const seg3 = M.slice(0, 3).map((m) => segActual(m)); // thực tế phân khúc 3 tháng gần nhất
   // cột tham khảo theo tháng (phạm vi đang chọn)
   const saveArea = S.area; S.area = 'all';
   const monthRef = new Map(YM.map((m) => [m, { act: monthValue(m, 'fyp', DS.agents), py: monthValue(addMonths(m, -12), 'fyp', DS.agents) }]));
@@ -2068,17 +2072,59 @@ function planInput(body, Y, YM) {
     <div class="toolbar">${canEdit ? `<button class="btn btn-sm" id="pl-split">Chia target năm → 12 tháng</button><button class="btn btn-primary btn-sm" id="pl-save" disabled>Lưu thay đổi</button>` : ''}</div></div>
     <div class="panel-b"><div id="pl-msg" class="note"></div><table class="tbl edit-tbl" style="max-width:640px"><thead><tr><th class="r">FYP năm (triệu)</th><th class="r">NR năm</th><th class="r">1mAA bình quân/tháng</th></tr></thead>
     <tbody><tr><td>${inp(yKey, 'TOTAL', 'fyp')}</td><td>${inp(yKey, 'TOTAL', 'nr')}</td><td>${inp(yKey, 'TOTAL', 'aa')}</td></tr></tbody></table></div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Target theo tháng · ${Y}</h3><p>Tổng vùng mỗi tháng. Để trống FYP tháng nếu muốn lấy tổng các phân khúc.</p></div></div>
-    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Tháng</th><th class="r">Target FYP (triệu)</th><th class="r">Target 1mAA</th><th class="r">Target HĐ</th><th class="r">Target NR</th><th class="r">Cộng FYP phân khúc</th><th class="r muted">FYP thực tế (tr)</th><th class="r muted">FYP cùng kỳ ${Y - 1} (tr)</th></tr></thead><tbody>
+  <section class="panel"><div class="panel-h"><div><h3>Target theo tháng · ${Y}</h3><p>Mỗi tháng của ${esc(rhShort())}. Dòng tổng quý / năm tự cộng ngay khi nhập. Để trống FYP tháng nếu muốn lấy tổng các phân khúc.</p></div></div>
+    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl" id="pl-months"><thead><tr><th>Tháng</th><th class="r">Target FYP (triệu)</th><th class="r">Target 1mAA</th><th class="r">Target HĐ</th><th class="r">Target NR</th><th class="r">Cộng FYP phân khúc</th><th class="r muted">FYP thực tế (tr)</th><th class="r muted">FYP cùng kỳ ${Y - 1} (tr)</th></tr></thead><tbody>
     ${YM.map((m) => { const r = monthRef.get(m); return `<tr class="${m === ym ? 'sel' : ''}"><td><b>${mLabel(m)}</b></td><td>${inp(m, 'TOTAL', 'fyp')}</td><td>${inp(m, 'TOTAL', 'aa')}</td><td>${inp(m, 'TOTAL', 'cc')}</td><td>${inp(m, 'TOTAL', 'nr')}</td><td class="r num muted">${(() => { const s = SEGS.map(([k]) => pv(m, k, 'fyp')).filter((v) => v !== null); return s.length ? f0(sum(s)) : '–'; })()}</td><td class="r num muted">${r.act === null ? '–' : f0(r.act / 1000)}${m === M[3] ? '*' : ''}</td><td class="r num muted">${r.py === null ? '–' : f0(r.py / 1000)}</td></tr>`; }).join('')}
-    </tbody></table></div></div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Target phân khúc có bán · ${mLabel(ym)}</h3><p>Chọn tháng ở trên cùng. Số gợi ý (mờ) = target tháng chia theo tỷ trọng & năng suất 3 tháng gần nhất.</p></div>
+    </tbody><tfoot>${[1, 2, 3, 4].map((q) => `<tr class="qsum"><td><b>Quý ${q}</b></td><td class="r num" data-sum="q${q}-fyp"></td><td class="r num" data-sum="q${q}-aa"></td><td class="r num" data-sum="q${q}-cc"></td><td class="r num" data-sum="q${q}-nr"></td><td></td><td class="r num muted" data-sum="q${q}-act"></td><td class="r num muted" data-sum="q${q}-py"></td></tr>`).join('')}
+      <tr class="tot"><td><b>TỔNG NĂM ${Y}</b></td><td class="r num" data-sum="y-fyp"></td><td class="r num" data-sum="y-aa"></td><td class="r num" data-sum="y-cc"></td><td class="r num" data-sum="y-nr"></td><td></td><td class="r num" data-sum="y-act"></td><td class="r num" data-sum="y-py"></td></tr></tfoot></table></div>
+    <div class="note" id="pl-ysum"></div></div></section>
+  <section class="panel"><div class="panel-h"><div><h3>Target phân khúc có bán · ${mLabel(ym)}</h3><p>Chọn tháng ở trên cùng. Bên trái là kết quả thực tế 3 tháng gần nhất từng phân khúc (BC70) để tính; số gợi ý (mờ) = target tháng chia theo tỷ trọng & năng suất 3 tháng.</p></div>
     <div class="toolbar">${canEdit ? '<button class="btn btn-sm" id="pl-suggest">Điền theo gợi ý</button>' : ''}</div></div>
-    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Phân khúc</th><th class="r">Target 1mAA (ĐL có bán)</th><th class="r">Target FYP (triệu)</th><th class="r">Target HĐ</th><th class="r muted">Nguồn lực</th><th class="r muted">1mAA TB 3T</th><th class="r muted">FYP TB 3T</th></tr></thead><tbody>
+    <div class="panel-b" style="padding-top:6px"><div class="segsum" id="pl-segsum"></div><div class="tbl-wrap"><table class="tbl edit-tbl" id="pl-segs"><thead>
+      <tr><th rowspan="2">Phân khúc</th>${M.slice(0, 3).map((m) => `<th colspan="2" class="c">${mLabel(m)}</th>`).join('')}<th colspan="3" class="c" style="background:#f6fef9">TB 3 tháng</th><th colspan="3" class="c" style="background:#fff8eb">Target ${mLabel(ym)}</th><th class="r" rowspan="2">Nguồn lực</th></tr>
+      <tr>${M.slice(0, 3).map(() => '<th class="r">1mAA</th><th class="r">FYP</th>').join('')}<th class="r">1mAA</th><th class="r">FYP</th><th class="r">Case size</th><th class="r">1mAA (ĐL có bán)</th><th class="r">FYP (triệu)</th><th class="r">HĐ</th></tr></thead><tbody>
     ${SEGS.map(([k, name]) => { const p = P[k], t = monthTarget(ym); const sF = t && p ? (t * p.mix) / 1000 : null, sC = sF && p.cs ? (sF * 1000) / p.cs : null, sA = sC && p.cpa ? sC / p.cpa : null;
-      return `<tr><td>${esc(name)}</td><td>${inp(ym, k, 'aa', sA ? Math.ceil(sA) : '')}</td><td>${inp(ym, k, 'fyp', sF ? Math.round(sF) : '')}</td><td>${inp(ym, k, 'cc', sC ? Math.ceil(sC) : '')}</td><td class="r num muted">${p ? f0(p.hc) : '–'}</td><td class="r num muted">${p ? f1(p.aa) : '–'}</td><td class="r num muted">${p ? money(p.fyp) : '–'}</td></tr>`; }).join('')}
-    </tbody></table></div><p class="note">1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng. Lịch sử các năm trước (FYP, HĐ, ĐL hoạt động, NR theo tháng) nhập ở <a href="#history">KQKD các kỳ trước</a>.</p></div></section>`;
+      const a3 = seg3.map((x) => x?.seg[k]);
+      return `<tr><td>${esc(name)}</td>${a3.map((o) => `<td class="r num muted">${o ? f0(o.aa) : '–'}</td><td class="r num muted">${o ? f0(o.fyp / 1000) : '–'}</td>`).join('')}<td class="r num" style="background:#f6fef9">${p ? f1(p.aa) : '–'}</td><td class="r num" style="background:#f6fef9">${p ? f0(p.fyp / 1000) : '–'}</td><td class="r num" style="background:#f6fef9">${p && p.cs ? f1(p.cs / 1000) : '–'}</td><td>${inp(ym, k, 'aa', sA ? Math.ceil(sA) : '')}</td><td>${inp(ym, k, 'fyp', sF ? Math.round(sF) : '')}</td><td>${inp(ym, k, 'cc', sC ? Math.ceil(sC) : '')}</td><td class="r num muted">${p ? f0(p.hc) : '–'}</td></tr>`; }).join('')}
+    </tbody><tfoot><tr class="tot"><td><b>Tổng</b></td>${seg3.map((x) => { const t = x ? totOf(x.seg) : null; return `<td class="r num">${t ? f0(t.aa) : '–'}</td><td class="r num">${t ? f0(t.fyp / 1000) : '–'}</td>`; }).join('')}<td class="r num">${f1(P.TOTAL.aa)}</td><td class="r num">${f0(P.TOTAL.fyp / 1000)}</td><td class="r num">${P.TOTAL.cs ? f1(P.TOTAL.cs / 1000) : '–'}</td><td class="r num" data-sum="s-aa"></td><td class="r num" data-sum="s-fyp"></td><td class="r num" data-sum="s-cc"></td><td class="r num">${f0(sum(SEGS, ([k]) => N(P[k]?.hc)))}</td></tr></tfoot></table></div>
+    <p class="note">FYP trong bảng này tính bằng triệu đồng. 1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng. Lịch sử các năm trước nhập ở <a href="#history">KQKD các kỳ trước</a>.</p></div></section>`;
   $$('[data-pick-rh]', body).forEach((tr) => tr.onclick = () => setRh(tr.dataset.pickRh));
+  // ---- tự cộng ngay khi nhập ----
+  const num = (el) => { const v = String(el?.value ?? '').trim().replace(/\./g, '').replace(',', '.'); return v === '' || isNaN(+v) ? null : +v; };
+  const val = (m, sg, k) => num($(`input[data-pm="${m}"][data-ps="${sg}"][data-pk="${k}"]`, body));
+  const put = (key, v, fmt = f0) => { const el = $(`[data-sum="${key}"]`, body); if (el) el.textContent = v === null ? '–' : fmt(v); };
+  const sumOf = (arr) => { const xs = arr.filter((v) => v !== null); return xs.length ? sum(xs) : null; };
+  const avgOf = (arr) => { const xs = arr.filter((v) => v !== null); return xs.length ? sum(xs) / xs.length : null; };
+  const recalc = () => {
+    const groups = [[1, YM.slice(0, 3)], [2, YM.slice(3, 6)], [3, YM.slice(6, 9)], [4, YM.slice(9, 12)], ['y', YM]];
+    for (const [q, ms] of groups) {
+      const pre = q === 'y' ? 'y' : 'q' + q;
+      put(pre + '-fyp', sumOf(ms.map((m) => val(m, 'TOTAL', 'fyp'))));
+      put(pre + '-aa', avgOf(ms.map((m) => val(m, 'TOTAL', 'aa'))), (v) => 'TB ' + f0(v));
+      put(pre + '-cc', sumOf(ms.map((m) => val(m, 'TOTAL', 'cc'))));
+      put(pre + '-nr', sumOf(ms.map((m) => val(m, 'TOTAL', 'nr'))));
+      put(pre + '-act', sumOf(ms.map((m) => (monthRef.get(m).act === null ? null : monthRef.get(m).act / 1000))));
+      put(pre + '-py', sumOf(ms.map((m) => (monthRef.get(m).py === null ? null : monthRef.get(m).py / 1000))));
+    }
+    const yT = val(yKey, 'TOTAL', 'fyp'), yS = sumOf(YM.map((m) => val(m, 'TOTAL', 'fyp')));
+    const ysum = $('#pl-ysum', body);
+    if (ysum) ysum.innerHTML = yS === null ? 'Chưa nhập target tháng.' : `Tổng 12 tháng: <b class="num">${f0(yS)} tr</b>${yT !== null ? ` · target năm <b class="num">${f0(yT)} tr</b> → ${Math.abs(yS - yT) < 1 ? '<span class="ok">khớp</span>' : yS > yT ? `<span class="ok">vượt ${f0(yS - yT)} tr</span>` : `<span class="err">còn thiếu ${f0(yT - yS)} tr</span>`}` : ''}`;
+    // phân khúc tháng đang chọn
+    const sF = sumOf(SEGS.map(([k]) => val(ym, k, 'fyp'))), sA = sumOf(SEGS.map(([k]) => val(ym, k, 'aa'))), sC = sumOf(SEGS.map(([k]) => val(ym, k, 'cc')));
+    put('s-fyp', sF); put('s-aa', sA); put('s-cc', sC);
+    const tM = val(ym, 'TOTAL', 'fyp'), tA = val(ym, 'TOTAL', 'aa'), avg3 = P.TOTAL.fyp / 1000;
+    const box = $('#pl-segsum', body);
+    const chip = (lb, v, sub = '') => `<div><span>${lb}</span><b class="num">${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    if (box) box.innerHTML = [
+      chip(`Target FYP ${mLabel(ym)}`, tM === null ? '–' : f0(tM) + ' tr', tA !== null ? `1mAA ${f0(tA)}` : ''),
+      chip('Cộng phân khúc đang nhập', sF === null ? '–' : f0(sF) + ' tr', tM && sF !== null ? (Math.abs(sF - tM) < 1 ? '<span class="ok">khớp target tháng</span>' : sF > tM ? `<span class="ok">vượt ${f0(sF - tM)} tr</span>` : `<span class="err">còn thiếu ${f0(tM - sF)} tr</span>`) : ''),
+      chip('1mAA / HĐ phân khúc', `${sA === null ? '–' : f0(sA)} / ${sC === null ? '–' : f0(sC)}`, sA && sF ? `FYP / ĐL có bán ${f1(sF / sA)} tr` : ''),
+      chip('TB 3 tháng thực tế', f0(avg3) + ' tr', `${f1(P.TOTAL.aa)} ĐL có bán · case size ${P.TOTAL.cs ? f1(P.TOTAL.cs / 1000) : '–'} tr`),
+      chip('Target so TB 3 tháng', tM && avg3 ? `${tM >= avg3 ? '+' : ''}${pct(tM / avg3 - 1, 0)}` : '–', tM && avg3 ? `cần thêm ${f0(Math.max(0, tM - avg3))} tr/tháng` : ''),
+    ].join('');
+  };
+  recalc();
+  body.addEventListener('input', recalc);
   if (!canEdit) return;
   const dirty = new Set();
   const mark = (el) => { el.classList.add('dirty'); dirty.add(`${el.dataset.pm}|${el.dataset.ps}`); $('#pl-save').disabled = false; };
@@ -2090,9 +2136,10 @@ function planInput(body, Y, YM) {
       const set = (k, v) => { const el = $(`input[data-pm="${m}"][data-ps="TOTAL"][data-pk="${k}"]`); if (el && v !== null) { el.value = v; mark(el); } };
       set('fyp', Math.round(+y / 12)); if (nr && !isNaN(+nr)) set('nr', Math.round(+nr / 12)); if (aa && !isNaN(+aa)) set('aa', Math.round(+aa));
     });
+    recalc();
     $('#pl-msg').innerHTML = '<span class="ok">Đã chia đều cho 12 tháng – chỉnh từng tháng nếu cần rồi bấm Lưu.</span>';
   };
-  $('#pl-suggest').onclick = () => { $$(`input[data-pm="${ym}"]`, body).forEach((el) => { if (el.dataset.ps !== 'TOTAL' && !el.value && el.placeholder) { el.value = el.placeholder; mark(el); } }); };
+  $('#pl-suggest').onclick = () => { $$(`input[data-pm="${ym}"]`, body).forEach((el) => { if (el.dataset.ps !== 'TOTAL' && !el.value && el.placeholder) { el.value = el.placeholder; mark(el); } }); recalc(); };
   $('#pl-save').onclick = async () => {
     const btn = $('#pl-save'); btn.disabled = true; btn.textContent = 'Đang lưu…';
     const rows = [...dirty].map((key) => { const [m, s] = key.split('|'); const vals = {}; $$(`input[data-pm="${m}"][data-ps="${s}"]`, body).forEach((el) => { const v = el.value.trim().replace(/\./g, '').replace(',', '.'); if (v !== '' && !isNaN(+v)) vals[el.dataset.pk] = +v; }); return { scope: planScope(), month: m, segment: s, vals, updated_at: new Date().toISOString() }; });
