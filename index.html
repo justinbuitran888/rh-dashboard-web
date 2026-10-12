@@ -62,7 +62,7 @@ body.ready #gate{display:none}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12.5px;background:#fff;white-space:nowrap}
 .chip b{color:var(--green-d)}
 .menu-btn{display:none}
-.content{padding:20px 24px 40px;display:grid;gap:16px;max-width:1500px}
+.content{padding:20px 24px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;max-width:1500px}.content>*{min-width:0}.main{overflow-x:clip}
 
 /* ---------- thành phần ---------- */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);min-width:0}
@@ -201,6 +201,75 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
   .fa-list{padding-left:30px}
   .mini-kpis{grid-template-columns:1fr 1fr}
 }
+
+/* ---------- cây dạng thẻ (org cards) ---------- */
+.viewtg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.viewtg button{border:0;background:none;padding:6px 12px;font-weight:600;font-size:12.5px;color:var(--muted);cursor:pointer}
+.viewtg button.on{background:var(--green-l);color:var(--green-dd)}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.crumbs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;cursor:pointer;font-weight:600;color:var(--ink-2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumbs button.cur{background:var(--green-l);border-color:#b7e4c7;color:var(--green-dd)}
+.crumbs .sep{color:#98a2b3}
+.oc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.oc{--acc:var(--green);background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px 18px;box-shadow:var(--shadow);display:grid;gap:10px;cursor:pointer;position:relative;transition:border-color .15s,box-shadow .15s,transform .15s;min-width:0;text-align:left}
+.oc:hover,.oc:focus-visible{border-color:var(--acc);box-shadow:0 6px 18px rgba(16,24,40,.08);transform:translateY(-1px);outline:none}
+.oc::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--acc)}
+.oc.k-group{--acc:var(--green-dd)}.oc.k-psm{--acc:var(--green)}.oc.k-area{--acc:#2e90fa}.oc.k-person{--acc:#7a5af8}
+.oc.leaf{cursor:default}
+.oc-h{display:flex;gap:10px;align-items:center;min-width:0;padding-right:4px}
+.oc-h .av{flex:none;width:38px;height:38px}
+.oc-h .t{min-width:0;flex:1}
+.oc-h b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc-h small{color:var(--muted);font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc-m{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.oc-m>div{background:#f7f9f8;border-radius:10px;padding:7px 8px;min-width:0}
+.oc-m span{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc-m b{font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.oc-m small{font-size:11px;color:var(--muted);font-weight:500}
+.oc-f{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted);min-width:0}
+.oc-f .go{color:var(--green-d);font-weight:700;white-space:nowrap}
+.oc-tiers{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.oc-tiers .stack{flex:1}
+.oc-hero{cursor:default;background:linear-gradient(180deg,#fff,#fbfdfc)}
+.oc-hero .oc-h b{font-size:18px}.oc-hero .oc-h .av{width:46px;height:46px;font-size:15px}
+.oc-hero .oc-m{grid-template-columns:repeat(6,minmax(0,1fr))}
+.oc-hero:hover{transform:none}
+.oc-sec{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:4px 2px -4px}
+.oc-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 9px;font-weight:600;font-size:12px;cursor:pointer;color:var(--ink-2)}
+.oc-btn:hover{border-color:var(--green)}
+/* ---------- thanh điều hướng dưới (mobile) ---------- */
+#bnav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:55;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around}
+#bnav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--muted);text-decoration:none;padding:3px 4px;min-width:58px;font-weight:600;background:none;border:0;cursor:pointer}
+#bnav a.on{color:var(--green-d)}
+#bnav svg{width:22px;height:22px}
+@media (max-width:860px){
+  body.ready #bnav{display:flex}
+  .top{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px}
+  .top .sub,#page-sub{display:none}
+  #page-title{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+  .top-r{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .top-r::-webkit-scrollbar{display:none}
+  .top-r>*{flex:none}
+  .top-r .select{max-width:78vw}
+  .content{padding:12px 12px 90px;gap:12px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kpi{padding:10px 12px;gap:4px}.kpi .v{font-size:20px}.kpi .s{font-size:11.5px;line-height:1.35}.kpi .lb{font-size:10.5px}
+  .kpi .d{flex-wrap:wrap}
+  .panel-h{flex-direction:column;align-items:stretch;padding:12px 14px}
+  .panel-h .toolbar{flex-wrap:wrap}
+  .panel-h .toolbar .input{width:100%!important}
+  .panel-b{padding:10px 12px}
+  .tbl td:first-child,.tbl th:first-child{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 var(--line-2)}
+  .tbl th:first-child{z-index:3;background:#fafbfb}
+  .tbl th,.tbl td{padding:7px 8px}
+  .oc-grid{grid-template-columns:1fr;gap:10px}
+  .oc-hero .oc-m{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .crumbs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.crumbs button{flex:none;max-width:60vw}
+  #drawer{width:100vw}
+  .legend{flex-wrap:wrap;gap:6px 12px}
+  .chart{max-height:220px}
+  .chart-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}.chart-scroll .chart-wide{min-width:720px;max-height:none!important}
+}
 </style>
 </head>
 <body>
@@ -223,6 +292,7 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
     <div class="content" id="content"></div>
   </main>
 </div>
+<nav id="bnav" aria-label="Điều hướng nhanh"></nav>
 <div id="scrim"></div>
 <aside id="drawer" aria-hidden="true"></aside>
 <div id="tip"></div>
@@ -733,7 +803,7 @@ const TIER_NAME = { S: 'Silver', G: 'Gold', P: 'Platinum' };
 let sb = null, user = null, profile = null, isAdmin = false;
 let DS = null; // dữ liệu đã xử lý
 let RHG = [], RHO = {}; // quy tắc chia đầu RH & ghi đè theo khu vực
-const S = { mapaSel: null, mapaOpen: new Set(), mapaShut: new Set(), rh: (() => { try { return localStorage.getItem('rh-scope') || 'all'; } catch { return 'all'; } })(), page: 'overview', focus: 2, area: 'all', q: '', open: new Set(), sel: null, healthSort: 'fyp6', titleTab: 'mdrt', libQ: '', libCat: 'Tất cả', libStatus: 'Đang hiệu lực' };
+const S = { hView: (() => { try { return localStorage.getItem('rh-hview') || 'card'; } catch { return 'card'; } })(), hPath: [], mapaSel: null, mapaOpen: new Set(), mapaShut: new Set(), rh: (() => { try { return localStorage.getItem('rh-scope') || 'all'; } catch { return 'all'; } })(), page: 'overview', focus: 2, area: 'all', q: '', open: new Set(), sel: null, healthSort: 'fyp6', titleTab: 'mdrt', libQ: '', libCat: 'Tất cả', libStatus: 'Đang hiệu lực' };
 
 // =====================================================================
 //  CỔNG ĐĂNG NHẬP
@@ -846,7 +916,7 @@ function applyScope() {
   if (S.area !== 'all' && !DS.areas.some((a) => a.code === S.area)) S.area = 'all';
   PLAN = null;
 }
-function setRh(id) { S.mapaSel = null; S.rh = id; try { localStorage.setItem('rh-scope', id); } catch {} S.open.clear(); applyScope(); render(); }
+function setRh(id) { S.mapaSel = null; S.hPath = []; S.rh = id; try { localStorage.setItem('rh-scope', id); } catch {} S.open.clear(); applyScope(); render(); }
 const scopeKey = () => (S.rh === 'all' ? 'TOÀN VÙNG' : 'RH:' + S.rh); // khóa số nhập tay
 const planScope = () => (S.rh === 'all' ? 'ALL' : S.rh); // khóa kế hoạch
 function prepare(row) {
@@ -987,7 +1057,7 @@ const ICON = {
 };
 const PAGES = [
   { id: 'overview', sec: 'Điều hành', name: 'Tổng quan vùng', sub: 'FYP, NR, hoạt động, 3mAA · so sánh MoM / YoY' },
-  { id: 'health', sec: 'Điều hành', name: 'Sức khỏe đội ngũ', sub: 'Cây báo cáo khu vực → UM+ → đại lý · bấm vào từng người để xem chi tiết' },
+  { id: 'health', sec: 'Điều hành', name: 'Sức khỏe đội ngũ', sub: 'RH → báo cáo trực tiếp → … → khu vực → UM+ → FA · bấm thẻ để đi xuống cấp dưới' },
   { id: 'titles', sec: 'Điều hành', name: 'Danh hiệu & tiến độ', sub: 'MDRT 2027 · MBA Pro 2027 · Manulife Pro · thăng cấp UM' },
   { id: 'plan', sec: 'Điều hành', name: 'Kế hoạch & thực hiện', sub: 'Target năm · plan tháng theo phân khúc · cần bao nhiêu 1mAA / HĐ' },
   { id: 'library', sec: 'Tra cứu', name: 'Thư viện chính sách', sub: 'Memo, chương trình thi đua, chính sách thu nhập' },
@@ -1000,6 +1070,14 @@ function renderNav() {
     const h = p.sec !== sec ? `<div class="nav-sec">${esc((sec = p.sec))}</div>` : '';
     return `${h}<a href="#${p.id}" class="${S.page === p.id ? 'on' : ''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[p.id]}</svg>${esc(p.name)}</a>`;
   }).join('');
+  const bn = $('#bnav');
+  if (bn) {
+    const quick = ['overview', 'health', 'plan', 'titles'].filter((id) => PAGES.some((p) => p.id === id));
+    const short = { overview: 'Tổng quan', health: 'Đội ngũ', plan: 'Kế hoạch', titles: 'Danh hiệu' };
+    bn.innerHTML = quick.map((id) => `<a href="#${id}" class="${S.page === id ? 'on' : ''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[id]}</svg>${short[id]}</a>`).join('')
+      + `<a href="#" id="bn-more" class="${quick.includes(S.page) ? '' : 'on'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Thêm</a>`;
+    $('#bn-more').onclick = (e) => { e.preventDefault(); document.body.classList.toggle('nav-open'); };
+  }
   $('#side-foot').innerHTML = DS ? `<div>Dữ liệu chốt <b style="color:#fff">${dmy(DS.meta.asOf)}</b></div><div>Dựng lúc ${esc(new Date(DS.builtAt).toLocaleString('vi-VN'))}</div><div style="margin-top:8px">${esc(user.email)}<br><a href="#" id="logout" style="color:#9ee6bf">Đăng xuất</a></div>` : `<div>${esc(user.email)}<br><a href="#" id="logout" style="color:#9ee6bf">Đăng xuất</a></div>`;
   $('#logout').onclick = (e) => { e.preventDefault(); signOut(); };
 }
@@ -1029,8 +1107,8 @@ function render() {
   $('#top-r').innerHTML = topControls();
   const fs = $('#sel-focus'); if (fs) fs.onchange = (e) => { S.focus = +e.target.value; render(); };
   const rs = $('#sel-rh'); if (rs) rs.onchange = (e) => setRh(e.target.value);
-  const as = $('#sel-area'); if (as) as.onchange = (e) => { S.area = e.target.value; S.open.clear(); render(); };
-  const c = $('#content');
+  const as = $('#sel-area'); if (as) as.onchange = (e) => { S.area = e.target.value; S.open.clear(); S.hPath = []; render(); };
+  const c = $('#content'); c.onclick = null; c.onkeydown = null;
   try { ({ overview: pageOverview, health: pageHealth, titles: pageTitles, history: pageHistory, plan: pagePlan, library: pageLibrary, data: pageData })[S.page](c); }
   catch (e) { console.error(e); c.innerHTML = `<div class="banner warn">Lỗi hiển thị trang: ${esc(e.message)}</div>`; }
 }
@@ -1243,7 +1321,7 @@ function areaRow(area, hit) {
       ${nodeCols(area.list, { direct: area.tops })}</div>
     ${open ? `<div class="kids">${topUM.map((a) => personRow(a, hit)).join('')}${topFA.length ? `<div class="small muted" style="padding:6px 10px 0 12px">ĐL báo cáo trực tiếp khu vực (${topFA.length})</div><div class="fa-list" style="padding-left:12px">${topFA.map(faChip).join('')}</div>` : ''}</div>` : ''}</div>`;
 }
-function pageHealth(c) {
+function healthTree(c) {
   if (!DS) return;
   const hit = matchSet();
   const areas = DS.areas.filter((a) => (S.area === 'all' || a.code === S.area) && (!hit || hit.has('area:' + a.code)));
@@ -1269,22 +1347,125 @@ function pageHealth(c) {
   </div>
   <section class="panel">
     <div class="panel-h"><div><h3>Cây báo cáo ${S.area === 'all' ? esc(rhShort()) : 'khu vực ' + esc(S.area)}</h3><p>RH → báo cáo trực tiếp → tầng 1 → tầng 2 … → Khu vực → UM+ trực tiếp → UM+ cấp dưới → FA. Chỉ số của mỗi dòng tính cho cả nhóm bên dưới (gồm người đó). Chấm tròn = 3 tháng ${mLabel(DS.months[0])}–${mLabel(DS.months[2])} có/không có HĐ thực cấp.</p></div>
-      <div class="toolbar"><input class="input" id="h-q" placeholder="Tìm tên hoặc mã đại lý…" value="${esc(S.q)}" style="width:220px"><button class="btn btn-sm" id="h-exp">Mở hết UM+</button><button class="btn btn-sm" id="h-col">Thu gọn</button></div></div>
+      <div class="toolbar">${viewToggle()}<input class="input" id="h-q" placeholder="Tìm tên hoặc mã đại lý…" value="${esc(S.q)}" style="width:220px"><button class="btn btn-sm" id="h-exp">Mở hết UM+</button><button class="btn btn-sm" id="h-col">Thu gọn</button></div></div>
     <div class="tree-head"><span></span><span>Người / nhóm</span><span class="c1">UM+ / FA</span><span class="c2">FA · ManPro</span><span class="c3">3mAA</span><span class="c4">Bán đều</span><span class="c5">Bán/tháng</span><span class="c6">FYP 6T</span></div>
     <div class="tree" id="tree">${psmRows || '<div class="empty">Không tìm thấy.</div>'}</div>
     <div class="panel-b" style="border-top:1px solid var(--line-2)"><div class="legend"><span><i style="background:var(--plat)"></i>Platinum</span><span><i style="background:var(--gold)"></i>Gold</span><span><i style="background:var(--silver)"></i>Silver</span><span><i style="background:#eef0f3"></i>FA chưa đạt ManPro</span><span>● có HĐ trong tháng · ○ không</span></div></div>
   </section>`;
-  const q = $('#h-q'); q.oninput = () => { clearTimeout(q._t); q._t = setTimeout(() => { S.q = q.value.trim(); pageHealth(c); const n = $('#h-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); };
-  $('#h-exp').onclick = () => { areas.forEach((a) => { S.open.add('area:' + a.code); a.list.filter((x) => x.um).forEach((x) => S.open.add(x.c)); }); [...S.open].filter((k) => k.startsWith('shut:st:')).forEach((k) => S.open.delete(k)); pageHealth(c); };
-  $('#h-col').onclick = () => { S.open.clear(); S.q = ''; pageHealth(c); };
+  const q = $('#h-q'); q.oninput = () => { clearTimeout(q._t); q._t = setTimeout(() => { S.q = q.value.trim(); healthTree(c); const n = $('#h-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); };
+  $('#h-exp').onclick = () => { areas.forEach((a) => { S.open.add('area:' + a.code); a.list.filter((x) => x.um).forEach((x) => S.open.add(x.c)); }); [...S.open].filter((k) => k.startsWith('shut:st:')).forEach((k) => S.open.delete(k)); healthTree(c); };
+  $('#h-col').onclick = () => { S.open.clear(); S.q = ''; healthTree(c); };
+  bindViewToggle(c);
   $('#tree').onclick = (e) => {
     const tg = e.target.closest('[data-toggle]');
     const pr = e.target.closest('[data-person]');
-    if (tg && (!pr || e.target.closest('button.tg'))) { let k = tg.dataset.toggle; if (k.startsWith('st:')) k = 'shut:' + k; S.open.has(k) ? S.open.delete(k) : S.open.add(k); pageHealth(c); return; }
+    if (tg && (!pr || e.target.closest('button.tg'))) { let k = tg.dataset.toggle; if (k.startsWith('st:')) k = 'shut:' + k; S.open.has(k) ? S.open.delete(k) : S.open.add(k); healthTree(c); return; }
     if (pr) openPerson(pr.dataset.person);
   };
 }
 
+
+// ---------- Sức khỏe đội ngũ · dạng thẻ (drill-down) ----------
+const viewToggle = () => `<span class="viewtg" role="tablist"><button data-hview="card" class="${S.hView === 'card' ? 'on' : ''}">▦ Thẻ</button><button data-hview="tree" class="${S.hView === 'tree' ? 'on' : ''}">☰ Cây</button></span>`;
+function bindViewToggle(c) { $$('[data-hview]', c).forEach((b) => b.onclick = () => { S.hView = b.dataset.hview; try { localStorage.setItem('rh-hview', S.hView); } catch {} pageHealth(c); }); }
+function pageHealth(c) { if (!DS) return; return S.hView === 'tree' ? healthTree(c) : healthCards(c); }
+const byFyp6 = (x, y) => sum(y.list, (z) => z.fyp6) - sum(x.list, (z) => z.fyp6);
+function hcItem(kind, o) {
+  if (kind === 'struct') {
+    return { id: 's:' + o.key, kind: o.group ? 'group' : 'psm', name: o.name, sub: `${o.group ? 'RH' : o.title || 'PSM+'} · ${o.all.length} khu vực`, av: initials(o.name),
+      list: o.all.flatMap((a) => a.list), direct: o.all.flatMap((a) => a.tops), children: () => [...o.kids.map((k) => hcItem('struct', k)), ...o.areas.map((a) => hcItem('area', a))].sort(byFyp6) };
+  }
+  if (kind === 'area') {
+    return { id: 'a:' + o.code, kind: 'area', name: 'Khu vực ' + o.code, sub: `${o.psm || 'Chưa rõ PSM+'}${o.sa ? ' · ' + f0(o.sa) + ' SA' : ''}`, av: o.code.replace(/\d+/, ''), area: o,
+      list: o.list, direct: o.tops, children: () => o.tops.filter((x) => x.um).map((x) => hcItem('person', x)).sort(byFyp6), fa: o.tops.filter((x) => !x.um) };
+  }
+  return { id: 'p:' + o.c, kind: 'person', name: o.n, sub: `${o.t} · ${o.c}`, av: initials(o.n), person: o,
+    list: [o, ...o.team()], direct: o.kids, children: () => o.kids.filter((x) => x.um).map((x) => hcItem('person', x)).sort(byFyp6), fa: o.kids.filter((x) => !x.um) };
+}
+function hcRoot() {
+  if (S.area !== 'all') { const a = DS.areas.find((x) => x.code === S.area); if (a) return hcItem('area', a); }
+  const roots = structTree(DS.areas);
+  if (S.rh !== 'all' && roots.length === 1) return hcItem('struct', roots[0]);
+  return { id: 'root', kind: 'group', name: S.rh === 'all' ? 'ALL · toàn bộ' : rhShort(), sub: `${DS.areas.length} khu vực`, av: 'ALL', list: DS.agents, direct: DS.areas.flatMap((a) => a.tops), children: () => roots.map((r) => hcItem('struct', r)).sort(byFyp6) };
+}
+function hcResolve() {
+  const chain = [hcRoot()];
+  for (const id of S.hPath) { const nx = chain.at(-1).children().find((x) => x.id === id); if (!nx) break; chain.push(nx); }
+  S.hPath = chain.slice(1).map((x) => x.id);
+  return chain;
+}
+// đường đi tới 1 đại lý (để mở từ ô tìm kiếm)
+function hcPathTo(a) {
+  const root = hcRoot(), want = 'a:' + a.a;
+  const find = (it, acc) => { for (const ch of it.children()) { if (ch.kind === 'person') continue; if (ch.id === want) return [...acc, ch.id]; if (ch.kind !== 'area') { const f = find(ch, [...acc, ch.id]); if (f) return f; } } return null; };
+  const base = root.id === want ? [] : find(root, []);
+  if (!base) return null;
+  const ups = []; let x = a; while (x) { ups.unshift(x); x = x.parent; }
+  const persons = ups.filter((p) => p.um && p !== a || (p === a && a.um)).map((p) => 'p:' + p.c);
+  return [...base, ...persons];
+}
+function hcMetrics(it, hero) {
+  const s = groupStats(it.list), M = DS.months;
+  const dUM = it.direct.filter((a) => a.um).length, dFA = it.direct.length - dUM;
+  const sellers = [0, 1, 2].map((i) => it.direct.filter((a) => isActive(a, i)).length);
+  const m = (lb, v, sub = '') => `<div><span>${lb}</span><b>${v}</b>${sub ? ` <small>${sub}</small>` : ''}</div>`;
+  const cells = [
+    m('FYP 6T nhóm', money(s.fyp6)),
+    m('3mAA', f0(s.aa3), `${f1(s.aa3 / 3)}/th`),
+    m('Bán đều', pct(s.n ? s.even / s.n : 0), `(${s.even})`),
+    m('Nguồn lực', f0(s.n), `${s.um} UM+`),
+    m('Trực tiếp', `${dUM}/${dFA}`, 'UM+/FA'),
+    m(`Bán ${mLabel(M[2])}`, f0(sellers[2]), 'trực tiếp'),
+  ];
+  return `<div class="oc-m">${cells.join('')}</div>
+    <div class="oc-tiers">${tierStack(s)}<span class="num">S ${s.S} · G ${s.G} · P ${s.P}</span>${spark(sellers)}</div>`;
+}
+function hcCard(it, { hero = false } = {}) {
+  const p = it.person, kids = hero ? 0 : it.children().length + (it.fa ? it.fa.length : 0);
+  const cls = `oc k-${it.kind}${hero ? ' oc-hero' : ''}${!hero && !kids ? ' leaf' : ''}`;
+  const pers = p ? `<div class="oc-f"><span>Cá nhân: FYP 6T <b class="num" style="color:var(--ink)">${money(p.fyp6)}</b> ${dots(p)} ${tierBadge(p.tier)}</span><button class="oc-btn" data-hc-detail="${esc(p.c)}">Chi tiết</button></div>` : '';
+  return `<div class="${cls}" ${hero ? '' : `data-hc="${esc(it.id)}" tabindex="0" role="button"`}>
+    <div class="oc-h"><div class="av ${it.kind === 'area' ? 'area' : it.kind === 'person' ? (p.um ? 'um' : '') : it.kind === 'group' ? 'rh' : 'psm'}">${esc(it.av)}</div><div class="t"><b>${esc(it.name)}</b><small>${esc(it.sub)}</small></div>${!hero && kids ? `<span class="badge">${kids}</span>` : ''}</div>
+    ${hcMetrics(it, hero)}
+    ${pers}
+    ${!hero && kids ? `<div class="oc-f"><span>${it.kind === 'area' || it.kind === 'person' ? `${it.children().length} UM+ · ${(it.fa || []).length} FA trực tiếp` : `${it.children().length} nhánh / khu vực`}</span><span class="go">Xem cấp dưới ›</span></div>` : ''}
+  </div>`;
+}
+function healthCards(c) {
+  const chain = hcResolve(), cur = chain.at(-1);
+  const q = norm(S.q);
+  let body;
+  if (q) {
+    const hits = DS.agents.filter((a) => norm(a.n).includes(q) || norm(a.c).includes(q)).slice(0, 60);
+    body = `<div class="oc-sec">Kết quả tìm "${esc(S.q)}" · ${hits.length}${hits.length === 60 ? '+' : ''} người</div><div class="oc-grid">${hits.map((a) => `<div class="oc k-person" data-hc-goto="${esc(a.c)}" tabindex="0" role="button"><div class="oc-h"><div class="av ${a.um ? 'um' : ''}">${esc(initials(a.n))}</div><div class="t"><b>${esc(a.n)}</b><small>${esc(a.t)} · ${esc(a.c)} · KV ${esc(a.a)}</small></div>${tierBadge(a.tier)}</div><div class="oc-f"><span>FYP 6T ${money(a.fyp6)} ${dots(a)}</span><span class="go">Mở trong cây ›</span></div></div>`).join('') || '<div class="empty">Không tìm thấy.</div>'}</div>`;
+  } else {
+    const kids = cur.children(), fa = (cur.fa || []).slice().sort((x, y) => N(y.fyp6) - N(x.fyp6));
+    const kindName = cur.kind === 'area' || cur.kind === 'person' ? 'UM+ báo cáo trực tiếp' : cur.kind === 'group' && cur.id === 'root' ? 'Đầu RH' : 'Báo cáo trực tiếp';
+    body = `${hcCard(cur, { hero: true })}
+      ${kids.length ? `<div class="oc-sec">${kindName} · ${kids.length}</div><div class="oc-grid">${kids.map((k) => hcCard(k)).join('')}</div>` : ''}
+      ${fa.length ? `<div class="oc-sec">FA báo cáo trực tiếp · ${fa.length}</div><section class="panel"><div class="panel-b"><div class="fa-list" style="padding-left:0">${fa.map(faChip).join('')}</div></div></section>` : ''}
+      ${!kids.length && !fa.length ? '<div class="empty">Không có cấp dưới.</div>' : ''}`;
+  }
+  const s = groupStats(DS.agents.filter((a) => S.area === 'all' || a.a === S.area));
+  c.innerHTML = `
+  <section class="panel"><div class="panel-h"><div><h3>Cây đội ngũ dạng thẻ</h3><p>Bấm một thẻ để đi xuống cấp dưới · bấm đường dẫn để quay lại · chỉ số mỗi thẻ tính cho cả nhánh bên dưới</p></div>
+    <div class="toolbar">${viewToggle()}<input class="input" id="h-q" placeholder="Tìm tên hoặc mã đại lý…" value="${esc(S.q)}" style="width:220px"></div></div>
+    <div class="panel-b"><div class="crumbs">${chain.map((x, i) => `${i ? '<span class="sep">›</span>' : ''}<button data-hc-crumb="${i}" class="${i === chain.length - 1 ? 'cur' : ''}">${esc(x.name)}</button>`).join('')}</div></div></section>
+  ${body}
+  <p class="note">Toàn phạm vi: ${f0(s.n)} nguồn lực · ${f0(s.um)} UM+ · 3mAA ${f0(s.aa3)} · bán đều ${f0(s.even)} người · chấm tròn = có HĐ thực cấp ${DS.months.slice(0, 3).map(mLabel).join(', ')}</p>`;
+  bindViewToggle(c);
+  const qi = $('#h-q'); qi.oninput = () => { clearTimeout(qi._t); qi._t = setTimeout(() => { S.q = qi.value.trim(); healthCards(c); const n = $('#h-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); };
+  c.onclick = (e) => {
+    const d = e.target.closest('[data-hc-detail]'); if (d) { e.stopPropagation(); openPerson(d.dataset.hcDetail); return; }
+    const fa = e.target.closest('.fa[data-person]'); if (fa) { openPerson(fa.dataset.person); return; }
+    const cr = e.target.closest('[data-hc-crumb]'); if (cr) { S.hPath = S.hPath.slice(0, +cr.dataset.hcCrumb); healthCards(c); return; }
+    const g = e.target.closest('[data-hc-goto]');
+    if (g) { const a = DS.by.get(g.dataset.hcGoto); const path = a && hcPathTo(a); if (path) { S.q = ''; S.hPath = path; healthCards(c); if (!a.um) openPerson(a.c); } return; }
+    const card = e.target.closest('[data-hc]');
+    if (card && !card.classList.contains('leaf')) { S.hPath = [...S.hPath, card.dataset.hc]; healthCards(c); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  };
+  c.onkeydown = (e) => { if (e.key === 'Enter') { const card = e.target.closest('[data-hc],[data-hc-goto]'); if (card) card.click(); } };
+}
 // ---------- ngăn chi tiết cá nhân ----------
 function monthsLeft(asOf) { const d = new Date(asOf); return 12 - d.getMonth(); } // gồm tháng hiện tại
 function closeDrawer() { $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); S.sel = null; $$('.node-row.sel').forEach((n) => n.classList.remove('sel')); }
@@ -1628,7 +1809,7 @@ function planTrack(body, Y, YM) {
     const labels = rows.map((r, i) => `<text x="${pad.l + step * i + step / 2}" y="${h - 8}" text-anchor="middle">${mLabel(r.m)}</text>`).join('');
     const line = pts.filter(Boolean).map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
     const marks = pts.map((p, i) => (p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff" stroke="#f79009" stroke-width="2"><title>Plan ${mLabel(rows[i].m)}: ${money(rows[i].pF)}</title></circle>` : '')).join('');
-    return `<svg class="chart" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;max-height:${h + 40}px" role="img"><line class="grid" x1="0" x2="${W}" y1="${h - pad.b}" y2="${h - pad.b}"/>${cols}${line ? `<path d="${line}" fill="none" stroke="#f79009" stroke-width="2" stroke-dasharray="5 4"/>` : ''}${marks}${labels}</svg>`;
+    return `<div class="chart-scroll"><svg class="chart chart-wide" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;max-height:${h + 40}px" role="img"><line class="grid" x1="0" x2="${W}" y1="${h - pad.b}" y2="${h - pad.b}"/>${cols}${line ? `<path d="${line}" fill="none" stroke="#f79009" stroke-width="2" stroke-dasharray="5 4"/>` : ''}${marks}${labels}</svg></div>`;
   })();
   const tr = (r) => `<tr class="${r.m === S.planMonth ? 'sel' : ''}"><td><b>${mLabel(r.m)}</b>${r.partial ? ' <span class="badge b-amber">đang chạy</span>' : ''}</td>
     <td class="r num">${money(r.pF)}</td><td class="r num">${money(r.aF)}</td>${pctCell(r.aF, r.pF)}
