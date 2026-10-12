@@ -732,7 +732,8 @@ const TIER_NAME = { S: 'Silver', G: 'Gold', P: 'Platinum' };
 // ---------- trạng thái ----------
 let sb = null, user = null, profile = null, isAdmin = false;
 let DS = null; // dữ liệu đã xử lý
-const S = { page: 'overview', focus: 2, area: 'all', q: '', open: new Set(), sel: null, healthSort: 'fyp6', titleTab: 'mdrt', libQ: '', libCat: 'Tất cả', libStatus: 'Đang hiệu lực' };
+let RHG = [], RHO = {}; // quy tắc chia đầu RH & ghi đè theo khu vực
+const S = { rh: (() => { try { return localStorage.getItem('rh-scope') || 'all'; } catch { return 'all'; } })(), page: 'overview', focus: 2, area: 'all', q: '', open: new Set(), sel: null, healthSort: 'fyp6', titleTab: 'mdrt', libQ: '', libCat: 'Tất cả', libStatus: 'Đang hiệu lực' };
 
 // =====================================================================
 //  CỔNG ĐĂNG NHẬP
@@ -817,8 +818,37 @@ async function start() {
 async function loadDataset() {
   const r = await sb.from('v10_dataset').select('id,built_at,as_of,payload').order('id', { ascending: false }).limit(1).maybeSingle();
   if (r.error) throw new Error(r.error.message);
+  const st = await sb.from('app_settings').select('key,value').in('key', ['rh_groups', 'rh_area_override']);
+  for (const x of st.data || []) { if (x.key === 'rh_groups') RHG = Array.isArray(x.value) ? x.value : []; if (x.key === 'rh_area_override') RHO = x.value || {}; }
   DS = r.data ? prepare(r.data) : null;
+  if (DS) applyScope();
 }
+// ---------- đầu RH ----------
+const RH_OTHER = { id: 'other', name: 'Other (khu vực không thuộc 3 RH)' };
+const rhList = () => [...RHG, RH_OTHER];
+const rhName = (id = S.rh) => (id === 'all' ? 'ALL · toàn bộ' : (rhList().find((g) => g.id === id) || { name: id }).name);
+const rhShort = (id = S.rh) => (id === 'all' ? 'ALL' : id === 'other' ? 'Other' : rhName(id));
+function autoRh(ar) {
+  const has = (arr, v) => !!v && (arr || []).some((x) => norm(x) === norm(v));
+  for (const k of ['l3', 'tv', 'psm']) { const g = RHG.find((x) => has(x[k], ar[k])); if (g) return g.id; }
+  return 'other';
+}
+function assignRh() { for (const a of DS.areasAll) { a.rhAuto = autoRh(a); a.rh = RHO[a.code] && (RHO[a.code] === 'other' || RHG.some((g) => g.id === RHO[a.code])) ? RHO[a.code] : a.rhAuto; } }
+function applyScope() {
+  if (!DS.areasAll) { DS.areasAll = DS.areas; DS.agentsAll = DS.agents; DS.segmentsAll = DS.segments; DS.meta.saCountAll = DS.meta.saCount; }
+  assignRh();
+  if (S.rh !== 'all' && !rhList().some((g) => g.id === S.rh)) S.rh = 'all';
+  const ids = S.rh === 'all' ? null : new Set(DS.areasAll.filter((a) => a.rh === S.rh).map((a) => a.code));
+  DS.areas = ids ? DS.areasAll.filter((a) => ids.has(a.code)) : DS.areasAll;
+  DS.agents = ids ? DS.agentsAll.filter((a) => ids.has(a.a)) : DS.agentsAll;
+  DS.meta.saCount = ids ? sum(DS.areas, (a) => a.sa) : DS.meta.saCountAll;
+  DS.segments = ids ? [] : DS.segmentsAll; // báo cáo MAPA chỉ có số toàn bộ
+  if (S.area !== 'all' && !DS.areas.some((a) => a.code === S.area)) S.area = 'all';
+  PLAN = null;
+}
+function setRh(id) { S.rh = id; try { localStorage.setItem('rh-scope', id); } catch {} S.open.clear(); applyScope(); render(); }
+const scopeKey = () => (S.rh === 'all' ? 'TOÀN VÙNG' : 'RH:' + S.rh); // khóa số nhập tay
+const planScope = () => (S.rh === 'all' ? 'ALL' : S.rh); // khóa kế hoạch
 function prepare(row) {
   const P = row.payload, meta = P.meta, months = meta.months;
   const agents = (P.agents || []).map((a) => ({
@@ -850,7 +880,7 @@ function prepare(row) {
     const info = areaInfo.get(code) || {};
     const list = agents.filter((a) => a.a === code);
     const chain = Array.isArray(info.chain) ? info.chain.filter((x) => x && x !== 'Total') : [];
-    return { code, psm: info.psm || (chain.length ? chain.at(-1).split(' - ').slice(1).join(' - ') : null), chain, list, tops: list.filter((a) => !a.parent), sa: N(meta.saByArea?.[code]) };
+    return { code, psm: info.psm || (chain.length ? chain.at(-1).split(' - ').slice(1).join(' - ') : null), tv: info.tv || null, l2: info.l2 || null, l3: info.l3 || null, chain, list, tops: list.filter((a) => !a.parent), sa: N(meta.saByArea?.[code]) };
   });
   const manual = P.manual || [];
   return { id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [] };
@@ -874,7 +904,7 @@ function groupStats(list, end = 2) {
   return s;
 }
 function scopeList() { return S.area === 'all' ? DS.agents : DS.agents.filter((a) => a.a === S.area); }
-function manualFor(ym, area = 'TOÀN VÙNG') { const r = DS.manual.find((x) => x.month === ym && x.area === area); return r ? r.vals || {} : null; }
+function manualFor(ym, area = scopeKey()) { const r = DS.manual.find((x) => x.month === ym && x.area === area); return r ? r.vals || {} : null; }
 // số liệu tháng (ưu tiên dữ liệu thật; tháng ngoài phạm vi BC70 lấy từ số nhập tay)
 function monthValue(ym, key, list) {
   const i = DS.months.indexOf(ym);
@@ -932,11 +962,13 @@ window.addEventListener('hashchange', route);
 $('#menu-btn').onclick = () => document.body.classList.toggle('nav-open');
 
 function topControls() {
-  if (!DS || !['overview', 'health', 'titles'].includes(S.page)) return '';
+  if (!DS || !['overview', 'health', 'titles', 'plan', 'history'].includes(S.page)) return '';
+  const rhSel = `<select class="select" id="sel-rh" aria-label="Đầu RH" style="font-weight:700">${[['all', 'ALL · toàn bộ'], ...rhList().map((g) => [g.id, g.name])].map(([id, n]) => `<option value="${id}" ${S.rh === id ? 'selected' : ''}>${esc(id === 'all' ? n : 'RH · ' + n)} (${id === 'all' ? DS.areasAll.length : DS.areasAll.filter((a) => a.rh === id).length} KV)</option>`).join('')}</select>`;
+  if (['plan', 'history'].includes(S.page)) return rhSel;
   const M = DS.months;
   const monthSel = S.page === 'overview' ? `<select class="select" id="sel-focus" aria-label="Tháng xem">${[2, 1, 0].map((i) => `<option value="${i}" ${S.focus === i ? 'selected' : ''}>${mLabel(M[i])}${i === 2 ? ' · tháng gần nhất' : ''}</option>`).join('')}</select>` : '';
-  const areaSel = `<select class="select" id="sel-area" aria-label="Khu vực"><option value="all">Toàn vùng (${DS.areas.length} khu vực)</option>${DS.areas.map((a) => `<option value="${a.code}" ${S.area === a.code ? 'selected' : ''}>${esc(a.code)}${a.psm ? ' · ' + esc(a.psm) : ''}</option>`).join('')}</select>`;
-  return `${monthSel}${areaSel}<span class="chip">Chốt <b>${dmy(DS.meta.asOf)}</b></span><span class="chip">Đơn vị tiền <b>VND</b></span>`;
+  const areaSel = `<select class="select" id="sel-area" aria-label="Khu vực"><option value="all">Tất cả khu vực (${DS.areas.length})</option>${DS.areas.map((a) => `<option value="${a.code}" ${S.area === a.code ? 'selected' : ''}>${esc(a.code)}${a.psm ? ' · ' + esc(a.psm) : ''}</option>`).join('')}</select>`;
+  return `${rhSel}${monthSel}${areaSel}<span class="chip">Chốt <b>${dmy(DS.meta.asOf)}</b></span><span class="chip">Đơn vị tiền <b>VND</b></span>`;
 }
 function render() {
   const p = PAGES.find((x) => x.id === S.page);
@@ -944,6 +976,7 @@ function render() {
   renderNav();
   $('#top-r').innerHTML = topControls();
   const fs = $('#sel-focus'); if (fs) fs.onchange = (e) => { S.focus = +e.target.value; render(); };
+  const rs = $('#sel-rh'); if (rs) rs.onchange = (e) => setRh(e.target.value);
   const as = $('#sel-area'); if (as) as.onchange = (e) => { S.area = e.target.value; S.open.clear(); render(); };
   const c = $('#content');
   try { ({ overview: pageOverview, health: pageHealth, titles: pageTitles, history: pageHistory, plan: pagePlan, library: pageLibrary, data: pageData })[S.page](c); }
@@ -1005,7 +1038,7 @@ function pageOverview(c) {
   const aa3Prev = i >= 3 ? groupStats(list, i - 1).aa3 : null;
   const kpi = (lb, v, s, d) => `<div class="kpi"><div class="lb">${lb}</div><div class="v num">${v}</div><div class="d">${d}</div><div class="s">${s}</div></div>`;
   const fypNow = val('fyp', ym), fypPrev = val('fyp', prevYm), fypYoy = val('fyp', yoyYm);
-  const scopeName = S.area === 'all' ? 'toàn vùng' : 'khu vực ' + S.area;
+  const scopeName = S.area === 'all' ? rhShort() : 'khu vực ' + S.area;
   const kpis = [
     kpi(`FYP thực cấp · ${mLabel(ym)}`, money(offMonth ? offFyp : fypNow),
       offMonth ? `Báo cáo KD chính thức · ${f0(offCc)} HĐ. Theo BC70 (đã điều chỉnh): ${money(fypNow)}` : `Theo BC70 · ${f0(val('cc', ym))} HĐ thực cấp`,
@@ -1138,7 +1171,7 @@ function pageHealth(c) {
     <div class="kpi"><div class="lb">Bán đều (≥ 2/3 tháng)</div><div class="v num">${f0(s.even)}</div><div class="s">1/3 tháng: ${f0(s.once)} · không bán: ${f0(s.zero)} trên ${f0(s.n)}</div></div>
   </div>
   <section class="panel">
-    <div class="panel-h"><div><h3>Cây báo cáo ${S.area === 'all' ? 'toàn vùng' : 'khu vực ' + esc(S.area)}</h3><p>PSM+ → Khu vực → UM+ trực tiếp → UM+ cấp dưới → FA. Chỉ số của mỗi dòng tính cho cả nhóm bên dưới (gồm người đó). Chấm tròn = 3 tháng ${mLabel(DS.months[0])}–${mLabel(DS.months[2])} có/không có HĐ thực cấp.</p></div>
+    <div class="panel-h"><div><h3>Cây báo cáo ${S.area === 'all' ? esc(rhShort()) : 'khu vực ' + esc(S.area)}</h3><p>PSM+ → Khu vực → UM+ trực tiếp → UM+ cấp dưới → FA. Chỉ số của mỗi dòng tính cho cả nhóm bên dưới (gồm người đó). Chấm tròn = 3 tháng ${mLabel(DS.months[0])}–${mLabel(DS.months[2])} có/không có HĐ thực cấp.</p></div>
       <div class="toolbar"><input class="input" id="h-q" placeholder="Tìm tên hoặc mã đại lý…" value="${esc(S.q)}" style="width:220px"><button class="btn btn-sm" id="h-exp">Mở hết UM+</button><button class="btn btn-sm" id="h-col">Thu gọn</button></div></div>
     <div class="tree-head"><span></span><span>Người / nhóm</span><span class="c1">UM+ / FA</span><span class="c2">FA · ManPro</span><span class="c3">3mAA</span><span class="c4">Bán đều</span><span class="c5">Bán/tháng</span><span class="c6">FYP 6T</span></div>
     <div class="tree" id="tree">${psmRows || '<div class="empty">Không tìm thấy.</div>'}</div>
@@ -1313,7 +1346,7 @@ function pageTitles(c) {
 // =====================================================================
 const HIST_FIELDS = [['fyp', 'FYP (triệu đồng)'], ['cc', 'Số HĐ'], ['active', 'ĐL hoạt động'], ['nr', 'Tuyển mới (NR)'], ['hc', 'Nguồn lực'], ['um', 'UM+']];
 async function pageHistory(c) {
-  const r = await sb.from('manual_metrics').select('month,area,vals,updated_at').eq('area', 'TOÀN VÙNG').order('month');
+  const r = await sb.from('manual_metrics').select('month,area,vals,updated_at').eq('area', scopeKey()).order('month');
   const rows = r.data || [];
   const byM = new Map(rows.map((x) => [x.month, x.vals || {}]));
   const last = DS ? DS.months[0] : new Date().toISOString().slice(0, 7);
@@ -1324,7 +1357,7 @@ async function pageHistory(c) {
   const list = DS ? DS.agents : [];
   c.innerHTML = `
   <div class="banner"><span>ℹ️</span><div>Số các tháng <b>${auto.map(mLabel).join(', ')}</b> đã có tự động từ BC70. Nhập các tháng trước đó (đặc biệt <b>cùng kỳ năm trước</b>) để dashboard so YoY và nối xu hướng. Đơn vị FYP: <b>triệu đồng</b>. ${isAdmin ? '' : 'Chỉ admin được sửa.'}</div></div>
-  <section class="panel"><div class="panel-h"><div><h3>Số liệu toàn vùng theo tháng · năm <select class="select" id="hist-year" style="display:inline-block;width:auto">${[curY - 3, curY - 2, curY - 1, curY].map((y) => `<option ${y === S.histYear ? 'selected' : ''}>${y}</option>`).join('')}</select></h3><p>Ô trống = chưa có số (không tính là 0). Chọn năm để nhập lịch sử các năm trước.</p></div>
+  <section class="panel"><div class="panel-h"><div><h3>Số liệu ${esc(rhShort())} theo tháng · năm <select class="select" id="hist-year" style="display:inline-block;width:auto">${[curY - 3, curY - 2, curY - 1, curY].map((y) => `<option ${y === S.histYear ? 'selected' : ''}>${y}</option>`).join('')}</select></h3><p>Ô trống = chưa có số (không tính là 0). Chọn năm để nhập lịch sử các năm trước.</p></div>
     <div class="toolbar">${isAdmin ? '<button class="btn btn-sm" id="hist-tpl">Lấy từ template đã tải lên</button><button class="btn btn-primary btn-sm" id="hist-save" disabled>Lưu thay đổi</button>' : ''}</div></div>
     <div class="panel-b"><div id="hist-msg" class="note"></div><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Tháng</th>${HIST_FIELDS.map(([, l]) => `<th class="r">${l}</th>`).join('')}</tr></thead><tbody>
       ${months.map((m) => `<tr><td><b>${mLabel(m)}</b></td>${HIST_FIELDS.map(([k]) => `<td><input data-m="${m}" data-k="${k}" inputmode="decimal" value="${byM.get(m)?.[k] ?? ''}" ${isAdmin ? '' : 'disabled'}></td>`).join('')}</tr>`).join('')}
@@ -1336,7 +1369,7 @@ async function pageHistory(c) {
   $$('input[data-m]', c).forEach((inp) => inp.oninput = () => { inp.classList.add('dirty'); dirty.set(inp.dataset.m, true); $('#hist-save').disabled = false; });
   $('#hist-save').onclick = async () => {
     const btn = $('#hist-save'); btn.disabled = true; btn.textContent = 'Đang lưu…';
-    const up = [...dirty.keys()].map((m) => { const vals = {}; HIST_FIELDS.forEach(([k]) => { const v = $(`input[data-m="${m}"][data-k="${k}"]`).value.trim().replace(/\./g, '').replace(',', '.'); if (v !== '' && !isNaN(+v)) vals[k] = +v; }); return { month: m, area: 'TOÀN VÙNG', vals, updated_at: new Date().toISOString() }; });
+    const up = [...dirty.keys()].map((m) => { const vals = {}; HIST_FIELDS.forEach(([k]) => { const v = $(`input[data-m="${m}"][data-k="${k}"]`).value.trim().replace(/\./g, '').replace(',', '.'); if (v !== '' && !isNaN(+v)) vals[k] = +v; }); return { month: m, area: scopeKey(), vals, updated_at: new Date().toISOString() }; });
     const res = await sb.from('manual_metrics').upsert(up);
     if (res.error) { $('#hist-msg').innerHTML = `<span class="err">${esc(res.error.message)}</span>`; btn.disabled = false; btn.textContent = 'Lưu thay đổi'; return; }
     const mm = await sb.from('manual_metrics').select('month,area,vals').order('month');
@@ -1352,11 +1385,11 @@ async function pageHistory(c) {
     for (const { data } of rr.data || []) {
       const ent = Object.fromEntries(Object.entries(data).map(([k, v]) => [norm(k), v]));
       const m = String(ent['thang (yyyy-mm)'] || '').trim(), area = String(ent['ma khu vuc'] || '').trim();
-      if (!/^\d{4}-\d{2}$/.test(m) || norm(area) !== 'toan vung') continue;
+      if (!/^\d{4}-\d{2}$/.test(m) || !(S.rh === 'all' ? norm(area) === 'toan vung' : [norm(rhName()), norm(rhShort()), norm(S.rh)].includes(norm(area)))) continue;
       const map = { fyp: 'fyp thuc cap (trieu dong)', cc: 'cc thuc cap (so hd)', active: 'dl active (≥1 hd thuc cap)', nr: 'nr - dl duoc cap ma', hc: 'nguon luc cuoi thang', um: 'um+ cuoi thang' };
       for (const [k, col] of Object.entries(map)) { const v = ent[col]; const inp = $(`input[data-m="${m}"][data-k="${k}"]`); if (inp && v !== undefined && v !== null && v !== '') { inp.value = v; inp.classList.add('dirty'); dirty.set(m, true); n++; } }
     }
-    $('#hist-msg').innerHTML = n ? `<span class="ok">Đã điền ${n} ô từ "${esc(u.data.file_name)}". Kiểm tra rồi bấm Lưu.</span>` : '<span class="err">Template chưa có số nào cho TOÀN VÙNG.</span>';
+    $('#hist-msg').innerHTML = n ? `<span class="ok">Đã điền ${n} ô từ "${esc(u.data.file_name)}". Kiểm tra rồi bấm Lưu.</span>` : `<span class="err">Template chưa có số nào cho ${S.rh === 'all' ? 'TOÀN VÙNG' : 'đầu RH ' + esc(rhShort()) + ' (cột Mã khu vực ghi đúng tên RH)'}.</span>`;
     if (n) $('#hist-save').disabled = false;
   };
 }
@@ -1374,7 +1407,7 @@ let PLAN = null; // Map 'YYYY-MM|SEG' -> vals
 const planKey = (m, s = 'TOTAL') => `${m}|${s}`;
 const pv = (m, s, k) => { const v = PLAN?.get(planKey(m, s))?.[k]; return v === undefined || v === null || v === '' ? null : +v; };
 async function loadPlan() {
-  const r = await sb.from('plan_targets').select('month,segment,vals');
+  const r = await sb.from('plan_targets').select('month,segment,vals').eq('scope', planScope());
   if (r.error) throw new Error(r.error.message);
   PLAN = new Map((r.data || []).map((x) => [planKey(x.month, x.segment), x.vals || {}]));
 }
@@ -1393,7 +1426,7 @@ function segAt(a, ym) {
 // thực tế theo phân khúc của 1 tháng: {seg: {hc, aa, cc, fyp}} — tính từ BC70 (cùng chuẩn mọi tháng);
 // SA không có trong BC70 → lấy từ báo cáo MAPA nếu đúng tháng chính thức
 function mapaSA(ym) {
-  if (ym !== DS.meta.officialMonth) return null;
+  if (ym !== DS.meta.officialMonth || S.rh !== 'all') return null;
   const r = (DS.segments || []).find((x) => x['Phân khúc Đại lý'] === '7. SA');
   return r ? { hc: N(r['(3) Tổng nguồn lực + Tổng ĐL phục vụ (CA + SA)']), aa: N(r['(4) Số lượng đại lý có hợp đồng thực cấp trong tháng báo cáo (1mAA)']), cc: N(r['(7) Số hợp đồng thực cấp (CC Net)']), fyp: N(r['(2) FYP thực cấp']) } : null;
 }
@@ -1459,7 +1492,7 @@ async function pagePlan(c) {
   const tabs = [['track', 'Theo dõi Plan vs Thực tế'], ['calc', 'Cần bao nhiêu 1mAA / HĐ'], ['input', isAdmin ? 'Nhập target & plan' : 'Xem target & plan']];
   const yearSel = `<select class="select" id="pl-year">${[Y - 1, Y, Y + 1].map((y) => `<option ${y === Y ? 'selected' : ''}>${y}</option>`).join('')}</select>`;
   const monthSel = `<select class="select" id="pl-month">${YM.map((m) => `<option value="${m}" ${m === S.planMonth ? 'selected' : ''}>${mLabel(m)}${m === M[3] ? ' · đang chạy' : ''}</option>`).join('')}</select>`;
-  c.innerHTML = `<div class="toolbar" style="margin-bottom:12px;gap:8px;flex-wrap:wrap">Năm ${yearSel} Tháng ${monthSel}</div>
+  c.innerHTML = `<div class="toolbar" style="margin-bottom:12px;gap:8px;flex-wrap:wrap"><span class="chip">Đầu RH <b>${esc(rhShort())}</b></span> Năm ${yearSel} Tháng ${monthSel}</div>
     <div class="tabs">${tabs.map(([k, l]) => `<button data-pltab="${k}" class="${S.planTab === k ? 'on' : ''}">${l}</button>`).join('')}</div><div id="pl-body"></div>`;
   $('#pl-year').onchange = (e) => { S.planYear = +e.target.value; S.planMonth = `${S.planYear}-${S.planMonth.slice(5)}`; render(); };
   $('#pl-month').onchange = (e) => { S.planMonth = e.target.value; render(); };
@@ -1513,7 +1546,7 @@ function planTrack(body, Y, YM) {
   }).join('');
   body.innerHTML = `<div class="kpis">${kpis}</div>
   <section class="panel"><div class="panel-h"><div><h3>FYP thực tế vs Plan · ${Y}</h3><p>Cột = thực tế (BC70 hoặc số nhập tay) · đường cam = plan tháng</p></div></div><div class="panel-b">${planLine}<div class="legend"><span><i style="background:var(--green)"></i>Thực tế (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span><span><i style="background:#f79009"></i>Plan</span></div></div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Plan vs Thực tế theo tháng</h3><p>Toàn vùng · 1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tháng</th><th class="r">Plan FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Plan 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Plan HĐ</th><th class="r">TT HĐ</th><th class="r">Plan NR</th><th class="r">TT NR</th><th class="r">% đạt</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table></div>
+  <section class="panel"><div class="panel-h"><div><h3>Plan vs Thực tế theo tháng</h3><p>${esc(rhShort())} · 1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tháng</th><th class="r">Plan FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Plan 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Plan HĐ</th><th class="r">TT HĐ</th><th class="r">Plan NR</th><th class="r">TT NR</th><th class="r">% đạt</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table></div>
   <p class="note">Tháng chưa có số thực tế: nhập ở <a href="#history">KQKD các kỳ trước</a>. Tháng đang chạy là số tạm tính đến ${dmy(DS.meta.asOf)}.</p></div></section>
   <section class="panel"><div class="panel-h"><div><h3>Theo phân khúc · ${mLabel(ym)}</h3><p>${act ? `Nguồn thực tế: BC70 (phân khúc theo thâm niên tại tháng đó)${act.hasSA ? ' · SA từ báo cáo MAPA' : ' · SA chỉ có ở tháng có báo cáo MAPA'}` : 'Chưa có số thực tế theo phân khúc cho tháng này'}</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Phân khúc</th><th class="r">Nguồn lực</th><th class="r">Plan 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Plan FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Case size</th><th class="r">HĐ / ĐL có bán</th></tr></thead><tbody>${segRows}</tbody></table></div></div></section>`;
 }
@@ -1574,7 +1607,7 @@ function planInput(body, Y, YM) {
   const inp = (m, s, k, ph = '') => `<input data-pm="${m}" data-ps="${s}" data-pk="${k}" inputmode="decimal" value="${pv(m, s, k) ?? ''}" placeholder="${ph}" ${dis}>`;
   const yKey = String(Y);
   body.innerHTML = `
-  <section class="panel"><div class="panel-h"><div><h3>Target năm ${Y}</h3><p>Đơn vị FYP: triệu đồng</p></div>
+  <section class="panel"><div class="panel-h"><div><h3>Target năm ${Y} · ${esc(rhShort())}</h3><p>Đơn vị FYP: triệu đồng · mỗi đầu RH có target & plan riêng (ALL là target tổng)</p></div>
     <div class="toolbar">${isAdmin ? `<button class="btn btn-sm" id="pl-split">Chia target năm → 12 tháng</button><button class="btn btn-primary btn-sm" id="pl-save" disabled>Lưu thay đổi</button>` : ''}</div></div>
     <div class="panel-b"><div id="pl-msg" class="note"></div><table class="tbl edit-tbl" style="max-width:640px"><thead><tr><th class="r">FYP năm (triệu)</th><th class="r">NR năm</th><th class="r">1mAA bình quân/tháng</th></tr></thead>
     <tbody><tr><td>${inp(yKey, 'TOTAL', 'fyp')}</td><td>${inp(yKey, 'TOTAL', 'nr')}</td><td>${inp(yKey, 'TOTAL', 'aa')}</td></tr></tbody></table></div></section>
@@ -1604,7 +1637,7 @@ function planInput(body, Y, YM) {
   $('#pl-suggest').onclick = () => { $$(`input[data-pm="${ym}"]`, body).forEach((el) => { if (el.dataset.ps !== 'TOTAL' && !el.value && el.placeholder) { el.value = el.placeholder; mark(el); } }); };
   $('#pl-save').onclick = async () => {
     const btn = $('#pl-save'); btn.disabled = true; btn.textContent = 'Đang lưu…';
-    const rows = [...dirty].map((key) => { const [m, s] = key.split('|'); const vals = {}; $$(`input[data-pm="${m}"][data-ps="${s}"]`, body).forEach((el) => { const v = el.value.trim().replace(/\./g, '').replace(',', '.'); if (v !== '' && !isNaN(+v)) vals[el.dataset.pk] = +v; }); return { month: m, segment: s, vals, updated_at: new Date().toISOString() }; });
+    const rows = [...dirty].map((key) => { const [m, s] = key.split('|'); const vals = {}; $$(`input[data-pm="${m}"][data-ps="${s}"]`, body).forEach((el) => { const v = el.value.trim().replace(/\./g, '').replace(',', '.'); if (v !== '' && !isNaN(+v)) vals[el.dataset.pk] = +v; }); return { scope: planScope(), month: m, segment: s, vals, updated_at: new Date().toISOString() }; });
     const res = await sb.from('plan_targets').upsert(rows);
     if (res.error) { $('#pl-msg').innerHTML = `<span class="err">${esc(res.error.message)}</span>`; btn.disabled = false; btn.textContent = 'Lưu thay đổi'; return; }
     await loadPlan(); S.calcTarget = null;
@@ -1686,11 +1719,39 @@ async function openPolicy(id) {
 // =====================================================================
 //  TRANG 6 · KHO DỮ LIỆU (admin)
 // =====================================================================
+function rhMapPanel() {
+  const opts = (sel) => rhList().map((g) => `<option value="${g.id}" ${sel === g.id ? 'selected' : ''}>${esc(g.id === 'other' ? 'Other' : g.name)}</option>`).join('');
+  const cnt = (id) => DS.areasAll.filter((a) => a.rh === id).length;
+  return `<section class="panel"><div class="panel-h"><div><h3>Phân đầu RH theo khu vực</h3><p>Tự chia theo Layer 3 / Trưởng Vùng / PSM+ trong báo cáo. Đổi ô "Thuộc RH" nếu khu vực chuyển nhánh hoặc khu vực mới chưa nhận đúng – áp dụng ngay cho mọi trang.</p></div>
+    <div class="toolbar"><button class="btn btn-primary btn-sm" id="rhm-save" disabled>Lưu phân đầu</button></div></div>
+    <div class="panel-b" style="padding-top:6px"><div id="rhm-msg" class="note">${rhList().map((g) => `<span class="chip">${esc(g.id === 'other' ? 'Other' : g.name)} <b>${cnt(g.id)}</b> KV</span>`).join(' ')}</div>
+    <div class="tbl-wrap" style="max-height:420px"><table class="tbl"><thead><tr><th>Khu vực</th><th>PSM+ quản lý</th><th>Trưởng Vùng (báo cáo)</th><th>Layer 3</th><th class="r">Nguồn lực</th><th>Tự nhận</th><th>Thuộc RH</th></tr></thead><tbody>
+    ${DS.areasAll.map((a) => `<tr><td><b>${esc(a.code)}</b></td><td>${esc(a.psm || '–')}</td><td>${esc(a.tv || '–')}</td><td>${esc(a.l3 || '–')}</td><td class="r num">${f0(a.list.length)}</td><td class="muted small">${esc(rhShort(a.rhAuto))}</td>
+      <td><select class="select" data-rhm="${esc(a.code)}" ${isAdmin ? '' : 'disabled'} style="${RHO[a.code] ? 'border-color:#f79009' : ''}">${opts(a.rh)}</select></td></tr>`).join('')}
+    </tbody></table></div></div></section>`;
+}
+function bindRhMap() {
+  const changed = new Map();
+  $$('[data-rhm]').forEach((el) => el.onchange = () => { changed.set(el.dataset.rhm, el.value); el.style.borderColor = '#f79009'; $('#rhm-save').disabled = false; });
+  const btn = $('#rhm-save'); if (!btn) return;
+  btn.onclick = async () => {
+    btn.disabled = true;
+    const next = { ...RHO };
+    for (const [code, id] of changed) { const ar = DS.areasAll.find((a) => a.code === code); if (ar && ar.rhAuto === id) delete next[code]; else next[code] = id; }
+    const r = await sb.from('app_settings').upsert({ key: 'rh_area_override', value: next });
+    if (r.error) { $('#rhm-msg').innerHTML = `<span class="err">${esc(r.error.message)}</span>`; btn.disabled = false; return; }
+    RHO = next; applyScope(); renderNav();
+    $('#rhm-msg').innerHTML = `<span class="ok">Đã lưu phân đầu RH cho ${changed.size} khu vực – các trang đã cập nhật.</span>`;
+    changed.clear();
+  };
+}
 function pageData(c) {
   c.innerHTML = `<section class="panel"><div class="panel-h"><div><h3>Dựng lại dashboard</h3><p>Sau khi tải báo cáo mới (BC70, Báo cáo KD ĐL, MDRT, MBA Pro, ManPro, M0-M1…) bấm nút này để dashboard dùng số mới. Hệ thống tự lấy bản mới nhất của từng loại.</p></div><button class="btn btn-primary" id="rebuild">Dựng lại dashboard</button></div>
     <div class="panel-b" id="rb-msg">${DS ? `Bản đang dùng: dữ liệu chốt <b>${dmy(DS.meta.asOf)}</b> · dựng lúc ${esc(new Date(DS.builtAt).toLocaleString('vi-VN'))} · ${f0(DS.agents.length)} đại lý` : '<span class="err">Chưa có bộ dữ liệu dashboard.</span>'}</div></section>
+    ${DS ? rhMapPanel() : ''}
     <div id="hub"></div>`;
   window.RHDataHub?.mount($('#hub'));
+  if (DS) bindRhMap();
   $('#rebuild').onclick = async () => {
     const b = $('#rebuild'); b.disabled = true; b.textContent = 'Đang dựng…'; $('#rb-msg').textContent = 'Đang tổng hợp dữ liệu trên database…';
     const r = await sb.rpc('v10_build');
