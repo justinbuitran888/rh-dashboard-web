@@ -113,7 +113,7 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .chart{width:100%;display:block;overflow:visible}
 .chart text{font-family:inherit;fill:var(--muted);font-size:11px}
 .chart .val{fill:var(--ink-2);font-weight:600;font-size:11.5px}
-.chart .bar{fill:var(--green)}.chart .bar.part{fill:#9fdcbc}.chart .bar.man{fill:#7c8aa0}
+.chart .bar{fill:var(--green)}.chart .bar.part{fill:#9fdcbc}.chart .bar.man{fill:#7c8aa0}.chart .bar.rep{fill:#2e90fa}
 .chart .bar:hover{opacity:.82}
 .chart .grid{stroke:var(--line-2)}
 #tip{position:fixed;pointer-events:none;background:#101828;color:#fff;font-size:12px;padding:7px 9px;border-radius:8px;z-index:100;display:none;max-width:260px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.2)}
@@ -238,6 +238,13 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .oc-f{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted);min-width:0}
 .oc-f .go{color:var(--green-d);font-weight:700;white-space:nowrap}
 .oc-tiers{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.oc-tg{display:grid;gap:5px;padding:7px 9px;border-radius:9px;background:#f8fafc;border:1px solid var(--line-2)}
+.tgrow{display:grid;grid-template-columns:72px minmax(40px,1fr) 42px;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.tgrow b{text-align:right;color:var(--ink)}.tgrow small{grid-column:1/-1;margin-top:-3px;font-size:10.5px}
+.tgbar{position:relative;height:7px;border-radius:5px;background:#e4e7ec;overflow:visible}
+.tgbar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--green)}
+.tgbar.mid i{background:#f79009}.tgbar.low i{background:#f04438}
+.tgbar em{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:#344054;border-radius:1px}
 .oc-tiers .stack{flex:1}
 .oc-hero{cursor:default;background:linear-gradient(180deg,#fff,#fbfdfc)}
 .oc-hero .oc-h b{font-size:18px}.oc-hero .oc-h .av{width:46px;height:46px;font-size:15px}
@@ -340,6 +347,7 @@ const TYPES = {
   dncc: 'Đội ngũ chuyên cần (ĐNCC)', newAgentCohort: 'Đại lý gia nhập (cohort)', mdrt: 'MDRT',
   manproNew: 'Manulife Pro dưới 3 tháng', manproLong: 'Manulife Pro từ 3 tháng', nsxs: 'Năng suất xuất sắc (NSXS)',
   mba: 'MBA Pro', promotion: 'Theo dõi thăng cấp UM', recruitment: 'Tuyển dụng mới',
+  kdLayer: 'Báo cáo KD theo cấp quản lý (tháng)', targetFyp: 'Target FYP (file Target RH)', targetAa: 'Target 1mAA (file Target RH)',
   kqkd_area: 'Template KQKD theo khu vực', kqkd_agent: 'Template KQKD theo đại lý', mapping: 'Mapping cấu trúc',
   unknown: 'Khác / chưa nhận diện',
 };
@@ -357,6 +365,9 @@ const SIGS = [
   ['recruitment', ['Khu vực', 'UM_L1', 'UM_L2', 'YTD']],
   ['kqkd_agent', ['Tháng (YYYY-MM)', 'Mã Đại lý', 'FYP thực cấp']],
   ['kqkd_area', ['Tháng (YYYY-MM)', 'Mã khu vực', 'FYP thực cấp']],
+  ['kdLayer', ['Hệ thống phân cấp đại lý', 'Layer 2', 'Mã khu vực', 'FYP thực cấp', 'Tổng nguồn lực']],
+  ['targetFyp', ['Name', 'SM code', 'Loc code', 'Direct report', 'Rank PSM+', 'Target 20']],
+  ['targetAa', ['Name', 'SM code', 'Loc code', 'Direct report', 'Rank PSM+']],
   ['mapping', ['Mã khu vực', 'Layer 2', 'Layer 3']],
 ];
 
@@ -496,6 +507,8 @@ function periodFrom(meta, fileName, headers, rows) {
   if (!period && ym.length) period = ym.at(-1).slice(0, 4) + '-' + ym.at(-1).slice(4);
   if (!period) {
     const f = norm(fileName);
+    const d8 = f.match(/(?<!\d)([0-3]\d)(0[1-9]|1[0-2])(20\d{2})(?!\d)/); // "Báo cáo tại thời điểm 31102025"
+    if (d8) { asOf = asOf || `${d8[3]}-${d8[2]}-${d8[1]}`; return { period: `${d8[3]}-${d8[2]}`, asOf, months: colMonths }; }
     const a = f.match(/(20\d{2})[-_. ]?(0[1-9]|1[0-2])(?!\d)/), b = f.match(/(?<!\d)(0[1-9]|1[0-2])[-_. ](20\d{2})/), c = f.match(/t(?:hang)?[-_. ]?(0?[1-9]|1[0-2])[-_. ](20\d{2})/);
     if (a) period = `${a[1]}-${a[2]}`; else if (b) period = `${b[2]}-${b[1]}`; else if (c) period = `${c[2]}-${String(c[1]).padStart(2, '0')}`;
   }
@@ -531,9 +544,11 @@ function analyzeSheet(sheet, fileName) {
     if (kinds.size === 1 && !kinds.has('x')) key = [...kinds][0];
     else warnings.push('Không đọc được bộ lọc Agent Group (bình thường / phục vụ) – hãy chọn đúng loại trước khi lưu.');
   }
+  // file Target: chỉ lấy sheet FYP & 1MAA chuẩn (bỏ sheet tính toán phụ như FYP_MOC)
+  if ((key === 'targetFyp' || key === 'targetAa') && (hasHeader(headers, 'FYP MOC req') || hasHeader(headers, '70% target min'))) key = 'unknown';
   if (sheet.hidden) warnings.push('Sheet đang ẩn trong file.');
   const p = periodFrom(meta, fileName, headers, rows);
-  if (!p.period && !['mapping', 'kqkd_area', 'kqkd_agent'].includes(key)) warnings.push('Chưa xác định được kỳ dữ liệu – hãy chọn tháng.');
+  if (!p.period && !['mapping', 'kqkd_area', 'kqkd_agent', 'targetFyp', 'targetAa'].includes(key)) warnings.push('Chưa xác định được kỳ dữ liệu – hãy chọn tháng.');
   if (p.months.length > 1) warnings.push(`File chứa ${p.months.length} tháng (${p.months[0]} → ${p.months.at(-1)}).`);
   return { sheet: sheet.name, hidden: sheet.hidden, key, headers, rows, columns: profileColumns(headers, rows), warnings, period: p.period, asOf: p.asOf, months: p.months, headerRow: found.index + 1, meta };
 }
@@ -900,7 +915,51 @@ async function loadDataset() {
   const st = await sb.from('app_settings').select('key,value').in('key', ['rh_groups', 'rh_area_override']);
   for (const x of st.data || []) { if (x.key === 'rh_groups') RHG = Array.isArray(x.value) ? x.value : []; if (x.key === 'rh_area_override') RHO = x.value || {}; }
   DS = r.data ? prepare(r.data) : null;
-  if (DS) applyScope();
+  if (DS) { applyScope(); await loadNodeTargets(); }
+}
+// target theo nhánh / khu vực / đầu RH (từ file Target đã nạp vào plan_targets)
+async function loadNodeTargets() {
+  DS.tg = new Map();
+  try {
+    const r = await sb.from('plan_targets').select('scope,month,segment,vals');
+    for (const x of r.data || []) {
+      if (!/^\d{4}-\d{2}$/.test(x.month)) continue;
+      const k = x.segment === 'TOTAL' ? `${x.scope}|TOTAL` : /^[an]:/.test(x.segment) ? x.segment : null;
+      if (k) DS.tg.set(`${k}|${x.month}`, x.vals || {});
+    }
+  } catch (e) { console.warn('targets', e); }
+}
+// khóa target của 1 thẻ / 1 nhánh: khu vực → a:<mã>, PSM+/người → n:<mã>, đầu RH → <id>|TOTAL
+function tgKeyOf(it) {
+  if (!it) return null;
+  if (it.kind === 'area') return 'a:' + it.area.code;
+  if (it.kind === 'person') return 'n:' + it.person.c;
+  if (it.node) return it.node.group ? `${it.node.key.slice(2)}|TOTAL` : 'n:' + it.node.code;
+  if (it.id === 'root') return `${planScope()}|TOTAL`;
+  return null;
+}
+const tgVal = (key, ym, k) => { const v = DS.tg?.get(`${key}|${ym}`)?.[k]; return v === undefined || v === null || v === '' ? null : +v; };
+// tiến độ target: tháng đang chạy + quý của tháng đó (FYP BC70 vs target)
+function tgProgress(key, list) {
+  if (!key || !DS.tg?.size) return null;
+  const M = DS.months, ym = M[3], i = 3;
+  const q0 = addMonths(ym, -((+ym.slice(5, 7) - 1) % 3)), qm = [q0, addMonths(q0, 1), addMonths(q0, 2)];
+  const tM = tgVal(key, ym, 'fyp'), tQ = qm.map((m) => tgVal(key, m, 'fyp'));
+  if (tM === null && tQ.every((v) => v === null)) return null;
+  const g = groupStats(list, 3);
+  const aQ = sum(qm.filter((m) => M.includes(m)), (m) => g.fypM[M.indexOf(m)]);
+  const day = +String(DS.meta.asOf).slice(8, 10) || 1, dim = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate();
+  const elapsedQ = (qm.indexOf(ym) + day / dim) / 3;
+  return { ym, qLabel: `Q${Math.floor((+ym.slice(5, 7) - 1) / 3) + 1}/${ym.slice(0, 4)}`, tM: tM === null ? null : tM * 1000, aM: g.fypM[i], tAA: tgVal(key, ym, 'aa'), aAA: g.actM[i],
+    tQ: tQ.some((v) => v !== null) ? sum(tQ, (v) => N(v)) * 1000 : null, aQ, elapsedM: day / dim, elapsedQ };
+}
+function tgStrip(t) {
+  if (!t) return '';
+  const bar = (a, p, el) => { const r = p ? a / p : 0; const cls = r >= el ? 'ok' : r >= el * 0.8 ? 'mid' : 'low'; return `<span class="tgbar ${cls}"><i style="width:${Math.min(100, r * 100)}%"></i><em style="left:${Math.min(100, el * 100)}%"></em></span>`; };
+  const row = (lb, a, p, el, extra = '') => (p ? `<div class="tgrow"><span>${lb}</span>${bar(a, p, el)}<b class="num">${pct(a / p)}</b><small>${money(a)} / ${money(p)}${extra}</small></div>` : '');
+  return `<div class="oc-tg" title="Vạch dọc = thời gian đã qua (đến ${dmy(DS.meta.asOf)}). Thực tế theo BC70 tạm tính.">
+    ${row('Target ' + mLabel(t.ym), t.aM, t.tM, t.elapsedM, t.tAA ? ` · 1mAA ${f0(t.aAA)}/${f0(t.tAA)}` : '')}
+    ${row(t.qLabel, t.aQ, t.tQ, t.elapsedQ)}</div>`;
 }
 // ---------- đầu RH ----------
 const RH_OTHER = { id: 'other', name: 'Other (khu vực không thuộc 3 RH)' };
@@ -912,7 +971,31 @@ function autoRh(ar) {
   for (const k of ['l3', 'tv', 'psm']) { const g = RHG.find((x) => has(x[k], ar[k])); if (g) return g.id; }
   return 'other';
 }
-function assignRh() { for (const a of DS.areasAll) { a.rhAuto = autoRh(a); a.rh = RHO[a.code] && (RHO[a.code] === 'other' || RHG.some((g) => g.id === RHO[a.code])) ? RHO[a.code] : a.rhAuto; } }
+function assignRh() {
+  for (const a of DS.areasAll) { a.rhAuto = autoRh(a); a.rh = RHO[a.code] && (RHO[a.code] === 'other' || RHG.some((g) => g.id === RHO[a.code])) ? RHO[a.code] : a.rhAuto; }
+  // lịch sử báo cáo tháng: khu vực đang có → theo đầu RH hiện tại; khu vực đã đóng/đổi → theo tên trong chuỗi quản lý (cấp sâu nhất trước)
+  const cur = new Map(DS.areasAll.map((a) => [a.code, a.rh]));
+  const keys = RHG.map((g) => [g.id, [g.name, ...(g.l3 || []), ...(g.tv || []), ...(g.psm || [])].filter(Boolean).map(norm)]);
+  for (const h of DS.hist || []) {
+    if (cur.has(h.a)) { h.rh = cur.get(h.a); continue; }
+    if (RHO[h.a]) { h.rh = RHO[h.a]; continue; }
+    h.rh = 'other';
+    for (const x of [...h.ch].reverse()) { const n = norm(String(x).split(' - ').slice(1).join(' - ')); const g = keys.find(([, ks]) => ks.includes(n)); if (g) { h.rh = g[0]; break; } }
+  }
+}
+// dòng lịch sử (báo cáo tháng) trong phạm vi đang xem
+const histRows = (ym) => (DS.hist || []).filter((h) => h.m === ym && (S.rh === 'all' || h.rh === S.rh) && (S.area === 'all' || h.a === S.area));
+const HIST_KEY = { fyp: 'fyp', cc: 'cc', active: 'act', nr: 'nr', hc: 'hc', fyc: 'fyc' };
+// nguồn số của 1 tháng: 'bc70' | 'hist' (báo cáo tháng) | 'py' (cùng kỳ suy ra từ báo cáo năm sau) | 'manual' | null
+function monthSrc(ym) {
+  if (DS.months.includes(ym)) return 'bc70';
+  if (DS.histMonths?.has(ym)) return 'hist';
+  if (DS.histMonths?.has(addMonths(ym, 12))) return 'py';
+  if (S.area === 'all' && manualFor(ym)) return 'manual';
+  return null;
+}
+const SRC_CLS = { bc70: 'bar', hist: 'bar rep', py: 'bar rep', manual: 'bar man' };
+const SRC_NOTE = { hist: ' · báo cáo tháng (Active = ĐL có nộp HĐ có phí)', py: ' · cùng kỳ suy ra từ báo cáo năm sau', manual: ' · số nhập tay' };
 function applyScope() {
   if (!DS.areasAll) { DS.areasAll = DS.areas; DS.agentsAll = DS.agents; DS.segmentsAll = DS.segments; DS.meta.saCountAll = DS.meta.saCount; }
   assignRh();
@@ -963,7 +1046,8 @@ function prepare(row) {
     return { code, psm: ap.psm || info.psm || (chain.length ? chain.at(-1).split(' - ').slice(1).join(' - ') : null), psmCode: ap.psmCode || null, bctt: ap.bctt || null, tv: info.tv || null, l2: info.l2 || null, l3: info.l3 || null, chain, list, tops: list.filter((a) => !a.parent), sa: N(meta.saByArea?.[code]) };
   });
   const manual = P.manual || [];
-  return { id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
+  const hist = (P.hist || []).map((h) => ({ ...h, ch: Array.isArray(h.ch) ? h.ch : [] }));
+  return { hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
     psmTree: new Map((P.psmTree || []).map((x) => [x.c, x])), mapa: P.mapa || [], mapaMonth: P.mapaMonth || meta.officialMonth };
 }
 
@@ -1045,6 +1129,14 @@ function monthValue(ym, key, list) {
     if (key === 'cc') return g.ccM[i];
     if (key === 'active') return g.actM[i];
     if (key === 'nr') return g.nrM[i];
+  }
+  if (DS.histMonths?.has(ym) && HIST_KEY[key]) {
+    const rs = histRows(ym), k = HIST_KEY[key];
+    return rs.some((r) => r[k] !== null && r[k] !== undefined) ? sum(rs, (r) => N(r[k])) : rs.length ? 0 : null;
+  }
+  if (key === 'fyp' && DS.histMonths?.has(addMonths(ym, 12))) { // FYP cùng kỳ năm trước: cột (21) của báo cáo năm sau
+    const rs = histRows(addMonths(ym, 12)).filter((r) => r.py !== null && r.py !== undefined);
+    if (rs.length) return sum(rs, (r) => N(r.py));
   }
   if (S.area !== 'all') return null;
   const m = manualFor(ym); if (!m) return null;
@@ -1139,7 +1231,7 @@ function barChart(items, { h = 190, fmt = f0, unit = '' } = {}) {
   const y = (v) => pad.t + (h - pad.t - pad.b) * (1 - N(v) / max);
   const bars = items.map((x, i) => {
     const cx = pad.l + step * i + step / 2, yy = x.v === null ? h - pad.b : y(x.v), hh = h - pad.b - yy;
-    const cls = x.partial ? 'bar part' : x.manual ? 'bar man' : 'bar';
+    const cls = x.partial ? 'bar part' : x.cls || (x.manual ? 'bar man' : 'bar');
     return `<g data-tip="${esc(x.tip || `${x.label}: ${x.v === null ? 'chưa có' : fmt(x.v) + unit}`)}">
       <rect x="${cx - step / 2}" y="${pad.t - 10}" width="${step}" height="${h - pad.t - pad.b + 10}" fill="transparent"/>
       ${x.v === null ? `<text x="${cx}" y="${h - pad.b - 6}" text-anchor="middle">–</text>` : `<path class="${cls}" d="M${cx - bw / 2},${h - pad.b} V${yy + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${h - pad.b} Z"/>
@@ -1169,6 +1261,7 @@ const meter = (r) => `<div class="meter ${meterCls(r)}"><span style="width:${Mat
 // =====================================================================
 //  TRANG 1 · TỔNG QUAN VÙNG
 // =====================================================================
+const tgCell = (key) => { const ym = DS.months[3], aa = tgVal(key, ym, 'aa'), f = tgVal(key, ym, 'fyp'); return `<td class="r num" style="white-space:nowrap">${aa === null && f === null ? '<span class="muted">–</span>' : `${f0(aa)} · ${money(N(f) * 1000)}`}</td>`; };
 function mapaPanel() {
   if (!DS.mapa.length) return '<section class="panel"><div class="panel-b"><p class="note">Chưa có dữ liệu MAPA – cần Báo cáo KD ĐL bình thường & phục vụ trong Kho dữ liệu, rồi dựng lại dashboard.</p></div></section>';
   const areas = S.area === 'all' ? DS.areas : DS.areas.filter((a) => a.code === S.area);
@@ -1186,12 +1279,12 @@ function mapaPanel() {
   const walk = (n) => {
     const codes = n.all.map((a) => a.code), mm = mapaAgg(codes), open = isOpen(n.key, n.depth);
     const on = sel.key === n.key;
-    rows.push(`<tr class="click${on ? ' sel' : ''}" data-mapa-node="${esc(n.key)}"><td style="padding-left:${10 + n.depth * 18}px;white-space:nowrap"><span class="tg" data-mapa-tg="${esc(n.key)}" style="display:inline-block;width:16px;cursor:pointer">${n.kids.length || n.areas.length ? (open ? '−' : '+') : ''}</span><b>${esc(n.name)}</b> <span class="muted small">${esc(n.group ? (S.rh === 'all' ? 'RH' : 'RH · gốc') : n.title || '')} · ${codes.length} KV</span></td>${mapaCells(mm.tot)}<td>${mapaMix(mm)}</td></tr>`);
+    rows.push(`<tr class="click${on ? ' sel' : ''}" data-mapa-node="${esc(n.key)}"><td style="padding-left:${10 + n.depth * 18}px;white-space:nowrap"><span class="tg" data-mapa-tg="${esc(n.key)}" style="display:inline-block;width:16px;cursor:pointer">${n.kids.length || n.areas.length ? (open ? '−' : '+') : ''}</span><b>${esc(n.name)}</b> <span class="muted small">${esc(n.group ? (S.rh === 'all' ? 'RH' : 'RH · gốc') : n.title || '')} · ${codes.length} KV</span></td>${mapaCells(mm.tot)}${tgCell(n.group ? `${n.key.slice(2)}|TOTAL` : 'n:' + n.code)}<td>${mapaMix(mm)}</td></tr>`);
     if (!open) return;
     n.kids.forEach(walk);
     for (const a of n.areas) {
       const ma = mapaAgg([a.code]), k = 'a:' + a.code;
-      rows.push(`<tr class="click${sel.key === k ? ' sel' : ''}" data-mapa-area="${esc(a.code)}"><td style="padding-left:${28 + (n.depth + 1) * 18}px;white-space:nowrap">Khu vực <b>${esc(a.code)}</b> <span class="muted small">${esc(a.psm || '')}</span></td>${mapaCells(ma.tot)}<td>${mapaMix(ma)}</td></tr>`);
+      rows.push(`<tr class="click${sel.key === k ? ' sel' : ''}" data-mapa-area="${esc(a.code)}"><td style="padding-left:${28 + (n.depth + 1) * 18}px;white-space:nowrap">Khu vực <b>${esc(a.code)}</b> <span class="muted small">${esc(a.psm || '')}</span></td>${mapaCells(ma.tot)}${tgCell('a:' + a.code)}<td>${mapaMix(ma)}</td></tr>`);
     }
   };
   roots.forEach(walk);
@@ -1199,7 +1292,7 @@ function mapaPanel() {
     <div class="panel-b" style="padding-top:6px">${detail}</div>
     <div class="panel-h" style="border-top:1px solid var(--line-2)"><div><h3>Cấu trúc RH → báo cáo trực tiếp → tầng 1 → tầng 2 … → khu vực</h3><p>Mỗi dòng cộng dồn MAPA của toàn nhánh bên dưới · sắp theo FYP 6 tháng · thanh màu = cơ cấu 1mAA theo phân khúc</p></div>
       <div class="toolbar"><button class="btn btn-sm" id="mapa-exp">Mở hết</button><button class="btn btn-sm" id="mapa-col">Thu gọn</button></div></div>
-    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap" style="max-height:640px"><table class="tbl"><thead><tr><th>Nhánh / khu vực</th><th class="r">Nguồn lực</th><th class="r">1mAA</th><th class="r">Tỷ lệ HĐ</th><th class="r">FYP</th><th class="r">HĐ</th><th class="r">HĐ / ĐL HĐ</th><th class="r">Case size</th><th>Cơ cấu 1mAA</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
+    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap" style="max-height:640px"><table class="tbl"><thead><tr><th>Nhánh / khu vực</th><th class="r">Nguồn lực</th><th class="r">1mAA</th><th class="r">Tỷ lệ HĐ</th><th class="r">FYP</th><th class="r">HĐ</th><th class="r">HĐ / ĐL HĐ</th><th class="r">Case size</th><th class="r" title="Target tháng đang chạy từ file Target (1mAA / FYP)">Target ${mLabel(DS.months[3])}<br><small>1mAA · FYP</small></th><th>Cơ cấu 1mAA</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
     <div class="legend">${MAPA_ROWS.filter(([k]) => k !== 'MP').map(([k, l]) => `<span><i style="background:${MAPA_COLORS[k]}"></i>${esc(l.replace('↳ ', ''))}</span>`).join('')}</div></div></section>`;
 }
 function bindMapa(c) {
@@ -1248,28 +1341,29 @@ function pageOverview(c) {
 
   // xu hướng: các tháng nhập tay + 4 tháng BC70
   const histMonths = [];
-  for (let k = 12; k >= 1; k--) { const y = addMonths(M[0], -k); if (S.area === 'all' && manualFor(y)) histMonths.push(y); }
+  for (let k = 15; k >= 1; k--) { const y = addMonths(M[0], -k); const src = monthSrc(y); if ((src === 'hist' || src === 'manual') && monthValue(y, 'fyp', list) !== null) histMonths.push(y); }
   const trendMonths = [...histMonths, ...M];
   const items = (key) => trendMonths.map((y) => {
-    const v = monthValue(y, key, list), partial = y === M[3], manual = !M.includes(y);
-    return { label: mLabel(y), v, partial, manual, tip: `${mLong(y)}: ${v === null ? 'chưa có' : key === 'fyp' ? money(v) : f0(v)}${partial ? ` (tạm tính đến ${dmy(DS.meta.asOf)})` : ''}${manual ? ' · số nhập tay' : ''}` };
+    const v = monthValue(y, key, list), partial = y === M[3], src = monthSrc(y);
+    return { label: mLabel(y), v, partial, cls: SRC_CLS[src], tip: `${mLong(y)}: ${v === null ? 'chưa có' : key === 'fyp' ? money(v) : f0(v)}${partial ? ` (tạm tính đến ${dmy(DS.meta.asOf)})` : ''}${SRC_NOTE[src] || ''}` };
   });
-  const legend = `<div class="legend"><span><i style="background:var(--green)"></i>Tháng đủ (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span></div>`;
+  const legend = `<div class="legend"><span><i style="background:var(--green)"></i>Tháng đủ (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#2e90fa"></i>Báo cáo tháng (năm trước)</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span></div>`;
 
   // bảng khu vực
   const areaRows = DS.areas.map((a) => {
     const s = groupStats(a.list, Math.max(2, i));
-    return { a, s, fyp: s.fypM[i], fypPrev: i > 0 ? s.fypM[i - 1] : null, act: s.actM[i], nr: s.nrM[i], off: offMonth ? sum(a.list, (x) => x.offyp) : null };
+    const hy = (DS.hist || []).find((h) => h.a === a.code && h.m === yoyYm);
+    return { a, s, fyp: s.fypM[i], fypPrev: i > 0 ? s.fypM[i - 1] : null, fypYoy: hy ? N(hy.fyp) : null, act: s.actM[i], nr: s.nrM[i], off: offMonth ? sum(a.list, (x) => x.offyp) : null };
   }).sort((x, y) => N(y.off ?? y.fyp) - N(x.off ?? x.fyp));
-  const areaTable = `<div class="tbl-wrap" style="max-height:520px"><table class="tbl"><thead><tr><th>Khu vực</th><th>PSM+ quản lý</th><th class="r">Nguồn lực</th><th class="r">UM+</th><th class="r">FYP ${mLabel(ym)}${offMonth ? ' (chính thức)' : ''}</th><th>MoM*</th><th class="r">Active</th><th class="r">3mAA</th><th class="r">NR</th><th class="r">FYP 6T</th></tr></thead><tbody>
-    ${areaRows.map((r) => `<tr class="click" data-area="${esc(r.a.code)}"><td><b>${esc(r.a.code)}</b></td><td>${esc(r.a.psm || '–')}</td><td class="r num">${f0(r.s.n)}</td><td class="r num">${f0(r.s.um)}</td><td class="r num">${money(r.off ?? r.fyp)}</td><td>${i > 0 ? delta(r.fyp, r.fypPrev, { label: '' }) : '–'}</td><td class="r num">${f0(r.act)} <span class="muted small">${pct(r.act / r.s.n)}</span></td><td class="r num">${i >= 2 ? f0(r.s.aa3) : '–'}</td><td class="r num">${f0(r.nr)}</td><td class="r num">${money(r.s.fyp6)}</td></tr>`).join('')}
-  </tbody></table></div><p class="note" style="margin:10px 0 0">* MoM so theo FYP BC70 (cùng chuẩn giữa các tháng). Bấm 1 khu vực để mở cây đội ngũ.</p>`;
+  const areaTable = `<div class="tbl-wrap" style="max-height:520px"><table class="tbl"><thead><tr><th>Khu vực</th><th>PSM+ quản lý</th><th class="r">Nguồn lực</th><th class="r">UM+</th><th class="r">FYP ${mLabel(ym)}${offMonth ? ' (chính thức)' : ''}</th><th>MoM*</th><th>YoY</th><th class="r">Active</th><th class="r">3mAA</th><th class="r">NR</th><th class="r">FYP 6T</th></tr></thead><tbody>
+    ${areaRows.map((r) => `<tr class="click" data-area="${esc(r.a.code)}"><td><b>${esc(r.a.code)}</b></td><td>${esc(r.a.psm || '–')}</td><td class="r num">${f0(r.s.n)}</td><td class="r num">${f0(r.s.um)}</td><td class="r num">${money(r.off ?? r.fyp)}</td><td>${i > 0 ? delta(r.fyp, r.fypPrev, { label: '' }) : '–'}</td><td>${r.fypYoy !== null ? delta(r.off ?? r.fyp, r.fypYoy, { label: '' }) : '<span class="muted small">–</span>'}</td><td class="r num">${f0(r.act)} <span class="muted small">${pct(r.act / r.s.n)}</span></td><td class="r num">${i >= 2 ? f0(r.s.aa3) : '–'}</td><td class="r num">${f0(r.nr)}</td><td class="r num">${money(r.s.fyp6)}</td></tr>`).join('')}
+  </tbody></table></div><p class="note" style="margin:10px 0 0">* MoM so theo FYP BC70 (cùng chuẩn giữa các tháng). YoY so với FYP thực cấp ${mLabel(yoyYm)} trong báo cáo tháng năm trước. Bấm 1 khu vực để mở cây đội ngũ.</p>`;
 
   // MAPA theo cấu trúc
   const mapaHtml = mapaPanel();
-  const noYoy = !DS.manual.some((x) => x.month === yoyYm);
+  const noYoy = fypYoy === null;
   c.innerHTML = `
-  ${noYoy && S.area === 'all' ? `<div class="banner"><span>ℹ️</span><div>Chưa có số <b>${mLong(yoyYm)}</b> nên chưa so được cùng kỳ (YoY). ${isAdmin ? 'Nhập ở trang <a href="#history">KQKD các kỳ trước</a>.' : ''}</div></div>` : ''}
+  ${noYoy ? `<div class="banner"><span>ℹ️</span><div>Chưa có số <b>${mLong(yoyYm)}</b> nên chưa so được cùng kỳ (YoY). ${isAdmin ? 'Nhập ở trang <a href="#history">KQKD các kỳ trước</a>.' : ''}</div></div>` : ''}
   <div class="kpis">${kpis}</div>
   <div class="grid g3">
     <section class="panel"><div class="panel-h"><div><h3>FYP theo tháng</h3><p>${scopeName} · FYP BC70 (đã điều chỉnh)</p></div></div><div class="panel-b">${barChart(items('fyp'), { fmt: (v) => money(v) })}${legend}</div></section>
@@ -1387,7 +1481,7 @@ function pageHealth(c) { if (!DS) return; return S.hView === 'tree' ? healthTree
 const byFyp6 = (x, y) => sum(y.list, (z) => z.fyp6) - sum(x.list, (z) => z.fyp6);
 function hcItem(kind, o) {
   if (kind === 'struct') {
-    return { id: 's:' + o.key, kind: o.group ? 'group' : 'psm', name: o.name, sub: `${o.group ? 'RH' : o.title || 'PSM+'} · ${o.all.length} khu vực`, av: initials(o.name),
+    return { id: 's:' + o.key, node: o, kind: o.group ? 'group' : 'psm', name: o.name, sub: `${o.group ? 'RH' : o.title || 'PSM+'} · ${o.all.length} khu vực`, av: initials(o.name),
       list: o.all.flatMap((a) => a.list), direct: o.all.flatMap((a) => a.tops), children: () => [...o.kids.map((k) => hcItem('struct', k)), ...o.areas.map((a) => hcItem('area', a))].sort(byFyp6) };
   }
   if (kind === 'area') {
@@ -1442,6 +1536,7 @@ function hcCard(it, { hero = false } = {}) {
   return `<div class="${cls}" ${hero ? '' : `data-hc="${esc(it.id)}" tabindex="0" role="button"`}>
     <div class="oc-h"><div class="av ${it.kind === 'area' ? 'area' : it.kind === 'person' ? (p.um ? 'um' : '') : it.kind === 'group' ? 'rh' : 'psm'}">${esc(it.av)}</div><div class="t"><b>${esc(it.name)}</b><small>${esc(it.sub)}</small></div>${!hero && kids ? `<span class="badge">${kids}</span>` : ''}</div>
     ${hcMetrics(it, hero)}
+    ${tgStrip(tgProgress(tgKeyOf(it), it.list))}
     ${pers}
     ${!hero && kids ? `<div class="oc-f"><span>${it.kind === 'area' || it.kind === 'person' ? `${it.children().length} UM+ · ${(it.fa || []).length} FA trực tiếp` : `${it.children().length} nhánh / khu vực`}</span><span class="go">Xem cấp dưới ›</span></div>` : ''}
   </div>`;
@@ -1640,6 +1735,7 @@ function pageTitles(c) {
 const HIST_FIELDS = [['fyp', 'FYP (triệu đồng)'], ['cc', 'Số HĐ'], ['active', 'ĐL hoạt động'], ['nr', 'Tuyển mới (NR)'], ['hc', 'Nguồn lực'], ['um', 'UM+']];
 async function pageHistory(c) {
   const r = await sb.from('manual_metrics').select('month,area,vals,updated_at').eq('area', scopeKey()).order('month');
+  if (S.page !== 'history' || !c.isConnected) return; // đã chuyển trang trong lúc chờ tải
   const rows = r.data || [];
   const byM = new Map(rows.map((x) => [x.month, x.vals || {}]));
   const last = DS ? DS.months[0] : new Date().toISOString().slice(0, 7);
@@ -1648,12 +1744,20 @@ async function pageHistory(c) {
   const months = Array.from({ length: 12 }, (_, i) => `${S.histYear}-${String(i + 1).padStart(2, '0')}`).filter((m) => m < last);
   const auto = DS ? DS.months.slice(0, 3) : [];
   const list = DS ? DS.agents : [];
+  const repN = DS?.histMonths?.size || 0;
+  const repRow = (m, man) => {
+    const save = S.area; S.area = 'all'; const rs = histRows(m); S.area = save;
+    const v = (k) => sum(rs, (r) => N(r[k]));
+    const tip = man && Object.keys(man).length ? ` title="Số nhập tay trước đó (không dùng): ${esc(HIST_FIELDS.filter(([k]) => man[k] != null).map(([k, l]) => `${l} ${man[k]}`).join(' · '))}"` : '';
+    return `<tr style="background:#eff8ff"${tip}><td><b>${mLabel(m)}</b> <span class="badge b-blue">Báo cáo</span></td><td class="r num">${f1(v('fyp') / 1000)}</td><td class="r num">${f0(v('cc'))}</td><td class="r num">${f0(v('act'))}</td><td class="r num">${f0(v('nr'))}</td><td class="r num">${f0(v('hc'))}</td><td class="r num muted">–</td></tr>`;
+  };
   c.innerHTML = `
+  ${repN ? `<div class="banner ok"><span>📑</span><div>Đã có <b>${repN} tháng</b> từ báo cáo tháng "Báo cáo tại thời điểm…" (${[...DS.histMonths].sort().map(mLabel).join(', ')}) – lấy tự động, không cần nhập. Đầu RH tính theo cơ cấu khu vực hiện tại; Active = ĐL có nộp HĐ có phí (báo cáo tháng không có số ĐL có HĐ thực cấp).</div></div>` : ''}
   <div class="banner"><span>ℹ️</span><div>Số các tháng <b>${auto.map(mLabel).join(', ')}</b> đã có tự động từ BC70. Nhập các tháng trước đó (đặc biệt <b>cùng kỳ năm trước</b>) để dashboard so YoY và nối xu hướng. Đơn vị FYP: <b>triệu đồng</b>. ${isAdmin ? '' : 'Chỉ admin được sửa.'}</div></div>
   <section class="panel"><div class="panel-h"><div><h3>Số liệu ${esc(rhShort())} theo tháng · năm <select class="select" id="hist-year" style="display:inline-block;width:auto">${[curY - 3, curY - 2, curY - 1, curY].map((y) => `<option ${y === S.histYear ? 'selected' : ''}>${y}</option>`).join('')}</select></h3><p>Ô trống = chưa có số (không tính là 0). Chọn năm để nhập lịch sử các năm trước.</p></div>
     <div class="toolbar">${isAdmin ? '<button class="btn btn-sm" id="hist-tpl">Lấy từ template đã tải lên</button><button class="btn btn-primary btn-sm" id="hist-save" disabled>Lưu thay đổi</button>' : ''}</div></div>
     <div class="panel-b"><div id="hist-msg" class="note"></div><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Tháng</th>${HIST_FIELDS.map(([, l]) => `<th class="r">${l}</th>`).join('')}</tr></thead><tbody>
-      ${months.map((m) => `<tr><td><b>${mLabel(m)}</b></td>${HIST_FIELDS.map(([k]) => `<td><input data-m="${m}" data-k="${k}" inputmode="decimal" value="${byM.get(m)?.[k] ?? ''}" ${isAdmin ? '' : 'disabled'}></td>`).join('')}</tr>`).join('')}
+      ${months.map((m) => DS?.histMonths?.has(m) ? repRow(m, byM.get(m)) : `<tr><td><b>${mLabel(m)}</b></td>${HIST_FIELDS.map(([k]) => `<td><input data-m="${m}" data-k="${k}" inputmode="decimal" value="${byM.get(m)?.[k] ?? ''}" ${isAdmin ? '' : 'disabled'}></td>`).join('')}</tr>`).join('')}
       ${auto.filter((m) => m.startsWith(String(S.histYear))).map((m) => { const i = DS.months.indexOf(m), g = groupStats(list, 2); return `<tr style="background:#f6fef9"><td><b>${mLabel(m)}</b> <span class="badge b-green">BC70</span></td><td class="r num">${f1(g.fypM[i] / 1000)}</td><td class="r num">${f0(g.ccM[i])}</td><td class="r num">${f0(g.actM[i])}</td><td class="r num">${f0(g.nrM[i])}</td><td class="r num muted">${f0(list.length)}*</td><td class="r num muted">${f0(g.um)}*</td></tr>`; }).join('')}
     </tbody></table></div><p class="note">* Nguồn lực/UM+ hiện tại (BC70 không có số đầu kỳ từng tháng).</p></div></section>`;
   $('#hist-year').onchange = (e) => { S.histYear = +e.target.value; render(); };
@@ -1759,7 +1863,13 @@ function productivity(basis) {
 }
 // năng suất cùng kỳ năm trước (chỉ số tổng, từ số nhập tay)
 function productivityYoy(ym) {
-  const m = manualFor(addMonths(ym, -12)); if (!m || !N(m.cc) || !N(m.active)) return null;
+  const py = addMonths(ym, -12);
+  if (DS.histMonths?.has(py)) {
+    const save = S.area; S.area = 'all'; const rs = histRows(py); S.area = save;
+    const fyp = sum(rs, (r) => N(r.fyp)), cc = sum(rs, (r) => N(r.cc)), aa = sum(rs, (r) => N(r.act));
+    if (cc && aa) return { fyp, cc, aa, cs: fyp / cc, cpa: cc / aa, fpa: fyp / aa, src: 'báo cáo tháng' };
+  }
+  const m = manualFor(py); if (!m || !N(m.cc) || !N(m.active)) return null;
   const fyp = N(m.fyp) * 1000;
   return { fyp, cc: N(m.cc), aa: N(m.active), cs: fyp / N(m.cc), cpa: N(m.cc) / N(m.active), fpa: fyp / N(m.active) };
 }
@@ -1780,7 +1890,7 @@ async function pagePlan(c) {
   S.planMonth = S.planMonth || M[3];
   S.planTab = S.planTab || 'track';
   S.planBasis = S.planBasis || '3m';
-  if (!PLAN) { c.innerHTML = '<div class="empty">Đang tải kế hoạch…</div>'; try { await loadPlan(); } catch (e) { c.innerHTML = `<div class="banner warn">Không đọc được kế hoạch: ${esc(e.message)}</div>`; return; } }
+  if (!PLAN) { c.innerHTML = '<div class="empty">Đang tải kế hoạch…</div>'; try { await loadPlan(); } catch (e) { c.innerHTML = `<div class="banner warn">Không đọc được kế hoạch: ${esc(e.message)}</div>`; return; }  if (S.page !== 'plan') return; }
   const Y = S.planYear, YM = yearMonths(Y);
   const tabs = [['track', 'Theo dõi Plan vs Thực tế'], ['calc', 'Cần bao nhiêu 1mAA / HĐ'], ['input', isAdmin ? 'Nhập target & plan' : 'Xem target & plan']];
   const yearSel = `<select class="select" id="pl-year">${[Y - 1, Y, Y + 1].map((y) => `<option ${y === Y ? 'selected' : ''}>${y}</option>`).join('')}</select>`;
@@ -1814,13 +1924,13 @@ function planTrack(body, Y, YM) {
     kpi('Cần mỗi tháng còn lại', need === null ? '–' : money(need / Math.max(1, left)), need === null ? 'Cần target năm' : `Còn ${money(need)} cho ${left} tháng (gồm ${mLabel(M[3])})`),
     kpi(`Tuyển mới (NR) lũy kế`, f0(ytdN), yNR ? `Target năm ${f0(yNR)} · đạt ${pct(ytdN / yNR, 1)}` : 'Chưa có target NR năm'),
   ].join('');
-  const chartItems = rows.map((r) => ({ label: mLabel(r.m), v: r.aF, partial: r.partial, manual: r.aF !== null && !M.includes(r.m), tip: `${mLong(r.m)}\nThực tế: ${money(r.aF)}\nPlan: ${money(r.pF)}${r.pF && r.aF !== null ? `\nĐạt ${pct(r.aF / r.pF)}` : ''}` }));
+  const chartItems = rows.map((r) => ({ label: mLabel(r.m), v: r.aF, partial: r.partial, cls: SRC_CLS[monthSrc(r.m)], tip: `${mLong(r.m)}${SRC_NOTE[monthSrc(r.m)] || ''}\nThực tế: ${money(r.aF)}\nPlan: ${money(r.pF)}${r.pF && r.aF !== null ? `\nĐạt ${pct(r.aF / r.pF)}` : ''}` }));
   const planLine = (() => { // đường plan vẽ chồng lên biểu đồ cột
     const W = Math.max(360, rows.length * 90), h = 190, pad = { l: 8, r: 8, t: 22, b: 26 }, step = (W - pad.l - pad.r) / rows.length;
     const max = Math.max(1, ...rows.map((r) => N(r.aF)), ...rows.map((r) => N(r.pF)));
     const pts = rows.map((r, i) => (r.pF === null ? null : [pad.l + step * i + step / 2, pad.t + (h - pad.t - pad.b) * (1 - N(r.pF) / max)]));
     const bw = Math.min(42, step * 0.6);
-    const cols = rows.map((r, i) => { if (r.aF === null) return ''; const cx = pad.l + step * i + step / 2, yy = pad.t + (h - pad.t - pad.b) * (1 - N(r.aF) / max); return `<g data-tip="${esc(chartItems[i].tip)}"><rect x="${cx - step / 2}" y="${pad.t - 10}" width="${step}" height="${h - pad.t}" fill="transparent"/><path class="${r.partial ? 'bar part' : chartItems[i].manual ? 'bar man' : 'bar'}" d="M${cx - bw / 2},${h - pad.b} V${yy + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${h - pad.b} Z"/><text class="val" x="${cx}" y="${yy - 6}" text-anchor="middle">${money(r.aF)}</text></g>`; }).join('');
+    const cols = rows.map((r, i) => { if (r.aF === null) return ''; const cx = pad.l + step * i + step / 2, yy = pad.t + (h - pad.t - pad.b) * (1 - N(r.aF) / max); return `<g data-tip="${esc(chartItems[i].tip)}"><rect x="${cx - step / 2}" y="${pad.t - 10}" width="${step}" height="${h - pad.t}" fill="transparent"/><path class="${r.partial ? 'bar part' : chartItems[i].cls || 'bar'}" d="M${cx - bw / 2},${h - pad.b} V${yy + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${h - pad.b} Z"/><text class="val" x="${cx}" y="${yy - 6}" text-anchor="middle">${money(r.aF)}</text></g>`; }).join('');
     const labels = rows.map((r, i) => `<text x="${pad.l + step * i + step / 2}" y="${h - 8}" text-anchor="middle">${mLabel(r.m)}</text>`).join('');
     const line = pts.filter(Boolean).map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
     const marks = pts.map((p, i) => (p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff" stroke="#f79009" stroke-width="2"><title>Plan ${mLabel(rows[i].m)}: ${money(rows[i].pF)}</title></circle>` : '')).join('');
@@ -1838,7 +1948,7 @@ function planTrack(body, Y, YM) {
     return `<tr><td>${esc(name)}</td><td class="r num">${a ? f0(a.hc) : '–'}</td><td class="r num">${f0(pA)}</td><td class="r num">${a ? f0(a.aa) : '–'}</td>${pctCell(a ? a.aa : null, pA)}<td class="r num">${pF === null ? '–' : money(pF * 1000)}</td><td class="r num">${a ? money(a.fyp) : '–'}</td>${pctCell(a ? a.fyp : null, pF === null ? null : pF * 1000)}<td class="r num">${a && a.cc ? money(a.fyp / a.cc) : '–'}</td><td class="r num">${a && a.aa ? nf2.format(a.cc / a.aa) : '–'}</td></tr>`;
   }).join('');
   body.innerHTML = `<div class="kpis">${kpis}</div>
-  <section class="panel"><div class="panel-h"><div><h3>FYP thực tế vs Plan · ${Y}</h3><p>Cột = thực tế (BC70 hoặc số nhập tay) · đường cam = plan tháng</p></div></div><div class="panel-b">${planLine}<div class="legend"><span><i style="background:var(--green)"></i>Thực tế (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span><span><i style="background:#f79009"></i>Plan</span></div></div></section>
+  <section class="panel"><div class="panel-h"><div><h3>FYP thực tế vs Plan · ${Y}</h3><p>Cột = thực tế (BC70, báo cáo tháng hoặc số nhập tay) · đường cam = plan tháng</p></div></div><div class="panel-b">${planLine}<div class="legend"><span><i style="background:var(--green)"></i>Thực tế (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#2e90fa"></i>Báo cáo tháng</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span><span><i style="background:#f79009"></i>Plan</span></div></div></section>
   <section class="panel"><div class="panel-h"><div><h3>Plan vs Thực tế theo tháng</h3><p>${esc(rhShort())} · 1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tháng</th><th class="r">Plan FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Plan 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Plan HĐ</th><th class="r">TT HĐ</th><th class="r">Plan NR</th><th class="r">TT NR</th><th class="r">% đạt</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table></div>
   <p class="note">Tháng chưa có số thực tế: nhập ở <a href="#history">KQKD các kỳ trước</a>. Tháng đang chạy là số tạm tính đến ${dmy(DS.meta.asOf)}.</p></div></section>
   <section class="panel"><div class="panel-h"><div><h3>Theo phân khúc · ${mLabel(ym)}</h3><p>${act ? `Nguồn thực tế: BC70 (phân khúc theo thâm niên tại tháng đó)${act.hasSA ? ' · SA từ báo cáo MAPA' : ' · SA chỉ có ở tháng có báo cáo MAPA'}` : 'Chưa có số thực tế theo phân khúc cho tháng này'}</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Phân khúc</th><th class="r">Nguồn lực</th><th class="r">Plan 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Plan FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Case size</th><th class="r">HĐ / ĐL có bán</th></tr></thead><tbody>${segRows}</tbody></table></div></div></section>`;
@@ -1933,7 +2043,7 @@ function planInput(body, Y, YM) {
     const rows = [...dirty].map((key) => { const [m, s] = key.split('|'); const vals = {}; $$(`input[data-pm="${m}"][data-ps="${s}"]`, body).forEach((el) => { const v = el.value.trim().replace(/\./g, '').replace(',', '.'); if (v !== '' && !isNaN(+v)) vals[el.dataset.pk] = +v; }); return { scope: planScope(), month: m, segment: s, vals, updated_at: new Date().toISOString() }; });
     const res = await sb.from('plan_targets').upsert(rows);
     if (res.error) { $('#pl-msg').innerHTML = `<span class="err">${esc(res.error.message)}</span>`; btn.disabled = false; btn.textContent = 'Lưu thay đổi'; return; }
-    await loadPlan(); S.calcTarget = null;
+    await loadPlan(); await loadNodeTargets(); S.calcTarget = null;
     $('#pl-msg').innerHTML = `<span class="ok">Đã lưu ${rows.length} dòng kế hoạch.</span>`; btn.textContent = 'Lưu thay đổi';
     $$('input.dirty', body).forEach((i) => i.classList.remove('dirty')); dirty.clear();
   };
