@@ -1160,7 +1160,7 @@ const PAGES = [
   { id: 'overview', sec: 'Điều hành', name: 'Tổng quan vùng', sub: 'FYP, NR, hoạt động, 3mAA · so sánh MoM / YoY' },
   { id: 'health', sec: 'Điều hành', name: 'Sức khỏe đội ngũ', sub: 'RH → báo cáo trực tiếp → … → khu vực → UM+ → FA · bấm thẻ để đi xuống cấp dưới' },
   { id: 'titles', sec: 'Điều hành', name: 'Danh hiệu & tiến độ', sub: 'MDRT 2027 · MBA Pro 2027 · Manulife Pro · thăng cấp UM' },
-  { id: 'plan', sec: 'Điều hành', name: 'Kế hoạch & thực hiện', sub: 'Target năm · plan tháng theo phân khúc · cần bao nhiêu 1mAA / HĐ' },
+  { id: 'plan', sec: 'Điều hành', name: 'Kế hoạch & thực hiện', sub: 'Target năm · target tháng theo phân khúc · cần bao nhiêu 1mAA / HĐ' },
   { id: 'library', sec: 'Tra cứu', name: 'Thư viện chính sách', sub: 'Memo, chương trình thi đua, chính sách thu nhập' },
   { id: 'history', sec: 'Dữ liệu', name: 'KQKD các kỳ trước', sub: 'Nhập số tháng cũ để so YoY và nối xu hướng' },
   { id: 'data', sec: 'Dữ liệu', name: 'Kho dữ liệu', sub: 'Tải báo cáo lên · dựng lại dashboard', admin: true },
@@ -1792,7 +1792,7 @@ async function pageHistory(c) {
 }
 
 // =====================================================================
-//  TRANG · KẾ HOẠCH & THỰC HIỆN (target năm, plan tháng theo phân khúc, tính 1mAA / HĐ cần có)
+//  TRANG · KẾ HOẠCH & THỰC HIỆN (target năm, target tháng theo phân khúc, tính 1mAA / HĐ cần có)
 // =====================================================================
 const SEGS = [
   ['P0', 'M0 · tháng gia nhập'], ['M1', 'M1–3'], ['M4', 'M4–6'], ['M7', 'M7–12'], ['M13', 'M13+ (chưa ManPro)'],
@@ -1892,7 +1892,7 @@ async function pagePlan(c) {
   S.planBasis = S.planBasis || '3m';
   if (!PLAN) { c.innerHTML = '<div class="empty">Đang tải kế hoạch…</div>'; try { await loadPlan(); } catch (e) { c.innerHTML = `<div class="banner warn">Không đọc được kế hoạch: ${esc(e.message)}</div>`; return; }  if (S.page !== 'plan') return; }
   const Y = S.planYear, YM = yearMonths(Y);
-  const tabs = [['track', 'Theo dõi Plan vs Thực tế'], ['calc', 'Cần bao nhiêu 1mAA / HĐ'], ['input', isAdmin ? 'Nhập target & plan' : 'Xem target & plan']];
+  const tabs = [['track', 'Theo dõi Target vs Thực tế'], ['calc', 'Cần bao nhiêu 1mAA / HĐ'], ['input', isAdmin ? 'Nhập target' : 'Xem target']];
   const yearSel = `<select class="select" id="pl-year">${[Y - 1, Y, Y + 1].map((y) => `<option ${y === Y ? 'selected' : ''}>${y}</option>`).join('')}</select>`;
   const monthSel = `<select class="select" id="pl-month">${YM.map((m) => `<option value="${m}" ${m === S.planMonth ? 'selected' : ''}>${mLabel(m)}${m === M[3] ? ' · đang chạy' : ''}</option>`).join('')}</select>`;
   c.innerHTML = `<div class="toolbar" style="margin-bottom:12px;gap:8px;flex-wrap:wrap"><span class="chip">Đầu RH <b>${esc(rhShort())}</b></span> Năm ${yearSel} Tháng ${monthSel}</div>
@@ -1919,13 +1919,13 @@ function planTrack(body, Y, YM) {
   const need = yT !== null ? Math.max(0, yT * 1000 - sum(done.filter((r) => !r.partial), (r) => r.aF)) : null;
   const kpi = (lb, v, s, d = '') => `<div class="kpi"><div class="lb">${lb}</div><div class="v num">${v}</div><div class="d">${d}</div><div class="s">${s}</div></div>`;
   const kpis = [
-    kpi(`Target FYP năm ${Y}`, yT === null ? '–' : money(yT * 1000), yT === null ? (isAdmin ? 'Chưa nhập · vào tab "Nhập target & plan"' : 'Admin chưa nhập') : `Plan 12 tháng cộng lại: ${money(sum(rows, (r) => r.pF))}`),
-    kpi('FYP thực tế lũy kế', money(ytdF), `${done.length} tháng có số · plan cùng kỳ ${money(ytdP)}`, yT ? `<span class="badge ${ytdF / (yT * 1000) >= (done.length / 12) ? 'b-green' : 'b-amber'}">${pct(ytdF / (yT * 1000), 1)} target năm</span>` : ''),
+    kpi(`Target FYP năm ${Y}`, yT === null ? '–' : money(yT * 1000), yT === null ? (isAdmin ? 'Chưa nhập · vào tab "Nhập target"' : 'Admin chưa nhập') : `Target 12 tháng cộng lại: ${money(sum(rows, (r) => r.pF))}`),
+    kpi('FYP thực tế lũy kế', money(ytdF), `${done.length} tháng có số · target cùng kỳ ${money(ytdP)}`, yT ? `<span class="badge ${ytdF / (yT * 1000) >= (done.length / 12) ? 'b-green' : 'b-amber'}">${pct(ytdF / (yT * 1000), 1)} target năm</span>` : ''),
     kpi('Cần mỗi tháng còn lại', need === null ? '–' : money(need / Math.max(1, left)), need === null ? 'Cần target năm' : `Còn ${money(need)} cho ${left} tháng (gồm ${mLabel(M[3])})`),
     kpi(`Tuyển mới (NR) lũy kế`, f0(ytdN), yNR ? `Target năm ${f0(yNR)} · đạt ${pct(ytdN / yNR, 1)}` : 'Chưa có target NR năm'),
   ].join('');
   const chartItems = rows.map((r) => ({ label: mLabel(r.m), v: r.aF, partial: r.partial, cls: SRC_CLS[monthSrc(r.m)], tip: `${mLong(r.m)}${SRC_NOTE[monthSrc(r.m)] || ''}\nThực tế: ${money(r.aF)}\nPlan: ${money(r.pF)}${r.pF && r.aF !== null ? `\nĐạt ${pct(r.aF / r.pF)}` : ''}` }));
-  const planLine = (() => { // đường plan vẽ chồng lên biểu đồ cột
+  const planLine = (() => { // đường target vẽ chồng lên biểu đồ cột
     const W = Math.max(360, rows.length * 90), h = 190, pad = { l: 8, r: 8, t: 22, b: 26 }, step = (W - pad.l - pad.r) / rows.length;
     const max = Math.max(1, ...rows.map((r) => N(r.aF)), ...rows.map((r) => N(r.pF)));
     const pts = rows.map((r, i) => (r.pF === null ? null : [pad.l + step * i + step / 2, pad.t + (h - pad.t - pad.b) * (1 - N(r.pF) / max)]));
@@ -1933,7 +1933,7 @@ function planTrack(body, Y, YM) {
     const cols = rows.map((r, i) => { if (r.aF === null) return ''; const cx = pad.l + step * i + step / 2, yy = pad.t + (h - pad.t - pad.b) * (1 - N(r.aF) / max); return `<g data-tip="${esc(chartItems[i].tip)}"><rect x="${cx - step / 2}" y="${pad.t - 10}" width="${step}" height="${h - pad.t}" fill="transparent"/><path class="${r.partial ? 'bar part' : chartItems[i].cls || 'bar'}" d="M${cx - bw / 2},${h - pad.b} V${yy + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${h - pad.b} Z"/><text class="val" x="${cx}" y="${yy - 6}" text-anchor="middle">${money(r.aF)}</text></g>`; }).join('');
     const labels = rows.map((r, i) => `<text x="${pad.l + step * i + step / 2}" y="${h - 8}" text-anchor="middle">${mLabel(r.m)}</text>`).join('');
     const line = pts.filter(Boolean).map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
-    const marks = pts.map((p, i) => (p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff" stroke="#f79009" stroke-width="2"><title>Plan ${mLabel(rows[i].m)}: ${money(rows[i].pF)}</title></circle>` : '')).join('');
+    const marks = pts.map((p, i) => (p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff" stroke="#f79009" stroke-width="2"><title>Target ${mLabel(rows[i].m)}: ${money(rows[i].pF)}</title></circle>` : '')).join('');
     return `<div class="chart-scroll"><svg class="chart chart-wide" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;max-height:${h + 40}px" role="img"><line class="grid" x1="0" x2="${W}" y1="${h - pad.b}" y2="${h - pad.b}"/>${cols}${line ? `<path d="${line}" fill="none" stroke="#f79009" stroke-width="2" stroke-dasharray="5 4"/>` : ''}${marks}${labels}</svg></div>`;
   })();
   const tr = (r) => `<tr class="${r.m === S.planMonth ? 'sel' : ''}"><td><b>${mLabel(r.m)}</b>${r.partial ? ' <span class="badge b-amber">đang chạy</span>' : ''}</td>
@@ -1948,10 +1948,10 @@ function planTrack(body, Y, YM) {
     return `<tr><td>${esc(name)}</td><td class="r num">${a ? f0(a.hc) : '–'}</td><td class="r num">${f0(pA)}</td><td class="r num">${a ? f0(a.aa) : '–'}</td>${pctCell(a ? a.aa : null, pA)}<td class="r num">${pF === null ? '–' : money(pF * 1000)}</td><td class="r num">${a ? money(a.fyp) : '–'}</td>${pctCell(a ? a.fyp : null, pF === null ? null : pF * 1000)}<td class="r num">${a && a.cc ? money(a.fyp / a.cc) : '–'}</td><td class="r num">${a && a.aa ? nf2.format(a.cc / a.aa) : '–'}</td></tr>`;
   }).join('');
   body.innerHTML = `<div class="kpis">${kpis}</div>
-  <section class="panel"><div class="panel-h"><div><h3>FYP thực tế vs Plan · ${Y}</h3><p>Cột = thực tế (BC70, báo cáo tháng hoặc số nhập tay) · đường cam = plan tháng</p></div></div><div class="panel-b">${planLine}<div class="legend"><span><i style="background:var(--green)"></i>Thực tế (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#2e90fa"></i>Báo cáo tháng</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span><span><i style="background:#f79009"></i>Plan</span></div></div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Plan vs Thực tế theo tháng</h3><p>${esc(rhShort())} · 1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tháng</th><th class="r">Plan FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Plan 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Plan HĐ</th><th class="r">TT HĐ</th><th class="r">Plan NR</th><th class="r">TT NR</th><th class="r">% đạt</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table></div>
+  <section class="panel"><div class="panel-h"><div><h3>FYP thực tế vs Target · ${Y}</h3><p>Cột = thực tế (BC70, báo cáo tháng hoặc số nhập tay) · đường cam = target tháng</p></div></div><div class="panel-b">${planLine}<div class="legend"><span><i style="background:var(--green)"></i>Thực tế (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#2e90fa"></i>Báo cáo tháng</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span><span><i style="background:#f79009"></i>Target</span></div></div></section>
+  <section class="panel"><div class="panel-h"><div><h3>Target vs Thực tế theo tháng</h3><p>${esc(rhShort())} · 1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tháng</th><th class="r">Target FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Target 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Target HĐ</th><th class="r">TT HĐ</th><th class="r">Target NR</th><th class="r">TT NR</th><th class="r">% đạt</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table></div>
   <p class="note">Tháng chưa có số thực tế: nhập ở <a href="#history">KQKD các kỳ trước</a>. Tháng đang chạy là số tạm tính đến ${dmy(DS.meta.asOf)}.</p></div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Theo phân khúc · ${mLabel(ym)}</h3><p>${act ? `Nguồn thực tế: BC70 (phân khúc theo thâm niên tại tháng đó)${act.hasSA ? ' · SA từ báo cáo MAPA' : ' · SA chỉ có ở tháng có báo cáo MAPA'}` : 'Chưa có số thực tế theo phân khúc cho tháng này'}</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Phân khúc</th><th class="r">Nguồn lực</th><th class="r">Plan 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Plan FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Case size</th><th class="r">HĐ / ĐL có bán</th></tr></thead><tbody>${segRows}</tbody></table></div></div></section>`;
+  <section class="panel"><div class="panel-h"><div><h3>Theo phân khúc · ${mLabel(ym)}</h3><p>${act ? `Nguồn thực tế: BC70 (phân khúc theo thâm niên tại tháng đó)${act.hasSA ? ' · SA từ báo cáo MAPA' : ' · SA chỉ có ở tháng có báo cáo MAPA'}` : 'Chưa có số thực tế theo phân khúc cho tháng này'}</p></div></div><div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Phân khúc</th><th class="r">Nguồn lực</th><th class="r">Target 1mAA</th><th class="r">TT 1mAA</th><th class="r">% đạt</th><th class="r">Target FYP</th><th class="r">TT FYP</th><th class="r">% đạt</th><th class="r">Case size</th><th class="r">HĐ / ĐL có bán</th></tr></thead><tbody>${segRows}</tbody></table></div></div></section>`;
 }
 
 // ---------- tab 2: cần bao nhiêu 1mAA / HĐ ----------
@@ -1964,7 +1964,7 @@ function planCalc(body) {
   const needCC = target && base.cs ? target / base.cs : null, needAA = needCC && base.cpa ? needCC / base.cpa : null;
   const hcNow = DS.agents.length + N(DS.meta.saCount);
   const basisName = { '3m': `TB 3 tháng ${P.months.map(mLabel).join(', ')}`, '1m': `tháng gần nhất ${mLabel(M[2])}`, yoy: `cùng kỳ ${mLabel(addMonths(ym, -12))}` }[S.planBasis];
-  // phân bổ theo phân khúc: plan FYP phân khúc nếu có, không thì theo tỷ trọng lịch sử
+  // phân bổ theo phân khúc: target FYP phân khúc nếu có, không thì theo tỷ trọng lịch sử
   const segPlanned = SEGS.some(([k]) => pv(ym, k, 'fyp') !== null);
   const segRows = SEGS.map(([k, name]) => {
     const p = P[k]; if (!p) return { k, name, none: true };
@@ -1981,10 +1981,10 @@ function planCalc(body) {
     <div class="toolbar"><label class="small muted">Dựa trên&nbsp;<select class="select" id="pl-basis"><option value="3m" ${S.planBasis === '3m' ? 'selected' : ''}>TB 3 tháng gần nhất</option><option value="1m" ${S.planBasis === '1m' ? 'selected' : ''}>Tháng gần nhất</option><option value="yoy" ${S.planBasis === 'yoy' ? 'selected' : ''}>Cùng kỳ năm trước</option></select></label>
     <label class="small muted">Target FYP (triệu)&nbsp;<input class="input" id="pl-target" style="width:120px;text-align:right" inputmode="decimal" value="${target ? Math.round(target / 1000) : ''}" placeholder="nhập để thử"></label></div></div>
     <div class="panel-b">
-    ${!target ? `<div class="banner warn">Chưa có target FYP cho ${mLong(ym)}. ${isAdmin ? 'Nhập ở tab "Nhập target & plan" hoặc gõ số vào ô Target ở trên để tính thử.' : 'Gõ số vào ô Target để tính thử.'}</div>` : ''}
+    ${!target ? `<div class="banner warn">Chưa có target FYP cho ${mLong(ym)}. ${isAdmin ? 'Nhập ở tab "Nhập target" hoặc gõ số vào ô Target ở trên để tính thử.' : 'Gõ số vào ô Target để tính thử.'}</div>` : ''}
     ${S.planBasis === 'yoy' && !Y ? `<div class="banner warn">Chưa có số ${mLong(addMonths(ym, -12))} (FYP, HĐ, ĐL hoạt động) – nhập ở <a href="#history">KQKD các kỳ trước</a>. Tạm dùng TB 3 tháng.</div>` : ''}
     <div class="kpis">
-      <div class="kpi"><div class="lb">Target FYP</div><div class="v num">${money(target)}</div><div class="s">${S.calcTarget != null ? 'Số đang thử (chưa lưu)' : 'Theo plan đã nhập'}</div></div>
+      <div class="kpi"><div class="lb">Target FYP</div><div class="v num">${money(target)}</div><div class="s">${S.calcTarget != null ? 'Số đang thử (chưa lưu)' : 'Theo target đã nhập'}</div></div>
       <div class="kpi"><div class="lb">Case size bình quân</div><div class="v num">${money(base.cs)}</div><div class="s">FYP / hợp đồng · ${esc(basisName)}</div></div>
       <div class="kpi"><div class="lb">HĐ / 1 ĐL có bán</div><div class="v num">${base.cpa ? nf2.format(base.cpa) : '–'}</div><div class="s">FYP mỗi ĐL có bán mang về: ${money(base.fpa)}</div></div>
       <div class="kpi"><div class="lb">Cần số hợp đồng</div><div class="v num">${f0(needCC && Math.ceil(needCC))}</div><div class="s">= Target ÷ case size</div></div>
@@ -1993,8 +1993,8 @@ function planCalc(body) {
     </div>
     ${target && needAA ? `<div class="banner"><span>🎯</span><div>Để đạt <b>${money(target)}</b> trong ${mLong(ym)}: với case size bình quân <b>${money(base.cs)}</b> và mỗi ĐL có bán mang về <b>${nf2.format(base.cpa)} HĐ</b> (${money(base.fpa)}), vùng cần khoảng <b>${f0(Math.ceil(needCC))} hợp đồng</b> từ <b>${f0(Math.ceil(needAA))} ĐL có bán</b>${atot && elapsed ? ` — hiện đã có ${f0(atot.aa)} ĐL / ${f0(atot.cc)} HĐ, còn thiếu <b>${f0(Math.max(0, Math.ceil(needAA) - atot.aa))} ĐL</b> và <b>${f0(Math.max(0, Math.ceil(needCC) - atot.cc))} HĐ</b> trong ${daysIn - elapsed} ngày còn lại` : ''}.</div></div>` : ''}
     </div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Theo phân khúc</h3><p>${segPlanned ? 'FYP phân khúc theo plan đã nhập' : 'Chưa có plan phân khúc → chia target theo tỷ trọng FYP lịch sử'} · năng suất: ${esc(S.planBasis === 'yoy' ? 'TB 3 tháng (phân khúc)' : basisName)}</p></div></div>
-    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Phân khúc</th><th class="r">Tỷ trọng FYP</th><th class="r">FYP cần</th><th class="r">Case size</th><th class="r">HĐ / ĐL có bán</th><th class="r">HĐ cần</th><th class="r">1mAA cần</th><th class="r">Nguồn lực</th><th class="r">Tỷ lệ HĐ cần</th><th class="r">Tỷ lệ HĐ lịch sử</th><th class="r">Plan 1mAA</th><th class="r">TT 1mAA</th></tr></thead><tbody>
+  <section class="panel"><div class="panel-h"><div><h3>Theo phân khúc</h3><p>${segPlanned ? 'FYP phân khúc theo target đã nhập' : 'Chưa có target phân khúc → chia target theo tỷ trọng FYP lịch sử'} · năng suất: ${esc(S.planBasis === 'yoy' ? 'TB 3 tháng (phân khúc)' : basisName)}</p></div></div>
+    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Phân khúc</th><th class="r">Tỷ trọng FYP</th><th class="r">FYP cần</th><th class="r">Case size</th><th class="r">HĐ / ĐL có bán</th><th class="r">HĐ cần</th><th class="r">1mAA cần</th><th class="r">Nguồn lực</th><th class="r">Tỷ lệ HĐ cần</th><th class="r">Tỷ lệ HĐ lịch sử</th><th class="r">Target 1mAA</th><th class="r">TT 1mAA</th></tr></thead><tbody>
     ${segRows.map((r) => r.none ? `<tr><td>${esc(r.name)}</td><td colspan="11" class="muted">Chưa có số lịch sử</td></tr>` : `<tr><td>${esc(r.name)}</td><td class="r num">${pct(r.p.mix, 1)}</td><td class="r num">${money(r.tF)}</td><td class="r num">${money(r.p.cs)}</td><td class="r num">${r.p.cpa ? nf2.format(r.p.cpa) : '–'}</td><td class="r num">${f0(r.cc && Math.ceil(r.cc))}</td><td class="r num"><b>${f0(r.aa && Math.ceil(r.aa))}</b></td><td class="r num">${f0(r.p.hc)}</td><td class="r num">${r.rate !== null && r.p.rate !== null ? `<span class="badge ${r.rate <= r.p.rate * 1.1 ? 'b-green' : r.rate <= r.p.rate * 1.4 ? 'b-amber' : 'b-red'}" title="So với tỷ lệ lịch sử">${pct(r.rate, 1)}</span>` : '–'}</td><td class="r num">${pct(r.p.rate, 1)}</td><td class="r num">${f0(r.planAA)}</td><td class="r num">${r.a ? f0(r.a.aa) : '–'}</td></tr>`).join('')}
     <tr style="font-weight:700;background:#f9fafb"><td>Cộng</td><td></td><td class="r num">${money(sum(segRows, (r) => r.tF || 0))}</td><td></td><td></td><td class="r num">${f0(Math.ceil(sumCC))}</td><td class="r num">${f0(Math.ceil(sumAA))}</td><td></td><td></td><td></td><td class="r num">${f0(monthPlan(ym, 'aa'))}</td><td class="r num">${atot ? f0(atot.aa) : '–'}</td></tr>
     </tbody></table></div>
@@ -2003,24 +2003,24 @@ function planCalc(body) {
   $('#pl-target').onchange = (e) => { const v = e.target.value.trim().replace(/\./g, '').replace(',', '.'); S.calcTarget = v === '' || isNaN(+v) ? null : +v; render(); };
 }
 
-// ---------- tab 3: nhập target & plan ----------
+// ---------- tab 3: nhập target ----------
 function planInput(body, Y, YM) {
   const ym = S.planMonth, P = productivity('3m');
   const dis = isAdmin ? '' : 'disabled';
   const inp = (m, s, k, ph = '') => `<input data-pm="${m}" data-ps="${s}" data-pk="${k}" inputmode="decimal" value="${pv(m, s, k) ?? ''}" placeholder="${ph}" ${dis}>`;
   const yKey = String(Y);
   body.innerHTML = `
-  <section class="panel"><div class="panel-h"><div><h3>Target năm ${Y} · ${esc(rhShort())}</h3><p>Đơn vị FYP: triệu đồng · mỗi đầu RH có target & plan riêng (ALL là target tổng)</p></div>
+  <section class="panel"><div class="panel-h"><div><h3>Target năm ${Y} · ${esc(rhShort())}</h3><p>Đơn vị FYP: triệu đồng · mỗi đầu RH có target riêng (ALL là target tổng)</p></div>
     <div class="toolbar">${isAdmin ? `<button class="btn btn-sm" id="pl-split">Chia target năm → 12 tháng</button><button class="btn btn-primary btn-sm" id="pl-save" disabled>Lưu thay đổi</button>` : ''}</div></div>
     <div class="panel-b"><div id="pl-msg" class="note"></div><table class="tbl edit-tbl" style="max-width:640px"><thead><tr><th class="r">FYP năm (triệu)</th><th class="r">NR năm</th><th class="r">1mAA bình quân/tháng</th></tr></thead>
     <tbody><tr><td>${inp(yKey, 'TOTAL', 'fyp')}</td><td>${inp(yKey, 'TOTAL', 'nr')}</td><td>${inp(yKey, 'TOTAL', 'aa')}</td></tr></tbody></table></div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Plan theo tháng · ${Y}</h3><p>Tổng vùng mỗi tháng. Để trống FYP tháng nếu muốn lấy tổng các phân khúc.</p></div></div>
-    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Tháng</th><th class="r">Target FYP (triệu)</th><th class="r">Plan 1mAA</th><th class="r">Plan HĐ</th><th class="r">Plan NR</th><th class="r">Cộng FYP phân khúc</th></tr></thead><tbody>
+  <section class="panel"><div class="panel-h"><div><h3>Target theo tháng · ${Y}</h3><p>Tổng vùng mỗi tháng. Để trống FYP tháng nếu muốn lấy tổng các phân khúc.</p></div></div>
+    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Tháng</th><th class="r">Target FYP (triệu)</th><th class="r">Target 1mAA</th><th class="r">Target HĐ</th><th class="r">Target NR</th><th class="r">Cộng FYP phân khúc</th></tr></thead><tbody>
     ${YM.map((m) => `<tr class="${m === ym ? 'sel' : ''}"><td><b>${mLabel(m)}</b></td><td>${inp(m, 'TOTAL', 'fyp')}</td><td>${inp(m, 'TOTAL', 'aa')}</td><td>${inp(m, 'TOTAL', 'cc')}</td><td>${inp(m, 'TOTAL', 'nr')}</td><td class="r num muted">${(() => { const s = SEGS.map(([k]) => pv(m, k, 'fyp')).filter((v) => v !== null); return s.length ? f0(sum(s)) : '–'; })()}</td></tr>`).join('')}
     </tbody></table></div></div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Plan phân khúc có bán · ${mLabel(ym)}</h3><p>Chọn tháng ở trên cùng. Số gợi ý (mờ) = target tháng chia theo tỷ trọng & năng suất 3 tháng gần nhất.</p></div>
+  <section class="panel"><div class="panel-h"><div><h3>Target phân khúc có bán · ${mLabel(ym)}</h3><p>Chọn tháng ở trên cùng. Số gợi ý (mờ) = target tháng chia theo tỷ trọng & năng suất 3 tháng gần nhất.</p></div>
     <div class="toolbar">${isAdmin ? '<button class="btn btn-sm" id="pl-suggest">Điền theo gợi ý</button>' : ''}</div></div>
-    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Phân khúc</th><th class="r">Plan 1mAA (ĐL có bán)</th><th class="r">Plan FYP (triệu)</th><th class="r">Plan HĐ</th><th class="r muted">Nguồn lực</th><th class="r muted">1mAA TB 3T</th><th class="r muted">FYP TB 3T</th></tr></thead><tbody>
+    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Phân khúc</th><th class="r">Target 1mAA (ĐL có bán)</th><th class="r">Target FYP (triệu)</th><th class="r">Target HĐ</th><th class="r muted">Nguồn lực</th><th class="r muted">1mAA TB 3T</th><th class="r muted">FYP TB 3T</th></tr></thead><tbody>
     ${SEGS.map(([k, name]) => { const p = P[k], t = monthTarget(ym); const sF = t && p ? (t * p.mix) / 1000 : null, sC = sF && p.cs ? (sF * 1000) / p.cs : null, sA = sC && p.cpa ? sC / p.cpa : null;
       return `<tr><td>${esc(name)}</td><td>${inp(ym, k, 'aa', sA ? Math.ceil(sA) : '')}</td><td>${inp(ym, k, 'fyp', sF ? Math.round(sF) : '')}</td><td>${inp(ym, k, 'cc', sC ? Math.ceil(sC) : '')}</td><td class="r num muted">${p ? f0(p.hc) : '–'}</td><td class="r num muted">${p ? f1(p.aa) : '–'}</td><td class="r num muted">${p ? money(p.fyp) : '–'}</td></tr>`; }).join('')}
     </tbody></table></div><p class="note">1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng. Lịch sử các năm trước (FYP, HĐ, ĐL hoạt động, NR theo tháng) nhập ở <a href="#history">KQKD các kỳ trước</a>.</p></div></section>`;
