@@ -101,6 +101,7 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .tbl th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600;background:#fafbfb;position:sticky;top:0;z-index:1}
 .tbl td.r,.tbl th.r{text-align:right}
 .tbl tr.click{cursor:pointer}.tbl tr.click:hover td{background:var(--green-ll)}
+.tbl tr.sel td{background:var(--green-ll)}.tbl tr.tot td{font-weight:700;background:#f2f4f7;border-top:2px solid var(--line)}.tbl th.c{text-align:center}.tbl td small{font-weight:400}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .input,.select{padding:8px 10px;border:1px solid #d0d5dd;border-radius:10px;background:#fff;font-size:13px;min-width:0}
 .input:focus,.select:focus{outline:2px solid var(--green);outline-offset:0}
@@ -1803,10 +1804,44 @@ const MAPA_SEG = { '1. Partial Month': 'P0', '2. 1st-3rd Month': 'M1', '3. 4th-6
 let PLAN = null; // Map 'YYYY-MM|SEG' -> vals
 const planKey = (m, s = 'TOTAL') => `${m}|${s}`;
 const pv = (m, s, k) => { const v = PLAN?.get(planKey(m, s))?.[k]; return v === undefined || v === null || v === '' ? null : +v; };
+let PLAN_BY = new Map(); // scope -> Map (target từng đầu RH)
 async function loadPlan() {
-  const r = await sb.from('plan_targets').select('month,segment,vals').eq('scope', planScope());
+  const r = await sb.from('plan_targets').select('scope,month,segment,vals');
   if (r.error) throw new Error(r.error.message);
-  PLAN = new Map((r.data || []).map((x) => [planKey(x.month, x.segment), x.vals || {}]));
+  PLAN_BY = new Map();
+  for (const x of r.data || []) {
+    if (/^[an]:/.test(x.segment)) continue; // target nhánh / khu vực: xem DS.tg
+    if (!PLAN_BY.has(x.scope)) PLAN_BY.set(x.scope, new Map());
+    PLAN_BY.get(x.scope).set(planKey(x.month, x.segment), x.vals || {});
+  }
+  // ALL = tự cộng target các đầu RH (không nhập riêng)
+  const sumMap = new Map();
+  for (const id of rhList().map((g) => g.id)) {
+    for (const [k, v] of PLAN_BY.get(id) || []) {
+      const o = sumMap.get(k) || {};
+      for (const [f, n] of Object.entries(v || {})) if (n !== null && n !== '' && !isNaN(+n)) o[f] = (o[f] || 0) + +n;
+      sumMap.set(k, o);
+    }
+  }
+  PLAN_BY.set('ALL', sumMap);
+  PLAN = PLAN_BY.get(planScope()) || new Map();
+}
+const pvOf = (scope, m, s, k) => { const v = PLAN_BY.get(scope)?.get(planKey(m, s))?.[k]; return v === undefined || v === null || v === '' ? null : +v; };
+// kết quả 3 tháng gần nhất + cùng kỳ năm trước theo từng đầu RH (tham khảo khi đặt target)
+function rhReference(ym) {
+  const M = DS.months, rhOf = new Map(DS.areasAll.map((a) => [a.code, a.rh]));
+  const ids = [...rhList().map((g) => g.id), 'ALL'];
+  const yoy = addMonths(ym, -12);
+  return ids.map((id) => {
+    const list = id === 'ALL' ? DS.agentsAll : DS.agentsAll.filter((a) => rhOf.get(a.a) === id);
+    const g = groupStats(list, 2);
+    const m3 = [0, 1, 2].map((i) => ({ fyp: g.fypM[i], aa: g.actM[i], cc: g.ccM[i], nr: g.nrM[i] }));
+    const avg = (k) => sum(m3, (x) => x[k]) / 3;
+    const hs = (DS.hist || []).filter((h) => h.m === yoy && (id === 'ALL' || h.rh === id));
+    const py = hs.length ? { fyp: sum(hs, (h) => N(h.fyp)), cc: sum(hs, (h) => N(h.cc)), nr: sum(hs, (h) => N(h.nr)) } : null;
+    const tF = pvOf(id, ym, 'TOTAL', 'fyp'), tA = pvOf(id, ym, 'TOTAL', 'aa');
+    return { id, name: id === 'ALL' ? 'ALL · tổng các đầu RH' : rhShort(id), hc: list.length, m3, fyp: avg('fyp'), aa: avg('aa'), cc: avg('cc'), nr: avg('nr'), py, tF: tF === null ? null : tF * 1000, tA };
+  });
 }
 function tenureAt(a, ym) {
   const j = String(a.j || ''); if (!/^\d{4}-\d{2}/.test(j)) return null;
@@ -2005,26 +2040,46 @@ function planCalc(body) {
 
 // ---------- tab 3: nhập target ----------
 function planInput(body, Y, YM) {
-  const ym = S.planMonth, P = productivity('3m');
-  const dis = isAdmin ? '' : 'disabled';
+  const ym = S.planMonth, P = productivity('3m'), M = DS.months;
+  const isAll = planScope() === 'ALL', canEdit = isAdmin && !isAll;
+  const dis = canEdit ? '' : 'disabled';
+  // bảng tham khảo theo đầu RH
+  const ref = rhReference(ym);
+  const gr = (t, base) => (t === null || !base ? '<td class="r muted">–</td>' : `<td class="r"><span class="badge ${t / base >= 1.3 ? 'b-red' : t / base >= 1 ? 'b-green' : 'b-amber'}">${t / base >= 1 ? '+' : ''}${pct(t / base - 1, 0)}</span></td>`);
+  const refRow = (r) => `<tr class="${r.id === 'ALL' ? 'tot' : ''}${r.id === planScope() ? ' sel' : ''}" ${r.id !== 'ALL' && isAll ? `data-pick-rh="${esc(r.id)}" style="cursor:pointer"` : ''}><td><b>${esc(r.name)}</b><br><small class="muted">${f0(r.hc)} nguồn lực</small></td>
+    ${r.m3.map((x) => `<td class="r num">${money(x.fyp)}<br><small class="muted">${f0(x.aa)} ĐL · ${f0(x.cc)} HĐ</small></td>`).join('')}
+    <td class="r num" style="background:#f6fef9"><b>${money(r.fyp)}</b></td><td class="r num" style="background:#f6fef9">${f1(r.aa)}</td><td class="r num" style="background:#f6fef9">${f1(r.cc)}</td><td class="r num" style="background:#f6fef9">${f1(r.nr)}</td><td class="r num" style="background:#f6fef9">${r.cc ? money(r.fyp / r.cc) : '–'}</td>
+    <td class="r num">${r.py ? money(r.py.fyp) : '–'}${r.py ? `<br><small class="muted">${f0(r.py.cc)} HĐ · NR ${f0(r.py.nr)}</small>` : ''}</td>
+    <td class="r num"><b>${r.tF === null ? '–' : money(r.tF)}</b>${r.tA !== null ? `<br><small class="muted">1mAA ${f0(r.tA)}</small>` : ''}</td>${gr(r.tF, r.fyp)}${gr(r.tF, r.py?.fyp)}</tr>`;
+  const refPanel = `<section class="panel"><div class="panel-h"><div><h3>Kết quả 3 tháng gần nhất theo đầu RH · tham khảo đặt target ${mLabel(ym)}</h3><p>Thực tế BC70 ${M.slice(0, 3).map(mLabel).join(', ')} (FYP · ĐL có HĐ thực cấp · HĐ) · TB 3 tháng · cùng kỳ năm trước (báo cáo tháng) · target đã nhập. ${isAll ? 'Bấm 1 đầu RH để nhập target cho đầu đó.' : ''}</p></div></div>
+    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th rowspan="2">Đầu RH</th><th colspan="3" class="c">Thực tế từng tháng</th><th colspan="5" class="c" style="background:#f6fef9">TB 3 tháng</th><th class="r" rowspan="2">Cùng kỳ ${mLabel(addMonths(ym, -12))}</th><th class="r" rowspan="2">Target ${mLabel(ym)}</th><th class="r" rowspan="2">vs TB 3T</th><th class="r" rowspan="2">vs cùng kỳ</th></tr>
+    <tr>${M.slice(0, 3).map((m) => `<th class="r">${mLabel(m)}</th>`).join('')}<th class="r">FYP</th><th class="r">1mAA</th><th class="r">HĐ</th><th class="r">NR</th><th class="r">Case size</th></tr></thead>
+    <tbody>${ref.filter((r) => r.id !== 'ALL').map(refRow).join('')}${refRow(ref.find((r) => r.id === 'ALL'))}</tbody></table></div>
+    <p class="note">Màu % target: xanh = cao hơn mức tham chiếu, cam = thấp hơn, đỏ = cao hơn từ 30% trở lên (cần kế hoạch tuyển dụng / kích hoạt cụ thể). Cùng kỳ năm trước tính theo cơ cấu khu vực hiện tại; dòng ALL = tổng các đầu RH.</p></div></section>`;
+  // cột tham khảo theo tháng (phạm vi đang chọn)
+  const saveArea = S.area; S.area = 'all';
+  const monthRef = new Map(YM.map((m) => [m, { act: monthValue(m, 'fyp', DS.agents), py: monthValue(addMonths(m, -12), 'fyp', DS.agents) }]));
+  S.area = saveArea;
   const inp = (m, s, k, ph = '') => `<input data-pm="${m}" data-ps="${s}" data-pk="${k}" inputmode="decimal" value="${pv(m, s, k) ?? ''}" placeholder="${ph}" ${dis}>`;
   const yKey = String(Y);
-  body.innerHTML = `
-  <section class="panel"><div class="panel-h"><div><h3>Target năm ${Y} · ${esc(rhShort())}</h3><p>Đơn vị FYP: triệu đồng · mỗi đầu RH có target riêng (ALL là target tổng)</p></div>
-    <div class="toolbar">${isAdmin ? `<button class="btn btn-sm" id="pl-split">Chia target năm → 12 tháng</button><button class="btn btn-primary btn-sm" id="pl-save" disabled>Lưu thay đổi</button>` : ''}</div></div>
+  body.innerHTML = `${refPanel}
+  ${isAll ? `<div class="banner"><span>Σ</span><div><b>ALL = tự cộng target của các đầu RH</b> (chỉ xem). Chọn 1 đầu RH ở bộ lọc trên cùng (hoặc bấm dòng RH trong bảng trên) để nhập target cho đầu đó.</div></div>` : ''}
+  <section class="panel"><div class="panel-h"><div><h3>Target năm ${Y} · ${esc(rhShort())}</h3><p>Đơn vị FYP: triệu đồng · mỗi đầu RH có target riêng, ALL = tổng các đầu RH</p></div>
+    <div class="toolbar">${canEdit ? `<button class="btn btn-sm" id="pl-split">Chia target năm → 12 tháng</button><button class="btn btn-primary btn-sm" id="pl-save" disabled>Lưu thay đổi</button>` : ''}</div></div>
     <div class="panel-b"><div id="pl-msg" class="note"></div><table class="tbl edit-tbl" style="max-width:640px"><thead><tr><th class="r">FYP năm (triệu)</th><th class="r">NR năm</th><th class="r">1mAA bình quân/tháng</th></tr></thead>
     <tbody><tr><td>${inp(yKey, 'TOTAL', 'fyp')}</td><td>${inp(yKey, 'TOTAL', 'nr')}</td><td>${inp(yKey, 'TOTAL', 'aa')}</td></tr></tbody></table></div></section>
   <section class="panel"><div class="panel-h"><div><h3>Target theo tháng · ${Y}</h3><p>Tổng vùng mỗi tháng. Để trống FYP tháng nếu muốn lấy tổng các phân khúc.</p></div></div>
-    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Tháng</th><th class="r">Target FYP (triệu)</th><th class="r">Target 1mAA</th><th class="r">Target HĐ</th><th class="r">Target NR</th><th class="r">Cộng FYP phân khúc</th></tr></thead><tbody>
-    ${YM.map((m) => `<tr class="${m === ym ? 'sel' : ''}"><td><b>${mLabel(m)}</b></td><td>${inp(m, 'TOTAL', 'fyp')}</td><td>${inp(m, 'TOTAL', 'aa')}</td><td>${inp(m, 'TOTAL', 'cc')}</td><td>${inp(m, 'TOTAL', 'nr')}</td><td class="r num muted">${(() => { const s = SEGS.map(([k]) => pv(m, k, 'fyp')).filter((v) => v !== null); return s.length ? f0(sum(s)) : '–'; })()}</td></tr>`).join('')}
+    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Tháng</th><th class="r">Target FYP (triệu)</th><th class="r">Target 1mAA</th><th class="r">Target HĐ</th><th class="r">Target NR</th><th class="r">Cộng FYP phân khúc</th><th class="r muted">FYP thực tế (tr)</th><th class="r muted">FYP cùng kỳ ${Y - 1} (tr)</th></tr></thead><tbody>
+    ${YM.map((m) => { const r = monthRef.get(m); return `<tr class="${m === ym ? 'sel' : ''}"><td><b>${mLabel(m)}</b></td><td>${inp(m, 'TOTAL', 'fyp')}</td><td>${inp(m, 'TOTAL', 'aa')}</td><td>${inp(m, 'TOTAL', 'cc')}</td><td>${inp(m, 'TOTAL', 'nr')}</td><td class="r num muted">${(() => { const s = SEGS.map(([k]) => pv(m, k, 'fyp')).filter((v) => v !== null); return s.length ? f0(sum(s)) : '–'; })()}</td><td class="r num muted">${r.act === null ? '–' : f0(r.act / 1000)}${m === M[3] ? '*' : ''}</td><td class="r num muted">${r.py === null ? '–' : f0(r.py / 1000)}</td></tr>`; }).join('')}
     </tbody></table></div></div></section>
   <section class="panel"><div class="panel-h"><div><h3>Target phân khúc có bán · ${mLabel(ym)}</h3><p>Chọn tháng ở trên cùng. Số gợi ý (mờ) = target tháng chia theo tỷ trọng & năng suất 3 tháng gần nhất.</p></div>
-    <div class="toolbar">${isAdmin ? '<button class="btn btn-sm" id="pl-suggest">Điền theo gợi ý</button>' : ''}</div></div>
+    <div class="toolbar">${canEdit ? '<button class="btn btn-sm" id="pl-suggest">Điền theo gợi ý</button>' : ''}</div></div>
     <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl"><thead><tr><th>Phân khúc</th><th class="r">Target 1mAA (ĐL có bán)</th><th class="r">Target FYP (triệu)</th><th class="r">Target HĐ</th><th class="r muted">Nguồn lực</th><th class="r muted">1mAA TB 3T</th><th class="r muted">FYP TB 3T</th></tr></thead><tbody>
     ${SEGS.map(([k, name]) => { const p = P[k], t = monthTarget(ym); const sF = t && p ? (t * p.mix) / 1000 : null, sC = sF && p.cs ? (sF * 1000) / p.cs : null, sA = sC && p.cpa ? sC / p.cpa : null;
       return `<tr><td>${esc(name)}</td><td>${inp(ym, k, 'aa', sA ? Math.ceil(sA) : '')}</td><td>${inp(ym, k, 'fyp', sF ? Math.round(sF) : '')}</td><td>${inp(ym, k, 'cc', sC ? Math.ceil(sC) : '')}</td><td class="r num muted">${p ? f0(p.hc) : '–'}</td><td class="r num muted">${p ? f1(p.aa) : '–'}</td><td class="r num muted">${p ? money(p.fyp) : '–'}</td></tr>`; }).join('')}
     </tbody></table></div><p class="note">1mAA = số ĐL có ≥1 HĐ thực cấp trong tháng. Lịch sử các năm trước (FYP, HĐ, ĐL hoạt động, NR theo tháng) nhập ở <a href="#history">KQKD các kỳ trước</a>.</p></div></section>`;
-  if (!isAdmin) return;
+  $$('[data-pick-rh]', body).forEach((tr) => tr.onclick = () => setRh(tr.dataset.pickRh));
+  if (!canEdit) return;
   const dirty = new Set();
   const mark = (el) => { el.classList.add('dirty'); dirty.add(`${el.dataset.pm}|${el.dataset.ps}`); $('#pl-save').disabled = false; };
   $$('input[data-pm]', body).forEach((el) => el.oninput = () => mark(el));
