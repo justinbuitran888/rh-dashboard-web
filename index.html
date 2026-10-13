@@ -113,6 +113,7 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .ops-chart .ln-req{fill:none;stroke:#d92d20;stroke-width:2.2;stroke-dasharray:7 4}.ops-chart .dt-req{fill:#d92d20}.ops-chart text.lab.req{fill:#b42318;font-size:11.5px;font-weight:700}.ops-chart text.lab.tgt{fill:#b54708;font-size:11px;font-weight:700}.ops-chart text.val.small{font-size:10.5px;fill:#475467;font-weight:500}.ops-chart text.xl.cur{font-weight:700;fill:var(--green-d)}
 .ops-chart .ln-aa{fill:none;stroke:#1570ef;stroke-width:2.4}.ops-chart .ln-aafc{fill:none;stroke:#1570ef;stroke-width:2;stroke-dasharray:5 4}
 .ops-chart .dt-aa{fill:#1570ef}.ops-chart .dt-aa.est{fill:#b2ddff}.ops-chart .dt-aa.part{fill:#fff;stroke:#1570ef;stroke-width:2}.ops-chart .dt-aafc{fill:#fff;stroke:#1570ef;stroke-width:2}
+.ops-chart .ln-aatgt{fill:none;stroke:#f79009;stroke-width:1.6;stroke-dasharray:2 3}.ops-chart .dt-aatgt{fill:#fff;stroke:#f79009;stroke-width:1.6}.ops-chart text.lab.aatgt{fill:#b54708;font-size:10.5px;font-weight:600}
 .ops-chart text.lab.aa{fill:#175cd3;font-size:11px;font-weight:600}.ops-chart text.gap-t{font-size:11px;font-weight:700;fill:#912018}.ops-chart text.xl{font-size:12px}
 .legend i.lg-fc{background:#f2f4f7;border:1.3px dashed #98a2b3;box-sizing:border-box}
 .ops-chart .ln-tgt{fill:none;stroke:#f79009;stroke-width:2.2}.ops-chart .dt-tgt{fill:#fff;stroke:#f79009;stroke-width:2}
@@ -1414,7 +1415,7 @@ function opsChart(rows) {
   const ok = (v) => v !== null && v !== undefined && isFinite(v);
   const nice = (v) => { const e = Math.pow(10, Math.floor(Math.log10(Math.max(v, 1)))); return Math.ceil((v / e) * 2) / 2 * e; };
   const fMax = nice(Math.max(1, ...rows.flatMap((r) => [r.act, r.tgt, r.plan, r.fc]).filter(ok)) * 1.12);
-  const aMax = nice(Math.max(1, ...rows.flatMap((r) => [r.aa, r.aaFc, r.aaReq]).filter(ok)) * 1.18);
+  const aMax = nice(Math.max(1, ...rows.flatMap((r) => [r.aa, r.aaFc, r.aaReq, r.aaTgt]).filter(ok)) * 1.18);
   const yF = (v) => T1 + H1 * (1 - N(v) / fMax), yA = (v) => T2 + H2 * (1 - N(v) / aMax), cx = (i) => pad.l + step * i + step / 2, bw = Math.min(46, step * 0.52);
   const grid = (T, H, max, fmt) => [0, 0.5, 1].map((t) => `<line class="grid" x1="${pad.l}" x2="${W - pad.r}" y1="${T + H * (1 - t)}" y2="${T + H * (1 - t)}"/><text class="ax" x="${pad.l - 8}" y="${T + H * (1 - t) + 4}" text-anchor="end">${fmt(max * t)}</text>`).join('');
   const path = (pts) => (pts.length > 1 ? pts.map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ') : '');
@@ -1438,16 +1439,17 @@ function opsChart(rows) {
   // tầng 1mAA
   let bot = '';
   bot += `<path class="ln-req" d="${path(series('aaReq', yA))}"/>` + rows.map((r, i) => (ok(r.aaReq) ? `<circle class="dt-req" cx="${cx(i)}" cy="${yA(r.aaReq)}" r="4"/><text class="lab req" x="${cx(i)}" y="${yA(r.aaReq) - 9}" text-anchor="middle">${f0(Math.ceil(r.aaReq))}</text>` : '')).join('');
+  bot += `<path class="ln-aatgt" d="${path(series('aaTgt', yA))}"/>` + rows.map((r, i) => (ok(r.aaTgt) ? `<rect class="dt-aatgt" x="${cx(i) - 3.5}" y="${yA(r.aaTgt) - 3.5}" width="7" height="7"/>${r.fut ? `<text class="lab aatgt" x="${cx(i) + 8}" y="${yA(r.aaTgt) + 4}">${f0(r.aaTgt)}</text>` : ''}` : '')).join('');
   bot += `<path class="ln-aa" d="${path(series('aa', yA, (r) => !r.partial))}"/>`;
   const fcA = [...(lastFull >= 0 && ok(rows[lastFull].aa) ? [[cx(lastFull), yA(rows[lastFull].aa)]] : []), ...series('aaFc', yA, (r) => r.fut)];
   bot += `<path class="ln-aafc" d="${path(fcA)}"/>`;
-  bot += rows.map((r, i) => (ok(r.aa) ? `<circle class="dt-aa${r.est ? ' est' : ''}${r.partial ? ' part' : ''}" cx="${cx(i)}" cy="${yA(r.aa)}" r="4"/><text class="lab aa" x="${cx(i)}" y="${yA(r.aa) + 17}" text-anchor="middle">${r.partial ? 'nay ' : ''}${f0(r.aa)}</text>` : '')).join('');
-  bot += rows.map((r, i) => (r.fut && ok(r.aaFc) ? `<circle class="dt-aafc" cx="${cx(i)}" cy="${yA(r.aaFc)}" r="3.5"/>${!r.partial ? `<text class="lab aa" x="${cx(i)}" y="${yA(r.aaFc) + 17}" text-anchor="middle">~${f0(r.aaFc)}</text>` : `<text class="lab aa" x="${cx(i) + 14}" y="${yA(r.aaFc) + 4}">~${f0(r.aaFc)}</text>`}` : '')).join('');
+  bot += rows.map((r, i) => (ok(r.aa) ? `<circle class="dt-aa${r.est ? ' est' : ''}${r.partial ? ' part' : ''}" cx="${cx(i)}" cy="${yA(r.aa)}" r="4"/>${r.partial ? `<text class="lab aa" x="${cx(i) + 9}" y="${yA(r.aa) - 6}">đến nay ${f0(r.aa)}</text>` : `<text class="lab aa" x="${cx(i)}" y="${yA(r.aa) + 17}" text-anchor="middle">${f0(r.aa)}</text>`}` : '')).join('');
+  bot += rows.map((r, i) => (r.fut && ok(r.aaFc) ? `<circle class="dt-aafc" cx="${cx(i)}" cy="${yA(r.aaFc)}" r="3.5"/>${!r.partial ? `<text class="lab aa" x="${cx(i)}" y="${yA(r.aaFc) + 17}" text-anchor="middle">~${f0(r.aaFc)}</text>` : `<text class="lab aa" x="${cx(i) + 9}" y="${yA(r.aaFc) - 8}">dự báo ~${f0(r.aaFc)}</text>`}` : '')).join('');
   const tip = rows.map((r, i) => `<rect x="${cx(i) - step / 2}" y="0" width="${step}" height="${h}" fill="transparent"><title>${esc([mLong(r.m),
     ok(r.act) ? `FYP thực tế${r.partial ? ' (đến nay)' : r.est ? ' (ước TB)' : ''}: ${money(r.act)}` : null, r.fut && ok(r.fc) ? `FYP dự báo cả tháng: ${money(r.fc)}` : null,
     ok(r.tgt) ? `Target FYP: ${money(r.tgt)}${r.fut && ok(r.fc) ? ` → ${r.fc >= r.tgt ? 'vượt' : 'hụt'} ${money(Math.abs(r.tgt - r.fc))}` : ok(r.act) && !r.partial ? ` (đạt ${pct(r.act / r.tgt)})` : ''}` : null,
     ok(r.plan) ? `Plan FYP: ${money(r.plan)}` : null, ok(r.aa) ? `1mAA thực tế${r.partial ? ' (đến nay)' : r.est ? ' (ước TB)' : ''}: ${f0(r.aa)}` : null,
-    r.fut && ok(r.aaFc) ? `1mAA dự báo: ${f0(r.aaFc)}` : null, ok(r.aaReq) ? `1mAA cần để đạt target: ${f0(Math.ceil(r.aaReq))}` : null].filter(Boolean).join('\n'))}</title></rect>`).join('');
+    r.fut && ok(r.aaFc) ? `1mAA dự báo: ${f0(r.aaFc)}` : null, ok(r.aaReq) ? `1mAA cần để đạt target (theo năng suất thực tế): ${f0(Math.ceil(r.aaReq))}` : null, ok(r.aaTgt) ? `1mAA target trong file: ${f0(r.aaTgt)}${ok(r.tgt) ? ` (giả định ${money(r.tgt / r.aaTgt)} FYP mỗi ĐL có bán)` : ''}` : null].filter(Boolean).join('\n'))}</title></rect>`).join('');
   return `<div class="chart-scroll"><svg class="chart ops-chart" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;min-width:${Math.min(W, 640)}px" role="img">
     <text class="ax-t" x="${pad.l}" y="${T1 - 14}">FYP · Target · Plan · dự báo</text>${grid(T1, H1, fMax, money)}${top}
     <text class="ax-t aa" x="${pad.l}" y="${T2 - 16}">1mAA (ĐL có HĐ thực cấp) · thực tế vs mức cần để đạt target</text>${grid(T2, H2, aMax, f0)}${bot}
@@ -1539,9 +1541,9 @@ function opsSection(list) {
   const future = []; for (let m = ym; m <= `${year}-12`; m = addMonths(m, 1)) future.push(m);
   // 1mAA cần = Target FYP ÷ (HĐ/1mAA × case size) theo trung vị 6 tháng
   const perAA = med.cpa && med.cs ? med.cpa * med.cs : null, reqAAof = (T) => (T !== null && perAA ? T / perAA : null);
-  const rows = [...sr.pts.map((p) => { const T = scopeTarget(p.m, 'fyp'); return { m: p.m, act: p.fyp, est: p.est, tgt: T, plan: scopePlan(p.m, 'fyp'), aa: p.aa, aaReq: reqAAof(T) }; }),
+  const rows = [...sr.pts.map((p) => { const T = scopeTarget(p.m, 'fyp'); return { m: p.m, act: p.fyp, est: p.est, tgt: T, plan: scopePlan(p.m, 'fyp'), aa: p.aa, aaReq: reqAAof(T), aaTgt: scopeTarget(p.m, 'aa') }; }),
     ...future.map((m) => { const T = scopeTarget(m, 'fyp'), cur = m === ym;
-      return { m, fut: true, partial: cur, act: cur ? sr.cur.fyp : undefined, aa: cur ? sr.cur.aa : undefined, tgt: T, plan: scopePlan(m, 'fyp'), aaReq: reqAAof(T),
+      return { m, fut: true, partial: cur, act: cur ? sr.cur.fyp : undefined, aa: cur ? sr.cur.aa : undefined, tgt: T, plan: scopePlan(m, 'fyp'), aaReq: reqAAof(T), aaTgt: scopeTarget(m, 'aa'),
         // dự báo: tháng đang chạy = đã có + phần còn lại theo nhịp trung vị 6T; các tháng sau = trung vị 6T
         fc: cur ? sr.cur.fyp + N(med.fyp) * (1 - ck.el) : med.fyp, aaFc: cur ? Math.max(sr.cur.aa, sr.cur.aa + N(med.aa) * (1 - ck.el)) : med.aa, grow: sr.grow(m) }; })];
   const fut = rows.filter((r) => r.fut), withT = fut.filter((r) => r.tgt !== null);
@@ -1573,7 +1575,9 @@ function opsSection(list) {
     <div class="panel-b"><div class="kpis ops-kpis">${kpis}</div></div></section>
   <section class="panel"><div class="panel-h"><div><h3>Target vs thực tế: FYP & 1mAA · dự báo đến cuối năm</h3><p>Cột = FYP thực tế (cột viền gạch = dự báo cả tháng) · đường cam = Target FYP · đường đỏ = <b>1mAA cần để đạt target</b> = Target ÷ (HĐ/1mAA ${med.cpa ? nf2.format(med.cpa) : '–'} × case size ${money(med.cs)} = ${money(perAA)} mỗi ĐL có bán, trung vị 6T) · đường xanh dương = 1mAA thực tế, nét đứt = dự báo · ô đỏ = GAP FYP</p></div></div>
     <div class="panel-b">${opsChart(rows)}
-      <div class="legend"><span><i style="background:var(--green)"></i>FYP thực tế (BC70)</span><span><i style="background:#c5e8d5"></i>FYP ước T04–T06</span><span><i style="background:#9fdcbc"></i>FYP tháng đang chạy</span><span><i class="lg-fc"></i>FYP dự báo</span><span><i style="background:#f79009"></i>Target FYP</span><span><i style="background:#7f56d9"></i>Plan FYP</span><span><i style="background:#d92d20"></i>1mAA cần để đạt target</span><span><i style="background:#1570ef"></i>1mAA thực tế / dự báo</span><span><i style="background:#fda29b"></i>GAP</span></div>
+      <div class="legend"><span><i style="background:var(--green)"></i>FYP thực tế (BC70)</span><span><i style="background:#c5e8d5"></i>FYP ước T04–T06</span><span><i style="background:#9fdcbc"></i>FYP tháng đang chạy</span><span><i class="lg-fc"></i>FYP dự báo</span><span><i style="background:#f79009"></i>Target FYP</span><span><i style="background:#7f56d9"></i>Plan FYP</span><span><i style="background:#d92d20"></i>1mAA cần để đạt target (năng suất thực tế)</span><span><i style="background:#f79009;border-radius:1px"></i>1mAA target trong file</span><span><i style="background:#1570ef"></i>1mAA thực tế / dự báo</span><span><i style="background:#fda29b"></i>GAP</span></div>
+      ${(() => { const r = rows.find((x) => x.m === ym); if (!r || r.tgt === null || !r.aaTgt || !perAA) return ''; const impl = r.tgt / r.aaTgt, need = Math.ceil(r.tgt / perAA);
+        return `<div class="banner" style="margin-top:10px"><span>📐</span><div><b>${mLabel(ym)}:</b> target ${money(r.tgt)} với 1mAA target trong file ${f0(r.aaTgt)} → file giả định mỗi ĐL có bán mang về <b>${money(impl)}</b>; thực tế trung vị 6 tháng chỉ <b>${money(perAA)}</b> (${nf2.format(med.cpa)} HĐ × ${money(med.cs)}). Giữ năng suất thực tế thì cần <b>${f0(need)}</b> ĐL có bán${need > r.aaTgt ? `, nhiều hơn file ${f0(need - r.aaTgt)} người` : ''} – hoặc nâng FYP mỗi ĐL có bán lên ${money(impl)} (${impl >= perAA ? '+' : ''}${pct(impl / perAA - 1)}).</div></div>`; })()}
       ${gapHtml}</div></section>
   <section class="panel"><div class="panel-h"><div><h3>Cần bao nhiêu 1mAA · HĐ/1mAA · case size để đạt target</h3><p>So với trung vị 6 tháng gần nhất (${sr.pts.map((p) => mLabel(p.m)).join(', ')}${sr.pts.some((p) => p.est) ? '; T04–T06 ước từ tổng 6 tháng của BC70' : ''}) · chấm đỏ = mức cần có</p></div></div>
     <div class="panel-b"><div class="drv-grid">${driverMini(dr, 'aa', (v) => f0(v === null ? null : Math.round(v)), '1mAA (ĐL có HĐ thực cấp)')}${driverMini(dr, 'cpa', (v) => (v == null ? '–' : nf2.format(v)), 'HĐ / 1mAA')}${driverMini(dr, 'cs', money, 'Case size')}</div>${drvTable}</div></section>
