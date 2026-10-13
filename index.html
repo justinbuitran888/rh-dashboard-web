@@ -203,6 +203,20 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 /* ---------- ngăn chi tiết ---------- */
 #drawer{position:fixed;top:0;right:0;height:100vh;width:min(640px,100vw);background:#fff;box-shadow:-12px 0 40px rgba(16,24,40,.18);transform:translateX(105%);transition:transform .22s ease;z-index:60;display:flex;flex-direction:column}
 #drawer.open{transform:none}
+#drawer.wide{width:min(1340px,97vw)}
+.dr-split{display:grid;grid-template-columns:300px minmax(0,1fr);height:100%;min-height:0}
+.dr-side{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fafbfb}
+.dl-h{padding:14px 12px 10px;display:grid;gap:8px;border-bottom:1px solid var(--line)}.dl-h small{color:var(--muted);font-size:11px}
+.dl-h .input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13px}
+.dl-list{overflow:auto;padding:6px;display:grid;gap:4px;align-content:start}
+.dl-item{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;border:1px solid transparent;background:transparent;border-radius:10px;padding:7px 8px;cursor:pointer;font:inherit;color:inherit}
+.dl-item:hover{background:#fff;border-color:var(--line)}.dl-item.on{background:#fff;border-color:var(--green);box-shadow:0 1px 4px rgba(16,24,40,.08)}.dl-item.up{border-left:3px solid var(--green)}
+.dl-item .av{width:32px;height:32px;font-size:11px}.dl-t{display:grid;min-width:0}.dl-t b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dl-t small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dl-b{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}.dl-b .badge{font-size:10px;padding:1px 6px}
+.dr-main{display:flex;flex-direction:column;min-height:0;min-width:0}.dr-main .dr-b{flex:1}
+#drawer.wide .dr-b .mini-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.tbl tr.warn-row td{background:#fef3f2}.kpi.click{cursor:pointer}.kpi.click:hover{border-color:var(--green)}
+@media (max-width:900px){.dr-split{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.dr-side{border-right:0;border-bottom:1px solid var(--line);max-height:34vh}#drawer.wide .dr-b .mini-kpis{grid-template-columns:1fr 1fr}}
 #scrim{position:fixed;inset:0;background:rgba(16,24,40,.35);z-index:55;display:none}
 #scrim.open{display:block}
 .dr-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
@@ -1103,6 +1117,7 @@ function prepare(row) {
   const manpro = new Map((P.manpro || []).map((x) => [x.c, x]));
   const manproNew = new Map((P.manproNew || []).map((x) => [x.c, x]));
   const gtf = new Map((P.gtf || []).map((x) => [x.c, x]));
+  const gtfPipe = P.gtfPipe || [];
   // khu vực & PSM+
   const areaInfo = new Map((P.areas || []).map((x) => [x.a, x]));
   const areas = [...new Set(agents.map((a) => a.a))].sort().map((code) => {
@@ -1114,7 +1129,7 @@ function prepare(row) {
   });
   const manual = P.manual || [];
   const hist = (P.hist || []).map((h) => ({ ...h, ch: Array.isArray(h.ch) ? h.ch : [] }));
-  return { hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
+  return { gtfPipe, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
     psmTree: new Map((P.psmTree || []).map((x) => [x.c, x])), mapa: P.mapa || [], mapaMonth: P.mapaMonth || meta.officialMonth };
 }
 
@@ -1858,7 +1873,7 @@ function healthCards(c) {
 }
 // ---------- ngăn chi tiết cá nhân ----------
 function monthsLeft(asOf) { const d = new Date(asOf); return 12 - d.getMonth(); } // gồm tháng hiện tại
-function closeDrawer() { $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); S.sel = null; $$('.node-row.sel').forEach((n) => n.classList.remove('sel')); }
+function closeDrawer() { S.drArea = null; $('#drawer').classList.remove('open'); $('#drawer').classList.remove('wide'); $('#scrim').classList.remove('open'); S.sel = null; $$('.node-row.sel').forEach((n) => n.classList.remove('sel')); }
 $('#scrim').onclick = closeDrawer;
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 function cond(title, have, need, fmt = f0, hint = '', okText = '') {
@@ -1936,6 +1951,36 @@ function creditsHtml(a) {
     <p class="note" style="margin:6px 0 0">Theo memo 0050M01/2026 (MBA Pro): tiêu chí 1 & 2 tính cấp báo cáo trực tiếp; kết quả cấp trực tiếp của <b>UM mới</b> (thăng cấp trong năm, không GTF, còn giữ UM+ cuối năm) được cộng cho UM+ quản lý trực tiếp của UM mới. Theo 0019M09/2026: thăng cấp / duy trì UM+ xét ĐL do mình <b>tuyển dụng trực tiếp</b> có sản xuất. UM mới xác định theo ngày hiệu lực chức danh trong BC70.</p></div>`;
 }
 
+
+// =====================================================================
+//  ỨNG VIÊN UM+ GTF – tiến độ bổ nhiệm (báo cáo GTF) · memo 0004M04/2024, 0005M04/2024, 0019M07/2026
+// =====================================================================
+const GTF_REF = { UM: { rec: 2, tp: 2 } }; // mốc suy từ báo cáo: ứng viên có SX + ≥2 ĐL tuyển trực tiếp + ≥2 ĐL toàn nhóm có SX
+function gtfEval(g) {
+  const days = g.end ? Math.ceil((new Date(g.end) - new Date(DS.meta.asOf)) / 864e5) : null, ref = GTF_REF[g.role] || null;
+  const self = N(g.self) > 0, fileOk = g.file === 'Đạt', evalOk = g.eval === 'Đạt', done = g.result === 'Đạt';
+  const rec = N(g.faRec) + N(g.umRec), tp = N(g.teamProd);
+  const parts = ref ? [self ? 1 : 0, Math.min(1, rec / ref.rec), Math.min(1, tp / ref.tp), fileOk ? 1 : 0] : [self ? 1 : 0, evalOk ? 1 : 0, fileOk ? 1 : 0];
+  const score = done ? 1 : sum(parts) / parts.length;
+  const miss = done ? [] : [!self && 'ứng viên chưa có sản xuất', ref && rec < ref.rec && `tuyển thêm ${ref.rec - rec} ĐL trực tiếp`, ref && tp < ref.tp && `thêm ${ref.tp - tp} ĐL toàn nhóm có SX`, !ref && !evalOk && 'KQSX chưa đạt (mốc DM theo memo 0005M04/2024)', !fileOk && (g.fileNote || 'hồ sơ chưa đạt')].filter(Boolean);
+  const st = done ? 'done' : days !== null && days < 0 ? 'expired' : evalOk && !fileOk ? 'file' : days !== null && days <= 30 ? 'urgent' : score >= 0.6 ? 'pot' : 'watch';
+  const agent = DS.by.get(g.c) || null, recruiter = g.rec ? DS.by.get(String(g.rec)) || null : null, mgr = agent ? upOf(agent) : null;
+  let post = null;
+  if (done && agent) { const rs = DS.agents.filter((r) => r.rec === agent.c); const act = rs.filter((r) => N(r.cc12) >= 1 && N(r.fyp12) >= 16000); post = { fyc: N(agent.fyct6), recs: rs.length, act: act.length, ok: N(agent.fyct6) >= 40000 && act.length >= 2 }; }
+  return { g, days, ref, self, fileOk, evalOk, done, rec, tp, score, miss, st, agent, recruiter, mgr, post };
+}
+const GTF_ST = { done: ['b-green', 'Đã đạt bổ nhiệm'], file: ['b-blue', 'Đủ KQSX · chờ hồ sơ'], urgent: ['b-red', 'Sắp hết hạn'], pot: ['b-amber', 'Tiềm năng'], watch: ['', 'Theo dõi'], expired: ['', 'Hết hạn đánh giá'] };
+const gtfBadge = (e) => `<span class="badge ${GTF_ST[e.st][0]}">${GTF_ST[e.st][1]}</span>`;
+function gtfCondHtml(e) {
+  const g = e.g, ok = (b) => (b ? 'ok' : 'miss'), ic = (b) => (b ? '✓' : '✗');
+  return `${e.ref ? '' : '<p class="note" style="margin:-4px 0 8px">Vị trí ' + esc(g.role || '') + ': dùng đánh giá KQSX của báo cáo (mốc chi tiết theo memo 0005M04/2024).</p>'}
+    <div class="cond ${ok(e.self)}"><span class="t">${ic(e.self)} Ứng viên có sản xuất</span><span class="r num">${f0(g.self)}</span></div>
+    ${e.ref ? cond('ĐL / UM+ tuyển dụng trực tiếp', e.rec, e.ref.rec, f0, `${f0(g.faRec)} ĐL · ${f0(g.umRec)} UM+`) + cond('ĐL toàn nhóm có sản xuất', e.tp, e.ref.tp) : `<div class="cond ${ok(e.evalOk)}"><span class="t">${ic(e.evalOk)} Đánh giá KQSX</span><span class="r">${esc(g.eval || '–')}</span><span class="h">${f0(g.faRec)} ĐL + ${f0(g.umRec)} UM+ tuyển trực tiếp · ${f0(g.teamProd)} ĐL toàn nhóm có SX</span></div>`}
+    <div class="cond ${ok(e.fileOk)}"><span class="t">${ic(e.fileOk)} Hồ sơ GTF</span><span class="r">${esc(g.file || '–')}</span>${g.fileNote ? `<span class="h">${esc(g.fileNote)}</span>` : ''}</div>
+    <p class="note">Cấp MSĐL ${dmy(g.start)} · hạn đánh giá ${dmy(g.end)}${e.days !== null ? ` (${e.days >= 0 ? 'còn ' + e.days + ' ngày' : 'đã qua ' + -e.days + ' ngày'})` : ''}${g.reachedOn ? ` · đạt điều kiện ngày ${dmy(g.reachedOn)}` : ''} · người tuyển: ${esc(g.recName || g.rec || '–')}${e.mgr ? ` · quản lý trực tiếp: ${esc(e.mgr.n)}` : ''}</p>
+    ${e.post ? `<div class="cond ${ok(e.post.ok)}"><span class="t">${ic(e.post.ok)} 6 tháng đầu sau bổ nhiệm (UM GTF đạt chuẩn)</span><span class="r num">FYC nhóm ${money(e.post.fyc)} · ${e.post.act}/${e.post.recs} ĐL tuyển có HĐ</span><span class="h">Cần FYC toàn nhóm ≥ 40 tr và ≥ 2 ĐL tuyển trực tiếp có 1 HĐ & 16 tr FYP (memo 0019M07/2026) – đạt thì người tuyển ${esc(g.recName || '')} được thưởng; cuối năm UM GTF có ≥2 ĐL tuyển có SX & FYC ≥ 40 tr thì tính "UM+ mới" (MBA tiêu chí 3) cho quản lý trực tiếp.</span></div>` : ''}`;
+}
+
 function openPerson(code) {
   const a = DS.by.get(code); if (!a) return;
   S.sel = code;
@@ -1987,7 +2032,8 @@ function openPerson(code) {
   }
   // UM promotion (FA)
   const umHtml = !a.um && a.ump != null ? `<div class="sec"><h4>Tiến độ thăng cấp UM</h4>${meter(N(a.ump))}<p class="note">${pct(N(a.ump))} theo BC70.</p></div>` : '';
-  const gtfHtml = gt ? `<div class="sec"><h4>UM+ GTF</h4><p class="note">${esc(gt.role || '')} · ${esc(gt.result || '')}${gt.reached ? ' · đạt ' + esc(gt.reached) : ''} · đánh giá đến ${dmy(gt.end)} · ${esc(gt.eval || '')} · ${esc(gt.file || '')}</p></div>` : '';
+  const gp = DS.gtfPipe.find((x) => x.c === a.c);
+  const gtfHtml = gp ? `<div class="sec"><h4>Ứng viên UM+ GTF · ${esc(gp.role || '')} ${gtfBadge(gtfEval(gp))}</h4>${gtfCondHtml(gtfEval(gp))}</div>` : gt ? `<div class="sec"><h4>UM+ GTF</h4><p class="note">${esc(gt.role || '')} · ${esc(gt.result || '')}${gt.reached ? ' · đạt ' + esc(gt.reached) : ''} · đánh giá đến ${dmy(gt.end)} · ${esc(gt.eval || '')} · ${esc(gt.file || '')}</p></div>` : '';
 
   // đội ngũ trực tiếp
   const direct = [...a.kids].sort((p, q) => N(q.fyp6) - N(p.fyp6));
@@ -2001,7 +2047,15 @@ function openPerson(code) {
       ${direct.map((k) => { const cs = creditsOf(k), multi = cs.filter((c) => c.tags.some((t) => t.k === 'mba')).length >= 2; return `<tr class="click${multi ? ' hl' : ''}" data-open="${esc(k.c)}"><td><i class="tier ${k.tier || ''}"></i> ${esc(k.n)} <span class="muted small">${esc(k.c)}</span>${isRecruitY(k) ? ' <span class="badge b-green">mới ' + evalYear() + '</span>' : ''}${isNewUM(k) ? ' <span class="badge b-blue">UM mới</span>' : ''}</td><td>${esc(k.t)} ${tierBadge(k.tier)}</td><td>${dots(k)}</td><td class="r num">${money(N(k.fyp[0]) + N(k.fyp[1]) + N(k.fyp[2]))}</td><td class="r num">${money(k.fyp6)}</td><td style="white-space:normal">${creditChips(k)}</td></tr>`; }).join('')}
     </tbody></table></div><p class="note" style="margin-top:6px">Cột "Tính cho": người được cộng kết quả của từng ĐL (rê chuột để xem tiêu chí; ↑ = cộng qua UM mới). Dòng tô vàng = 1 ĐL được tính cho từ 2 UM+ đang chạy MBA Pro.</p>` : ''}</div>` : '';
 
-  $('#drawer').innerHTML = `
+  // danh sách UM+ của khu vực (cột trái)
+  const sideArea = S.drArea && DS.areas.some((x) => x.code === S.drArea) ? S.drArea : S.area !== 'all' ? S.area : a.a;
+  const sideList = DS.agents.filter((u) => u.a === sideArea && u.um).sort((p, q) => N(q.fyp6) - N(p.fyp6));
+  const sideItem = (u) => { const mbx = DS.mba.get(u.c); return `<button class="dl-item${u.c === a.c ? ' on' : ''}${chain.includes(u) ? ' up' : ''}" data-open="${esc(u.c)}" data-q="${esc(norm(u.n + ' ' + u.c))}"><span class="av um">${esc(initials(u.n))}</span><span class="dl-t"><b>${esc(u.n)}</b><small>${esc(u.t)} · ${u.kids.length} trực tiếp · FYP 6T ${money(u.fyp6)}</small><span class="dl-b">${mbx?.cur ? `<span class="badge b-green">${esc(mbx.cur.replace('MBA Pro ', 'MBA '))}</span>` : ''}${isNewUM(u) ? '<span class="badge b-blue">UM mới</span>' : ''}${u.gtf_date || DS.gtf.has(u.c) ? '<span class="badge b-amber">GTF</span>' : ''}${N(u.mdrtf) >= MDRT[0].v ? '<span class="badge b-green">MDRT</span>' : ''}</span></span>${dots(u)}</button>`; };
+  const side = `<aside class="dr-side"><div class="dl-h"><select class="select" id="dl-area">${DS.areas.map((x) => `<option value="${esc(x.code)}" ${x.code === sideArea ? 'selected' : ''}>KV ${esc(x.code)}${x.psm ? ' · ' + esc(x.psm) : ''}</option>`).join('')}</select>
+      <input class="input" id="dl-q" placeholder="Tìm UM+ trong khu vực…" autocomplete="off"><small>${sideList.length} UM+ · sắp theo FYP 6 tháng${chain.length ? ' · viền xanh = cấp trên của người đang xem' : ''}</small></div>
+    <div class="dl-list">${sideList.map(sideItem).join('') || '<p class="note" style="padding:10px">Khu vực không có UM+.</p>'}</div></aside>`;
+  $('#drawer').classList.add('wide');
+  $('#drawer').innerHTML = `<div class="dr-split">${side}<section class="dr-main">
   <div class="dr-h"><div class="av ${a.um ? 'um' : ''}" style="width:44px;height:44px;font-size:14px">${esc(initials(a.n))}</div>
     <div style="flex:1;min-width:0"><h3>${esc(a.n)}</h3><p>${esc(a.t)} · ${esc(a.c)} · Khu vực ${esc(a.a)} · vào ${dmy(a.j)} (${f0(a.ten)} tháng) ${tierBadge(a.tier)}</p>
       <p>${chain.length ? 'Báo cáo: ' + chain.map((p) => `<a href="#" data-open="${esc(p.c)}">${esc(p.n)}</a>`).join(' › ') : 'Báo cáo trực tiếp khu vực'}</p></div>
@@ -2029,11 +2083,14 @@ function openPerson(code) {
       <div class="mini"><div class="k">ĐL đã tuyển (còn HĐ)</div><div class="x num">${f0(recruits.length)}</div></div></div>
       ${recruits.length ? `<div class="tbl-wrap" style="max-height:220px;margin-top:8px"><table class="tbl"><tbody>${recruits.slice(0, 40).map((r) => `<tr class="click" data-open="${esc(r.c)}"><td>${esc(r.n)} <span class="muted small">${esc(r.t)}</span></td><td>${dmy(r.j)}</td><td>${dots(r)}</td><td class="r num">${money(r.fyp6)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>
     ${teamHtml}${mdrtHtml}${mbaHtml}${mpHtml}${umHtml}${gtfHtml}
-  </div>`;
+  </div></section></div>`;
   $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false');
   $('#dr-x').onclick = closeDrawer;
   $$('[data-open]', $('#drawer')).forEach((el) => el.onclick = (e) => { e.preventDefault(); openPerson(el.dataset.open); });
+  $('#dl-area').onchange = (e) => { S.drArea = e.target.value; const first = DS.agents.filter((u) => u.a === S.drArea && u.um).sort((p, q) => N(q.fyp6) - N(p.fyp6))[0]; if (first) openPerson(first.c); else { S.drArea = null; } };
+  $('#dl-q').oninput = (e) => { const q = norm(e.target.value); $$('.dl-item', $('#drawer')).forEach((b) => { b.style.display = !q || b.dataset.q.includes(q) ? '' : 'none'; }); };
   $('.dr-b').scrollTop = 0;
+  const on = $('.dl-item.on', $('#drawer')); if (on) on.scrollIntoView({ block: 'nearest' });
 }
 
 // =====================================================================
@@ -2089,6 +2146,30 @@ function pageTitles(c) {
     <div class="tbl-wrap" style="max-height:420px"><table class="tbl"><thead><tr><th>Khu vực</th>${[0, 1, 2].map((t) => `<th class="r">M${t} · số ĐL</th><th class="r">M${t} · có HĐ</th>`).join('')}<th class="r">FYP ĐL mới</th><th class="r">Tiềm năng</th><th class="r">Đã đạt</th></tr></thead><tbody>
     ${byArea.map(({ code, xs }) => `<tr class="click" data-ft-area="${esc(code)}"><td><b>${esc(code)}</b></td>${[0, 1, 2].map((t) => { const ys = xs.filter((x) => x.t === t); return `<td class="r num">${f0(ys.length)}</td><td class="r num">${f0(ys.filter((x) => x.active).length)}${ys.length ? ` <span class="muted small">${pct(ys.filter((x) => x.active).length / ys.length)}</span>` : ''}</td>`; }).join('')}<td class="r num">${money(sum(xs, (x) => x.fyp))}</td><td class="r num">${f0(xs.filter((x) => x.status === 'pot').length)}</td><td class="r num">${f0(xs.filter((x) => x.fast).length)}</td></tr>`).join('')}
     </tbody></table></div>`;
+  } else if (tab === 'gtf') {
+    const all = DS.gtfPipe.filter((g) => DS.areaSet.has(g.a) && (S.area === 'all' || g.a === S.area)).map(gtfEval), f = S.gtfFilter || 'open';
+    const order = { urgent: 0, file: 1, pot: 2, watch: 3, done: 4, expired: 5 };
+    const rows = all.filter((e) => (f === 'all' ? true : f === 'open' ? !e.done && e.st !== 'expired' : e.st === f)).sort((x, y) => order[x.st] - order[y.st] || y.score - x.score || N(x.days) - N(y.days));
+    const cnt = (st) => all.filter((e) => e.st === st).length;
+    const k = (lb, v, sub, st) => `<div class="kpi click" data-gtf="${st}"><div class="lb">${lb}</div><div class="v num">${f0(v)}</div><div class="s">${sub}</div></div>`;
+    const done = all.filter((e) => e.done);
+    body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      ${k('Ứng viên GTF đang theo dõi', all.length, `UM ${all.filter((e) => e.g.role === 'UM').length} · DM ${all.filter((e) => e.g.role === 'DM').length}`, 'all')}
+      ${k('Đã đạt bổ nhiệm', cnt('done'), `${done.filter((e) => e.post?.ok).length} đã đạt chuẩn 6 tháng đầu`, 'done')}
+      ${k('Đủ KQSX · chờ hồ sơ', cnt('file'), 'chỉ còn hoàn thiện hồ sơ', 'file')}
+      ${k('Sắp hết hạn (≤ 30 ngày)', cnt('urgent'), 'chưa đạt, cần ưu tiên', 'urgent')}
+      ${k('Tiềm năng', cnt('pot'), 'tiến độ ≥ 60%', 'pot')}
+      ${k('Hồ sơ chưa đạt', all.filter((e) => !e.fileOk && !e.done).length, `${all.filter((e) => /chưa nộp/i.test(e.g.fileNote || '')).length} chưa nộp · ${all.filter((e) => /chưa hợp lệ/i.test(e.g.fileNote || '')).length} chưa hợp lệ`, 'open')}
+    </div>
+    <p class="note" style="margin:0 0 8px">Nguồn: báo cáo theo dõi ứng viên UM+ GTF. Mốc vị trí UM (suy từ báo cáo): ứng viên có sản xuất, ≥ 2 ĐL/UM+ tuyển dụng trực tiếp, ≥ 2 ĐL toàn nhóm có sản xuất, hồ sơ GTF đạt – trong giai đoạn đánh giá. Sau bổ nhiệm, 6 tháng đầu cần FYC toàn nhóm ≥ 40 tr và ≥ 2 ĐL tuyển có 1 HĐ & 16 tr (memo 0019M07/2026).</p>
+    <div class="chips" style="margin-bottom:10px">${[['open', 'Đang chạy'], ['urgent', 'Sắp hết hạn'], ['file', 'Chờ hồ sơ'], ['pot', 'Tiềm năng'], ['watch', 'Theo dõi'], ['done', 'Đã đạt'], ['expired', 'Hết hạn'], ['all', 'Tất cả']].map(([kk, l]) => `<button class="chip ${f === kk ? 'on' : ''}" data-gtf="${kk}">${l}</button>`).join('')}</div>
+    <div class="tbl-wrap" style="max-height:600px"><table class="tbl"><thead><tr><th>Ứng viên</th><th class="r">Cấp MSĐL → hạn</th><th>SX cá nhân</th><th class="r">Tuyển trực tiếp</th><th class="r">Nhóm có SX</th><th>Hồ sơ</th><th style="min-width:100px">Tiến độ</th><th>Còn thiếu</th><th>Trạng thái</th></tr></thead><tbody>
+    ${rows.map((e) => { const g = e.g; return `<tr class="click${e.st === 'urgent' ? ' warn-row' : e.st === 'pot' || e.st === 'file' ? ' hl' : e.done ? ' ok-row' : ''}" ${e.agent ? `data-open="${esc(g.c)}"` : ''}><td><b>${esc(g.n || e.agent?.n || g.c)}</b> <span class="badge">${esc(g.role || '')}</span><br><small class="muted">${esc(g.c)} · KV ${esc(g.a)} · tuyển bởi ${esc(g.recName || '–')}</small></td>
+      <td class="r num"><small class="muted">${dmy(g.start)} →</small><br>${dmy(g.end)}${e.days !== null && !e.done ? `<br><small class="${e.days <= 30 ? 'err' : 'muted'}">${e.days >= 0 ? 'còn ' + e.days + ' ngày' : 'quá hạn'}</small>` : ''}</td>
+      <td>${e.self ? '<span class="ok">✓</span>' : '<span class="err">Chưa</span>'}</td><td class="r num">${e.ref ? `<span class="${e.rec >= e.ref.rec ? 'ok' : 'err'}">${f0(e.rec)}/${e.ref.rec}</span>` : f0(e.rec)}</td><td class="r num">${e.ref ? `<span class="${e.tp >= e.ref.tp ? 'ok' : 'err'}">${f0(e.tp)}/${e.ref.tp}</span>` : f0(e.tp)}</td>
+      <td>${e.fileOk ? '<span class="ok">Đạt</span>' : `<span class="badge b-red">${esc(g.fileNote || 'Chưa đạt')}</span>`}</td><td>${meter(e.score)}<span class="small muted">${pct(e.score)}</span></td>
+      <td class="small" style="white-space:normal;min-width:210px">${e.done ? (e.post ? `6T đầu: FYC nhóm ${money(e.post.fyc)} · ${e.post.act} ĐL tuyển có HĐ ${e.post.ok ? '<span class="ok">✓ đạt chuẩn</span>' : ''}` : '–') : esc(e.miss.join(' · '))}</td><td>${gtfBadge(e)}</td></tr>`; }).join('') || '<tr><td colspan="13" class="muted">Không có ứng viên GTF trong phạm vi.</td></tr>'}
+    </tbody></table></div>`;
   } else if (tab === 'manpro') {
     const rk = (t) => (/bạch kim|platinum/i.test(t || '') ? 3 : /vàng|gold/i.test(t || '') ? 2 : /bạc|silver/i.test(t || '') ? 1 : 0);
     const LV = ['Manulife Pro Bạc', 'Manulife Pro Vàng', 'Manulife Pro Bạch Kim'];
@@ -2132,10 +2213,11 @@ function pageTitles(c) {
     ${rows.map((a) => { const m1 = upOf(a)?.um ? upOf(a) : null, m2 = null; return `<tr class="click" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.c)}</span></td><td>${esc(a.a)}</td><td>${meter(N(a.ump))}<span class="small muted">${pct(N(a.ump))}</span></td><td class="r num">${money(a.fyp6)}</td><td class="r num">${f0(a.nra6)}</td><td>${dots(a)}</td><td class="small" style="white-space:normal">${m1 ? `<b>${esc(m1.n)}</b>: +1 UM+ mới (MBA tiêu chí 3) và đội của ĐL này cộng dồn lên${m2 ? ` · ${esc(m2.n)} không được tính trực tiếp` : ''}` : '<span class="muted">–</span>'}</td></tr>`; }).join('')}</tbody></table></div>
     <p class="note">Khi FA thăng cấp UM trong năm (không GTF), người đó là "UM mới": được tính 1 UM+ mới cho UM+ quản lý trực tiếp, và ĐL tuyển mới có sản xuất + FYC cấp trực tiếp của UM mới được cộng cho UM+ quản lý trực tiếp đó (memo 0050M01/2026).</p>`;
   }
-  c.innerHTML = `<section class="panel"><div class="panel-b"><div class="tabs">${[['mdrt', `MDRT ${+year + 1}`], ['mba', `MBA Pro ${+year + 1}`], ['fast', 'Silver Fast-track · M0/M1'], ['manpro', 'Manulife Pro'], ['um', 'Thăng cấp UM']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>${body}</div></section>`;
+  c.innerHTML = `<section class="panel"><div class="panel-b"><div class="tabs">${[['mdrt', `MDRT ${+year + 1}`], ['mba', `MBA Pro ${+year + 1}`], ['fast', 'Silver Fast-track · M0/M1'], ['gtf', 'GTF bổ nhiệm'], ['manpro', 'Manulife Pro'], ['um', 'Thăng cấp UM']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>${body}</div></section>`;
   $$('[data-tab]', c).forEach((b) => b.onclick = () => { S.titleTab = b.dataset.tab; pageTitles(c); });
   $$('[data-ft]', c).forEach((b) => b.onclick = () => { S.ftFilter = b.dataset.ft; pageTitles(c); });
   $$('[data-mpf]', c).forEach((b) => b.onclick = () => { S.mpFilter = b.dataset.mpf; pageTitles(c); });
+  $$('[data-gtf]', c).forEach((b) => b.onclick = () => { S.gtfFilter = b.dataset.gtf; pageTitles(c); });
   $$('[data-ft-area]', c).forEach((tr) => tr.onclick = () => { S.area = tr.dataset.ftArea; render(); });
   $$('[data-open]', c).forEach((tr) => tr.onclick = () => openPerson(tr.dataset.open));
 }
@@ -2619,6 +2701,7 @@ async function pageLibrary(c) {
 }
 async function openPolicy(id) {
   const p = LIB.find((x) => x.id === id); if (!p) return;
+  $('#drawer').classList.remove('wide');
   $('#drawer').innerHTML = `<div class="dr-h"><div style="flex:1;min-width:0"><h3>${esc(p.title)}</h3><p>${esc(p.code || '')} · ${p.start_date ? dmy(p.start_date) : '…'} – ${p.end_date ? dmy(p.end_date) : 'dài hạn'} · <span class="badge ${LIB_TONE[libStatus(p)]}">${libStatus(p)}</span></p></div><button class="btn btn-sm btn-ghost" id="dr-x">✕</button></div>
   <div class="dr-b"><p style="margin:0;line-height:1.6">${esc(p.summary || '')}</p>
   ${(p.points || []).length ? `<div class="sec"><h4>Điểm chính</h4><ul style="margin:0;padding-left:18px;line-height:1.7">${p.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
