@@ -427,6 +427,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 'use strict';
 const BUCKET = 'reports', BATCH = 500, MAX_MB = 40;
 const TYPES = {
+  bc70: 'BC70 – Dữ liệu đại lý tổng hợp (cập nhật hằng ngày)',
   agents: 'Kinh doanh ĐL bình thường', serviceAgents: 'Kinh doanh ĐL phục vụ', business: 'Kinh doanh ĐL (chưa rõ nhóm)',
   dncc: 'Đội ngũ chuyên cần (ĐNCC)', newAgentCohort: 'Đại lý gia nhập (cohort)', mdrt: 'MDRT',
   manproNew: 'Manulife Pro dưới 3 tháng', manproLong: 'Manulife Pro từ 3 tháng', nsxs: 'Năng suất xuất sắc (NSXS)',
@@ -437,6 +438,7 @@ const TYPES = {
 };
 // Chữ ký cột để nhận diện (so sánh sau khi bỏ dấu, bỏ số thứ tự "(12)" và "(VND 000)")
 const SIGS = [
+  ['bc70', ['Ngày chốt dữ liệu', 'Mã Đại lý', 'CC tháng T', 'FYP tháng T', 'Mã QL trực tiếp']],
   ['business', ['Mã Đại lý', 'Mã nhóm', 'Danh hiệu ManPro', 'FYC thực cấp', 'FYP thực cấp', 'Số hợp đồng thực cấp']],
   ['dncc', ['Mã Đại lý', 'Mã khu vực', 'Tổng số lần tham dự', '# Attendances in W1']],
   ['newAgentCohort', ['Mã Đại lý', 'Ngày gia nhập', 'RTH', '# Số lượng Đại lý được cấp code (M0)']],
@@ -632,6 +634,17 @@ function analyzeSheet(sheet, fileName) {
   if ((key === 'targetFyp' || key === 'targetAa') && (hasHeader(headers, 'FYP MOC req') || hasHeader(headers, '70% target min'))) key = 'unknown';
   if (sheet.hidden) warnings.push('Sheet đang ẩn trong file.');
   const p = periodFrom(meta, fileName, headers, rows);
+  // BC70: ngày chốt lấy từ cột "Ngày chốt dữ liệu" (tên file có thể ghi sai thứ tự ngày/tháng)
+  if (key === 'bc70') {
+    const col = headers.find((h) => hkey(h) === hkey('Ngày chốt dữ liệu'));
+    const ds = [...new Set(rows.map((r) => String(r[col] ?? '').trim()).filter((v) => /^\d{4}-\d{2}-\d{2}$/.test(v)))].sort();
+    if (ds.length) { p.asOf = ds.at(-1); p.period = p.asOf.slice(0, 7); }
+  }
+  // Báo cáo tháng (kdLayer): ngày trong tên file "Báo cáo tại thời điểm DDMMYYYY" là chuẩn nhất
+  if (key === 'kdLayer') {
+    const d8 = norm(fileName).match(/(?<!\d)([0-3]\d)(0[1-9]|1[0-2])(20\d{2})(?!\d)/);
+    if (d8) { p.period = `${d8[3]}-${d8[2]}`; p.asOf = `${d8[3]}-${d8[2]}-${d8[1]}`; }
+  }
   if (!p.period && !['mapping', 'kqkd_area', 'kqkd_agent', 'targetFyp', 'targetAa'].includes(key)) warnings.push('Chưa xác định được kỳ dữ liệu – hãy chọn tháng.');
   if (p.months.length > 1) warnings.push(`File chứa ${p.months.length} tháng (${p.months[0]} → ${p.months.at(-1)}).`);
   return { sheet: sheet.name, hidden: sheet.hidden, key, headers, rows, columns: profileColumns(headers, rows), warnings, period: p.period, asOf: p.asOf, months: p.months, headerRow: found.index + 1, meta };
@@ -782,6 +795,13 @@ async function saveAll() {
   busy = false;
   flash = `Đã lưu ${ok}/${todo.length} bộ dữ liệu.` + (errs.length ? ' Lỗi: ' + errs.join(' | ') : '');
   await refresh();
+  if (ok) {
+    // tự dựng lại dashboard từ dữ liệu mới
+    flash += ' Đang cập nhật dashboard…'; draw();
+    try { must(await sb().rpc('v10_build'), 'Dựng lại dữ liệu'); flash = flash.replace(' Đang cập nhật dashboard…', ' Dashboard đã cập nhật theo dữ liệu mới.'); window.dispatchEvent(new CustomEvent('rh:rebuilt')); }
+    catch (e) { flash = flash.replace(' Đang cập nhật dashboard…', ' Chưa dựng lại được dashboard: ' + e.message); }
+    draw();
+  }
 }
 async function refresh() { try { uploads = await listUploads(); listErr = ''; } catch (e) { listErr = e.message; } draw(); }
 function bind() {
@@ -3030,6 +3050,14 @@ function pageData(c) {
   };
 }
 
+// Kho dữ liệu tự dựng lại sau khi lưu file → nạp bộ dữ liệu mới
+window.addEventListener('rh:rebuilt', async () => {
+  try {
+    await loadDataset(); renderNav();
+    const m = document.getElementById('rb-msg');
+    if (m && DS) m.innerHTML = `<span class="ok">Đã tự cập nhật dashboard · dữ liệu chốt <b>${dmy(DS.meta.asOf)}</b> · ${f0(DS.agents.length)} đại lý.</span>`;
+  } catch (e) { console.error(e); }
+});
 start().catch((e) => { console.error(e); gate(`<h1>Lỗi khởi động</h1><p>${esc(e.message)}</p>`); });
 window.RH_openPerson = (c) => openPerson(c); // dùng cho kiểm thử / liên kết ngoài
 })();
