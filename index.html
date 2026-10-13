@@ -1176,7 +1176,7 @@ function prepare(row) {
   });
   const manual = P.manual || [];
   const hist = (P.hist || []).map((h) => ({ ...h, ch: Array.isArray(h.ch) ? h.ch : [] }));
-  return { gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
+  return { saFyp: P.saFyp || null, gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
     psmTree: new Map((P.psmTree || []).map((x) => [x.c, x])), mapa: P.mapa || [], mapaMonth: P.mapaMonth || meta.officialMonth };
 }
 
@@ -1231,7 +1231,11 @@ function mapaMix(m) {
   return `<div class="stack" style="width:110px" data-tip="${esc(MAPA_ROWS.filter(([k]) => k !== 'MP' && m.seg[k]?.aa).map(([k, l]) => `${l.replace('↳ ', 'ManPro ')}: ${m.seg[k].aa} ĐL có HĐ`).join('\n') || 'Không có HĐ')}">${MAPA_ROWS.filter(([k]) => k !== 'MP').map(([k]) => (m.seg[k]?.aa ? `<span style="width:${(m.seg[k].aa / tot) * 100}%;background:${MAPA_COLORS[k]}"></span>` : '')).join('')}</div>`;
 }
 // ---------- chỉ số cho 1 nhóm đại lý ----------
-const isActive = (a, i) => N(a.act[i]) > 0;
+// "Hoạt động" = có FYP thực cấp > 0 trong tháng (theo yêu cầu vận hành). Cờ "Hoạt động tháng" của BC70 (≥1 HĐ & FYP ≥ 4 tr) chỉ dùng để ước các tháng ngoài BC70.
+const isActive = (a, i) => N(a.fyp[i]) > 0;
+const isActBC = (a, i) => N(a.act[i]) > 0;
+// SA có FYP thực cấp > 0 theo khu vực (từ BC70) – chỉ khi xem toàn RH / khu vực, không lọc nhánh
+function saFyp(ym) { const i = DS.months.indexOf(ym); if (i < 0 || !DS.saFyp || S.branch) return 0; const areas = S.area === 'all' ? new Set(scopeList().map((a) => a.a)) : new Set([S.area]); let n = 0; for (const [k, v] of Object.entries(DS.saFyp)) if (areas.has(k)) n += N(v[i]); return n; }
 function act3(a, end) { let n = 0; for (let i = Math.max(0, end - 2); i <= end; i++) n += isActive(a, i) ? 1 : 0; return n; }
 function joinedIn(a, ym) { return (a.j || '').slice(0, 7) === ym; }
 function groupStats(list, end = 2) {
@@ -1451,7 +1455,7 @@ const monthDiff = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5
 // 6 tháng gần nhất: 3 tháng BC70 (T-3..T-1) + 3 tháng trước đó suy từ cột "6 tháng vừa qua" của BC70 (chỉ có tổng 3 tháng → chia đều)
 function series6(list) {
   const M = DS.months, g = groupStats(list, 2), s3 = (arr) => arr[0] + arr[1] + arr[2];
-  const rf = Math.max(0, sum(list, (a) => a.fyp6) - s3(g.fypM)) / 3, rc = Math.max(0, sum(list, (a) => a.cc6) - s3(g.ccM)) / 3, ra = Math.max(0, sum(list, (a) => a.act6) - s3(g.actM)) / 3;
+  const rf = Math.max(0, sum(list, (a) => a.fyp6) - s3(g.fypM)) / 3, rc = Math.max(0, sum(list, (a) => a.cc6) - s3(g.ccM)) / 3, bcA = [0, 1, 2].reduce((t, i) => t + list.filter((a) => isActBC(a, i)).length, 0), ra = Math.max(0, sum(list, (a) => a.act6) - bcA) / 3 * (bcA ? s3(g.actM) / bcA : 1); // quy đổi về định nghĩa FYP > 0
   const pts = [-3, -2, -1].map((k) => { const m = addMonths(M[0], k);
       if (DS.histMonths?.has(m)) { const hs = histRows(m); if (hs.length) return { m, fyp: sum(hs, (h) => h.fyp), cc: sum(hs, (h) => h.cc), aa: ra, nr: sum(hs, (h) => h.nr), rep: true, est: true }; }
       return { m, fyp: rf, cc: rc, aa: ra, nr: null, est: true }; })
@@ -1523,7 +1527,7 @@ function opsChart(rows) {
     r.fut && ok(r.aaFc) ? `1mAA dự báo: ${f0(r.aaFc)}` : null, ok(r.aaReq) ? `1mAA cần để đạt target (theo năng suất thực tế): ${f0(Math.ceil(r.aaReq))}` : null, ok(r.aaTgt) ? `1mAA target trong file: ${f0(r.aaTgt)}${ok(r.tgt) ? ` (giả định ${money(r.tgt / r.aaTgt)} FYP mỗi ĐL có bán)` : ''}` : null].filter(Boolean).join('\n'))}</title></rect>`).join('');
   return `<div class="chart-scroll"><svg class="chart ops-chart${S.opsHide ? [...S.opsHide].map((k) => ' hide-' + k).join('') : ' hide-aatgt'}" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;min-width:${Math.min(W, 640)}px" role="img">
     <text class="ax-t" x="${pad.l}" y="${T1 - 14}">FYP · Target · Plan · dự báo</text>${grid(T1, H1, fMax, money)}${top}
-    <text class="ax-t aa" x="${pad.l}" y="${T2 - 16}">1mAA (ĐL có HĐ thực cấp) · thực tế vs mức cần để đạt target</text>${grid(T2, H2, aMax, f0)}${bot}
+    <text class="ax-t aa" x="${pad.l}" y="${T2 - 16}">1mAA (ĐL có FYP thực cấp) · thực tế vs mức cần để đạt target</text>${grid(T2, H2, aMax, f0)}${bot}
     ${rows.map((r, i) => `<text class="xl${r.partial ? ' cur' : ''}" x="${cx(i)}" y="${h - 8}" text-anchor="middle">${mLabel(r.m)}</text>`).join('')}${tip}</svg></div>`;
 }
 // biểu đồ nhỏ cho 1 động lực: thực tế, trung vị, mức cần có
@@ -1770,7 +1774,7 @@ function opsSection(list) {
       `${needDay !== null ? `Cần <b>${money(needDay)}/ngày</b> trong ${ck.left} ngày còn lại · ` : ''}thời gian đã qua ${pct(ck.el)} (vạch đen)`),
     kc(`FYP quý ${Math.floor((+ym.slice(5, 7) - 1) / 3) + 1}/${year} · đến nay`, money(qAct), progRow('Target quý', qAct, qTT, elQ, qTT !== null ? money(qTT) : '') + progRow('Plan quý', qAct, qPP, elQ, qPP !== null ? money(qPP) : ''), `Đã qua ${pct(elQ)} thời gian quý`),
     kc(`Tuyển mới (NR) ${mLabel(ym)}`, f0(sr.cur.nr), progRow('Target', sr.cur.nr, tN, ck.el, tN !== null ? f0(tN) : '') + progRow('Plan', sr.cur.nr, pN, ck.el, pN !== null ? f0(pN) : ''), `Trung vị 3 tháng: ${f0(med.nr)} NR/tháng`),
-    kc(`1mAA ${mLabel(ym)} (ĐL có HĐ thực cấp)`, f0(sr.cur.aa), progRow('Cần cho target', sr.cur.aa, reqAA === null ? null : Math.ceil(reqAA), ck.el, reqAA !== null ? f0(Math.ceil(reqAA)) : '') + progRow(tA !== null ? 'Target 1mAA' : 'Plan 1mAA', sr.cur.aa, tA ?? pA, ck.el, tA ?? pA ?? ''), `Trung vị 6T: ${f0(med.aa)} ĐL · FYP/ĐL có bán ${money(med.fpa)}`),
+    kc(`1mAA ${mLabel(ym)} (ĐL có FYP thực cấp)`, f0(sr.cur.aa), progRow('Cần cho target', sr.cur.aa, reqAA === null ? null : Math.ceil(reqAA), ck.el, reqAA !== null ? f0(Math.ceil(reqAA)) : '') + progRow(tA !== null ? 'Target 1mAA' : 'Plan 1mAA', sr.cur.aa, tA ?? pA, ck.el, tA ?? pA ?? ''), `Trung vị 6T: ${f0(med.aa)} ĐL · FYP/ĐL có bán ${money(med.fpa)}`),
     kc(`Dự báo cả tháng ${mLabel(ym)}`, money(Math.max(fcFlat, sr.cur.fyp)), `<div class="ops-row"><span>Giữ tốc độ 6T</span><b class="num" style="grid-column:2/4;text-align:left">${money(fcGrow)}</b></div>${runRate !== null ? `<div class="ops-row"><span>Theo nhịp ngày</span><b class="num" style="grid-column:2/4;text-align:left">${money(runRate)}</b></div>` : ''}`,
       tF !== null ? `So target: ${fcFlat >= tF ? `<span class="ok">vượt ${money(fcFlat - tF)}</span>` : `<span class="err">hụt ${money(tF - fcFlat)}</span>`} nếu giữ trung vị` : 'Chưa có target tháng'),
   ].join('');
@@ -1803,7 +1807,7 @@ function opsSection(list) {
   const lastFull = sr.pts.at(-1);
   const drvRow = (lb, k, fmt, cur, reqK) => `<tr><td><b>${lb}</b></td><td class="r num">${fmt(med[k])}</td><td class="r num">${fmt(lastFull[k])}</td><td class="r num">${fmt(cur)}</td>${tgtMonths.map((r) => `<td class="r num">${fmt(r['req_' + reqK])}${badge(r['req_' + reqK], med[k])}</td>`).join('')}</tr>`;
   const drvTable = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Động lực</th><th class="r">Trung vị 6T</th><th class="r">${mLabel(lastFull.m)}</th><th class="r">${mLabel(ym)} đến nay</th>${tgtMonths.map((r) => `<th class="r">Cần cho ${mLabel(r.m)}</th>`).join('')}</tr></thead><tbody>
-    ${drvRow('1mAA (ĐL có HĐ)', 'aa', (v) => f0(v === null ? null : Math.ceil(v)), sr.cur.aa, 'aa')}
+    ${drvRow('1mAA (ĐL có FYP)', 'aa', (v) => f0(v === null ? null : Math.ceil(v)), sr.cur.aa, 'aa')}
     ${drvRow('HĐ / 1mAA', 'cpa', (v) => (v === null || v === undefined ? '–' : nf2.format(v)), sr.cur.aa ? sr.cur.cc / sr.cur.aa : null, 'cpa')}
     ${drvRow('Case size (FYP/HĐ)', 'cs', money, sr.cur.cc ? sr.cur.fyp / sr.cur.cc : null, 'cs')}
     ${tgtMonths.length ? `<tr class="qsum"><td><b>Hoặc cải thiện đều cả 3</b></td><td colspan="3" class="muted small">mỗi yếu tố tăng cùng một tỷ lệ so với trung vị</td>${tgtMonths.map((r) => { const k = kAll(r.T); return `<td class="r">${k === null ? '–' : `<span class="badge ${k <= 0 ? 'b-green' : k <= 0.1 ? 'b-amber' : 'b-red'}">${k >= 0 ? '+' : ''}${pct(k, 1)} mỗi yếu tố</span>`}</td>`; }).join('')}</tr>` : ''}
@@ -1818,7 +1822,7 @@ function opsSection(list) {
         return `<div class="banner" style="margin-top:10px"><span>📐</span><div><b>${mLabel(ym)}:</b> target ${money(r.tgt)} với 1mAA target trong file ${f0(r.aaTgt)} → file giả định mỗi ĐL có bán mang về <b>${money(impl)}</b>; thực tế trung vị 6 tháng chỉ <b>${money(perAA)}</b> (${nf2.format(med.cpa)} HĐ × ${money(med.cs)}). Giữ năng suất thực tế thì cần <b>${f0(need)}</b> ĐL có bán${need > r.aaTgt ? `, nhiều hơn file ${f0(need - r.aaTgt)} người` : ''} – hoặc nâng FYP mỗi ĐL có bán lên ${money(impl)} (${impl >= perAA ? '+' : ''}${pct(impl / perAA - 1)}).</div></div>`; })()}
       ${gapHtml}</div></section>
   <section class="panel"><div class="panel-h"><div><h3>Cần bao nhiêu 1mAA · HĐ/1mAA · case size để đạt target</h3><p>So với trung vị 6 tháng gần nhất (${sr.pts.map((p) => mLabel(p.m)).join(', ')}${sr.pts.some((p) => p.est) ? '; T04–T06 ước từ tổng 6 tháng của BC70' : ''}) · chấm đỏ = mức cần có</p></div></div>
-    <div class="panel-b"><div class="drv-grid">${driverMini(dr, 'aa', (v) => f0(v === null ? null : Math.round(v)), '1mAA (ĐL có HĐ thực cấp)')}${driverMini(dr, 'cpa', (v) => (v == null ? '–' : nf2.format(v)), 'HĐ / 1mAA')}${driverMini(dr, 'cs', money, 'Case size')}</div>${drvTable}</div></section>
+    <div class="panel-b"><div class="drv-grid">${driverMini(dr, 'aa', (v) => f0(v === null ? null : Math.round(v)), '1mAA (ĐL có FYP thực cấp)')}${driverMini(dr, 'cpa', (v) => (v == null ? '–' : nf2.format(v)), 'HĐ / 1mAA')}${driverMini(dr, 'cs', money, 'Case size')}</div>${drvTable}</div></section>
   ${segPanel(list)}
   ${titlesOverview(list)}`;
 }
@@ -1844,7 +1848,7 @@ function pageOverview(c) {
       delta(fypNow, fypPrev) + delta(fypNow, fypYoy, { label: 'YoY' })),
     kpi(`Tuyển mới (NR) · ${mLabel(ym)}`, f0(val('nr', ym)), 'Số ĐL được cấp mã trong tháng (theo ngày hiệu lực HĐĐL)',
       delta(val('nr', ym), val('nr', prevYm)) + delta(val('nr', ym), val('nr', yoyYm), { label: 'YoY' })),
-    kpi(`ĐL có hoạt động · ${mLabel(ym)}`, f0(val('active', ym)), `≥ 1 HĐ thực cấp · tỷ lệ ${pct(val('active', ym) / hc, 1)} trên ${f0(hc)} nguồn lực`,
+    kpi(`ĐL có hoạt động · ${mLabel(ym)}`, f0(val('active', ym)), `Có FYP thực cấp > 0 · tỷ lệ ${pct(val('active', ym) / hc, 1)} trên ${f0(hc)} nguồn lực${saFyp(ym) ? ` · thêm ${f0(saFyp(ym))} SA có FYP → tổng ${f0(val('active', ym) + saFyp(ym))}` : ''}`,
       delta(val('active', ym), val('active', prevYm)) + delta(val('active', ym), val('active', yoyYm), { label: 'YoY' })),
     kpi('3mAA · lượt hoạt động 3 tháng', aa3 === null ? '–' : f0(aa3), aa3 === null ? 'Cần đủ 3 tháng' : `${mLabel(M[i - 2])}–${mLabel(ym)} · TB ${f1(aa3 / 3)} ĐL/tháng · bán đều (≥2/3 tháng): ${f0(g.even)} người`,
       aa3Prev !== null ? delta(aa3, aa3Prev, { label: 'so kỳ trước' }) : '<span class="delta na">1 ĐL bán 2 tháng = 2 lượt</span>'),
@@ -1879,7 +1883,7 @@ function pageOverview(c) {
   <div class="sec-title"><h2>Kết quả tháng ${mLabel(ym)}${offMonth ? ' (chính thức)' : ''}</h2><span>chọn tháng ở thanh trên · so MoM / YoY</span></div>
   ${noYoy ? `<div class="banner"><span>ℹ️</span><div>Chưa có số <b>${mLong(yoyYm)}</b> nên chưa so được cùng kỳ (YoY). ${isAdmin ? 'Nhập ở trang <a href="#history">KQKD các kỳ trước</a>.' : ''}</div></div>` : ''}
   <div class="kpis">${kpis}</div>
-  ${(() => { const T = { fyp: ['FYP theo tháng', `${scopeName} · FYP BC70 (đã điều chỉnh)`, (v) => money(v)], nr: ['Tuyển mới (NR) theo tháng', 'ĐL được cấp mã trong tháng', f0], active: ['ĐL có hoạt động theo tháng', '≥ 1 HĐ thực cấp · 3 tháng gần nhất cộng lại = 3mAA · tháng từ báo cáo tháng = ĐL có nộp HĐ có phí', f0] }, k = T[S.trendTab] ? S.trendTab : 'fyp';
+  ${(() => { const T = { fyp: ['FYP theo tháng', `${scopeName} · FYP BC70 (đã điều chỉnh)`, (v) => money(v)], nr: ['Tuyển mới (NR) theo tháng', 'ĐL được cấp mã trong tháng', f0], active: ['ĐL có hoạt động theo tháng', 'Có FYP thực cấp > 0 (không gồm SA) · 3 tháng gần nhất cộng lại = 3mAA · tháng từ báo cáo tháng = ĐL có nộp HĐ có phí', f0] }, k = T[S.trendTab] ? S.trendTab : 'fyp';
     return `<section class="panel" id="trend-panel"><div class="panel-h"><div><h3>${T[k][0]}</h3><p>${T[k][1]}</p></div><div class="tabs" style="margin:0;border:0">${Object.entries(T).map(([kk, v]) => `<button data-trend="${kk}" class="${kk === k ? 'on' : ''}">${v[0].replace(' theo tháng', '')}</button>`).join('')}</div></div>
       <div class="panel-b">${barChart(items(k), { fmt: T[k][2], big: true, h: 250 })}${legend}</div></section>`; })()}
   <section class="panel"><div class="panel-h"><div><h3>Khu vực · ${mLabel(ym)}</h3><p>Sắp xếp theo FYP · ${DS.areas.length} khu vực</p></div></div><div class="panel-b" style="padding-top:6px">${areaTable}</div></section>
@@ -2046,7 +2050,7 @@ function hcMetrics(it, hero) {
   const row = (lb, vals, fmt, tip) => `<tr><th title="${esc(tip)}">${lb}</th>${vals.map((v, i) => `<td class="${i === 0 ? 'now' : ''}">${fmt(v)}</td>`).join('')}</tr>`;
   return `<table class="oc-h4"><thead><tr><th></th>${h.lbl.map((l, i) => `<th class="${i === 0 ? 'now' : ''}">${l}</th>`).join('')}</tr></thead><tbody>
       ${row('FYP', h.fyp, (v) => money(v, true), 'FYP thực cấp của cả nhóm (BC70)')}
-      ${row('ĐL có bán', h.act, f0, 'Tháng này: số ĐL có HĐ thực cấp · 3/6/12 tháng: tổng lượt ĐL có HĐ (3 tháng = 3mAA)')}
+      ${row('ĐL có bán', h.act, f0, 'Tháng này & 3 tháng: ĐL có FYP thực cấp > 0 (3 tháng = 3mAA) · 6/12 tháng: theo cờ hoạt động của BC70 (≥ 1 HĐ & FYP ≥ 4 tr)')}
       ${row('Số HĐ', h.cc, f0, 'Số hợp đồng thực cấp')}
     </tbody></table>
     <div class="oc-m oc-m2"><div><span>Nguồn lực</span><b>${f0(s.n)}</b> <small>${s.um} UM+</small></div><div><span>Trực tiếp</span><b>${dUM}/${dFA}</b> <small>UM+/FA</small></div><div><span>Bán đều 3T</span><b>${pct(s.n ? s.even / s.n : 0)}</b> <small>(${s.even})</small></div></div>
