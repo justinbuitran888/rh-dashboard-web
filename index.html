@@ -101,7 +101,33 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .tbl th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600;background:#fafbfb;position:sticky;top:0;z-index:1}
 .tbl td.r,.tbl th.r{text-align:right}
 .tbl tr.click{cursor:pointer}.tbl tr.click:hover td{background:var(--green-ll)}
-.tbl tr.sel td{background:var(--green-ll)}.tbl tr.qsum td{background:#fafbfb;font-size:12.5px}
+.tbl tr.sel td{background:var(--green-ll)}.sec-title{display:flex;align-items:baseline;gap:12px;margin:22px 2px 10px}.sec-title h2{font-size:16px;margin:0}.sec-title span{font-size:12px;color:var(--muted)}
+.ops-kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.ops-k{display:flex;flex-direction:column;gap:6px}.ops-k .s{margin-top:auto}
+.ops-row{display:grid;grid-template-columns:78px minmax(40px,1fr) 40px;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.ops-row b{text-align:right;color:var(--ink)}.ops-row small{grid-column:2/-1;margin-top:-4px;font-size:10.5px}.ops-row em{font-style:normal;grid-column:2/-1}
+.chart .bar.est{fill:#c5e8d5}
+.ops-chart .ln-tgt{fill:none;stroke:#f79009;stroke-width:2.2}.ops-chart .dt-tgt{fill:#fff;stroke:#f79009;stroke-width:2}
+.ops-chart .ln-plan{fill:none;stroke:#7f56d9;stroke-width:2;stroke-dasharray:6 4}.ops-chart .dt-plan{fill:#fff;stroke:#7f56d9;stroke-width:2}
+.ops-chart .ln-flat{fill:none;stroke:#98a2b3;stroke-width:2;stroke-dasharray:4 4}.ops-chart .ln-grow{fill:none;stroke:#2e90fa;stroke-width:2;stroke-dasharray:4 4}
+.ops-chart .gap-neg{fill:#fda29b;opacity:.45}.ops-chart .gap-pos{fill:#a6f4c5;opacity:.5}
+.gap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px}
+.gap-c{border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;display:grid;gap:3px}.gap-c span{font-size:12px;color:var(--muted)}.gap-c b{font-size:20px}.gap-c em{font-style:normal;font-weight:700;font-size:13px}.gap-c small{font-size:11.5px;color:var(--muted)}
+.gap-c.neg{background:#fef3f2;border-color:#fecdca}.gap-c.neg em{color:#b42318}.gap-c.pos{background:#ecfdf3;border-color:#abefc6}.gap-c.pos em{color:#067647}.gap-c.tgt{background:#fffaeb;border-color:#fedf89}.gap-c.tgt em{color:#93370d;font-weight:600}
+.drv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}.drv{border:1px solid var(--line-2);border-radius:12px;padding:8px 10px}
+.drv-h{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px}.drv-h small{color:var(--muted)}
+.drv .ln-med{stroke:#98a2b3;stroke-dasharray:4 4}.drv .ln-act{fill:none;stroke:var(--green);stroke-width:2}.drv .dt-act{fill:var(--green)}.drv .dt-est{fill:#c5e8d5;stroke:var(--green)}.drv .dt-part{fill:#fff;stroke:var(--green);stroke-width:2}
+.drv .dt-req{fill:#f04438}.drv text.val.req{fill:#b42318;font-weight:700}
+.tgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tcard{border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;cursor:pointer;display:grid;gap:8px}.tcard:hover{border-color:var(--green);background:var(--green-ll)}
+.tc-h{display:flex;justify-content:space-between}.tc-h .go{font-size:12px;color:var(--green)}.tc-big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.tc-big b{font-size:26px}.tc-big small{color:var(--muted);font-size:12px}
+.tb-bars{display:grid;gap:5px}.tb-row{display:grid;grid-template-columns:62px minmax(40px,1fr) 40px;gap:6px;align-items:center;font-size:12px}.tb-row b{text-align:right}.tb-row small{grid-column:2/-1;margin-top:-3px;color:var(--muted);font-size:10.5px}
+.tb-bar{height:8px;border-radius:5px;background:#eef0f3;position:relative;overflow:hidden}.tb-bar i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--green)}.tb-bar.mid i{background:#f79009}.tb-bar.low i{background:#fdb022}
+@media (max-width:900px){.drv-grid,.tgrid{grid-template-columns:1fr}}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chips .chip{cursor:pointer;border:1px solid var(--line);background:#fff}.chips .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+.tbl tr.hl td{background:#fffaeb}.tbl tr.hl:hover td{background:#fef0c7}
+.tbl th.plan-h{color:#6941c6;background:#f9f5ff}.tbl td.plan-c input{border-color:#d9c9fb;background:#fcfaff}
+.tbl tr.qsum td{background:#fafbfb;font-size:12.5px}
 .segsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:4px 0 12px}
 .segsum>div{border:1px solid var(--line-2);border-radius:10px;padding:8px 10px;background:#fff;display:grid;gap:2px}
 .segsum span{font-size:11.5px;color:var(--muted)}.segsum b{font-size:17px}.segsum small{font-size:11.5px;color:var(--muted)}.tbl tr.tot td{font-weight:700;background:#f2f4f7;border-top:2px solid var(--line)}.tbl th.c{text-align:center}.tbl td small{font-weight:400}
@@ -831,6 +857,7 @@ const TIER_NAME = { S: 'Silver', G: 'Gold', P: 'Platinum' };
 let sb = null, user = null, profile = null, isAdmin = false;
 let DS = null; // dữ liệu đã xử lý
 let RHG = [], RHO = {}; // quy tắc chia đầu RH & ghi đè theo khu vực
+let PLAN_BY = new Map(); // scope -> Map 'YYYY-MM|SEG' -> vals (target TOTAL / PLAN / phân khúc của từng đầu RH; 'ALL' = tổng)
 const S = { hView: (() => { try { return localStorage.getItem('rh-hview') || 'card'; } catch { return 'card'; } })(), hPath: [], mapaSel: null, mapaOpen: new Set(), mapaShut: new Set(), rh: (() => { try { return localStorage.getItem('rh-scope') || 'all'; } catch { return 'all'; } })(), page: 'overview', focus: 2, area: 'all', q: '', open: new Set(), sel: null, healthSort: 'fyp6', titleTab: 'mdrt', libQ: '', libCat: 'Tất cả', libStatus: 'Đang hiệu lực' };
 
 // =====================================================================
@@ -919,7 +946,7 @@ async function loadDataset() {
   const st = await sb.from('app_settings').select('key,value').in('key', ['rh_groups', 'rh_area_override']);
   for (const x of st.data || []) { if (x.key === 'rh_groups') RHG = Array.isArray(x.value) ? x.value : []; if (x.key === 'rh_area_override') RHO = x.value || {}; }
   DS = r.data ? prepare(r.data) : null;
-  if (DS) { applyScope(); await loadNodeTargets(); }
+  if (DS) { applyScope(); await loadNodeTargets(); try { await loadPlan(); } catch (e) { console.warn('plan', e); } }
 }
 // target theo nhánh / khu vực / đầu RH (từ file Target đã nạp vào plan_targets)
 async function loadNodeTargets() {
@@ -988,7 +1015,7 @@ function assignRh() {
   }
 }
 // dòng lịch sử (báo cáo tháng) trong phạm vi đang xem
-const histRows = (ym) => (DS.hist || []).filter((h) => h.m === ym && (S.rh === 'all' || h.rh === S.rh) && (S.area === 'all' || h.a === S.area));
+const histRows = (ym) => (DS.hist || []).filter((h) => h.m === ym && (S.rh === 'all' || h.rh === S.rh) && (!S.branch || DS.areaSet.has(h.a)) && (S.area === 'all' || h.a === S.area));
 const HIST_KEY = { fyp: 'fyp', cc: 'cc', active: 'act', nr: 'nr', hc: 'hc', fyc: 'fyc' };
 // nguồn số của 1 tháng: 'bc70' | 'hist' (báo cáo tháng) | 'py' (cùng kỳ suy ra từ báo cáo năm sau) | 'manual' | null
 function monthSrc(ym) {
@@ -1009,10 +1036,33 @@ function applyScope() {
   DS.agents = ids ? DS.agentsAll.filter((a) => ids.has(a.a)) : DS.agentsAll;
   DS.meta.saCount = ids ? sum(DS.areas, (a) => a.sa) : DS.meta.saCountAll;
   DS.segments = ids ? [] : DS.segmentsAll; // báo cáo MAPA chỉ có số toàn bộ
+  // nhánh (PSM+ trong cây RH → báo cáo trực tiếp → …): danh sách để chọn & lọc
+  DS.branches = [];
+  const seen = new Set();
+  const walk = (n) => { const areas = []; const col = (x) => { areas.push(...x.areas.map((a) => a.code)); x.kids.forEach(col); }; col(n);
+    if (!n.group && !seen.has(n.code)) { seen.add(n.code); DS.branches.push({ code: n.code, name: n.name, title: n.title, depth: n.depth, areas }); }
+    n.kids.forEach(walk); };
+  structTree(DS.areas).forEach(walk);
+  const br = S.branch ? DS.branches.find((b) => b.code === S.branch) : null;
+  if (!br) S.branch = null;
+  else { const bs = new Set(br.areas); DS.areas = DS.areas.filter((a) => bs.has(a.code)); DS.agents = DS.agents.filter((a) => bs.has(a.a)); DS.meta.saCount = sum(DS.areas, (a) => a.sa); DS.segments = []; }
+  DS.areaSet = new Set(DS.areas.map((a) => a.code));
   if (S.area !== 'all' && !DS.areas.some((a) => a.code === S.area)) S.area = 'all';
-  PLAN = null;
+  PLAN = PLAN_BY.size ? PLAN_BY.get(planScope()) || new Map() : null;
 }
-function setRh(id) { S.mapaSel = null; S.hPath = []; S.rh = id; try { localStorage.setItem('rh-scope', id); } catch {} S.open.clear(); applyScope(); render(); }
+function setBranch(code) { S.branch = code || null; S.area = 'all'; S.mapaSel = null; S.hPath = []; S.open.clear(); applyScope(); render(); }
+const branchName = () => (S.branch ? DS.branches.find((b) => b.code === S.branch)?.name || S.branch : null);
+// target / plan của phạm vi đang xem (VND 000 cho FYP): khu vực → a:, nhánh → n:, RH → TOTAL, ALL → tổng các RH
+function scopeTarget(ym, k) {
+  const v = S.area !== 'all' ? tgVal('a:' + S.area, ym, k) : S.branch ? tgVal('n:' + S.branch, ym, k) : pvOf(planScope(), ym, 'TOTAL', k);
+  return v === null ? null : k === 'fyp' ? v * 1000 : v;
+}
+function scopePlan(ym, k) {
+  if (S.area !== 'all' || S.branch) return null;
+  const v = pvOf(planScope(), ym, 'PLAN', k);
+  return v === null ? null : k === 'fyp' ? v * 1000 : v;
+}
+function setRh(id) { S.branch = null; S.mapaSel = null; S.hPath = []; S.rh = id; try { localStorage.setItem('rh-scope', id); } catch {} S.open.clear(); applyScope(); render(); }
 const scopeKey = () => (S.rh === 'all' ? 'TOÀN VÙNG' : 'RH:' + S.rh); // khóa số nhập tay
 const planScope = () => (S.rh === 'all' ? 'ALL' : S.rh); // khóa kế hoạch
 function prepare(row) {
@@ -1142,7 +1192,7 @@ function monthValue(ym, key, list) {
     const rs = histRows(addMonths(ym, 12)).filter((r) => r.py !== null && r.py !== undefined);
     if (rs.length) return sum(rs, (r) => N(r.py));
   }
-  if (S.area !== 'all') return null;
+  if (S.area !== 'all' || S.branch) return null;
   const m = manualFor(ym); if (!m) return null;
   const v = m[key]; if (v === null || v === undefined || v === '') return null;
   return key === 'fyp' ? N(v) * 1000 : N(v);
@@ -1208,16 +1258,19 @@ function topControls() {
   if (['plan', 'history'].includes(S.page)) return rhSel;
   const M = DS.months;
   const monthSel = S.page === 'overview' ? `<select class="select" id="sel-focus" aria-label="Tháng xem">${[2, 1, 0].map((i) => `<option value="${i}" ${S.focus === i ? 'selected' : ''}>${mLabel(M[i])}${i === 2 ? ' · tháng gần nhất' : ''}</option>`).join('')}</select>` : '';
+  const brSel = DS.branches.length || S.branch ? `<select class="select" id="sel-branch" aria-label="Nhánh"><option value="">Tất cả nhánh</option>${DS.branches.map((b) => `<option value="${esc(b.code)}" ${S.branch === b.code ? 'selected' : ''}>${'– '.repeat(Math.max(0, b.depth - 1))}${esc(b.name)} · ${esc(b.title || '')} (${b.areas.length} KV)</option>`).join('')}</select>` : '';
   const areaSel = `<select class="select" id="sel-area" aria-label="Khu vực"><option value="all">Tất cả khu vực (${DS.areas.length})</option>${DS.areas.map((a) => `<option value="${a.code}" ${S.area === a.code ? 'selected' : ''}>${esc(a.code)}${a.psm ? ' · ' + esc(a.psm) : ''}</option>`).join('')}</select>`;
-  return `${rhSel}${monthSel}${areaSel}<span class="chip">Chốt <b>${dmy(DS.meta.asOf)}</b></span><span class="chip">Đơn vị tiền <b>VND</b></span>`;
+  return `${rhSel}${brSel}${monthSel}${areaSel}<span class="chip">Chốt <b>${dmy(DS.meta.asOf)}</b></span><span class="chip">Đơn vị tiền <b>VND</b></span>`;
 }
 function render() {
   const p = PAGES.find((x) => x.id === S.page);
+  if (DS && S.branch && ['plan', 'history'].includes(S.page)) { S.branch = null; S.area = 'all'; applyScope(); } // target/plan nhập theo đầu RH
   $('#page-title').textContent = p.name; $('#page-sub').textContent = p.sub;
   renderNav();
   $('#top-r').innerHTML = topControls();
   const fs = $('#sel-focus'); if (fs) fs.onchange = (e) => { S.focus = +e.target.value; render(); };
   const rs = $('#sel-rh'); if (rs) rs.onchange = (e) => setRh(e.target.value);
+  const bs = $('#sel-branch'); if (bs) bs.onchange = (e) => setBranch(e.target.value);
   const as = $('#sel-area'); if (as) as.onchange = (e) => { S.area = e.target.value; S.open.clear(); S.hPath = []; render(); };
   const c = $('#content'); c.onclick = null; c.onkeydown = null;
   try { ({ overview: pageOverview, health: pageHealth, titles: pageTitles, history: pageHistory, plan: pagePlan, library: pageLibrary, data: pageData })[S.page](c); }
@@ -1314,6 +1367,176 @@ function bindMapa(c) {
   $('#mapa-exp', c).onclick = () => { const all = (ns) => ns.forEach((n) => { S.mapaOpen.add(n.key); S.mapaShut.delete(n.key); all(n.kids); }); all(structTree(DS.areas)); rer(); };
   $('#mapa-col', c).onclick = () => { S.mapaOpen.clear(); S.mapaShut.clear(); const all = (ns) => ns.forEach((n) => { if (n.depth >= 1) S.mapaShut.add(n.key); all(n.kids); }); all(structTree(DS.areas)); rer(); };
 }
+// =====================================================================
+//  ĐIỀU HÀNH HẰNG NGÀY: target / plan · dự báo & GAP · 1mAA, HĐ/1mAA, case size cần có
+// =====================================================================
+const median = (xs) => { const a = xs.filter((v) => v !== null && v !== undefined && isFinite(v)).sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+const monthDiff = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+// 6 tháng gần nhất: 3 tháng BC70 (T-3..T-1) + 3 tháng trước đó suy từ cột "6 tháng vừa qua" của BC70 (chỉ có tổng 3 tháng → chia đều)
+function series6(list) {
+  const M = DS.months, g = groupStats(list, 2), s3 = (arr) => arr[0] + arr[1] + arr[2];
+  const rf = Math.max(0, sum(list, (a) => a.fyp6) - s3(g.fypM)) / 3, rc = Math.max(0, sum(list, (a) => a.cc6) - s3(g.ccM)) / 3, ra = Math.max(0, sum(list, (a) => a.act6) - s3(g.actM)) / 3;
+  const pts = [-3, -2, -1].map((k) => ({ m: addMonths(M[0], k), fyp: rf, cc: rc, aa: ra, nr: null, est: true }))
+    .concat([0, 1, 2].map((i) => ({ m: M[i], fyp: g.fypM[i], cc: g.ccM[i], aa: g.actM[i], nr: g.nrM[i] })));
+  for (const p of pts) { p.cs = p.cc ? p.fyp / p.cc : null; p.cpa = p.aa ? p.cc / p.aa : null; p.fpa = p.aa ? p.fyp / p.aa : null; }
+  const md = (k, xs = pts) => median(xs.map((p) => p[k]));
+  const med = { fyp: md('fyp'), cc: md('cc'), aa: md('aa'), cs: md('cs'), cpa: md('cpa'), fpa: md('fpa'), nr: md('nr', pts.filter((p) => !p.est)) };
+  const q1 = rf * 3, q2 = s3(g.fypM), gQ = q1 > 0 ? q2 / q1 - 1 : null;
+  const gM = gQ === null ? 0 : Math.max(-0.15, Math.min(0.15, Math.pow(1 + gQ, 1 / 3) - 1));
+  const base = q2 / 3; // TB T-3..T-1, đặt ở tháng giữa
+  return { pts, med, gQ, gM, base, cur: { fyp: g.fypM[3], cc: g.ccM[3], aa: g.actM[3], nr: g.nrM[3] }, hasPrev: q1 > 0,
+    grow: (ym) => base * Math.pow(1 + gM, monthDiff(M[1], ym)) };
+}
+function monthClock() {
+  const ym = DS.months[3], asOf = String(DS.meta.asOf || '');
+  const dim = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate();
+  const day = asOf.slice(0, 7) === ym ? Math.max(1, +asOf.slice(8, 10)) : asOf.slice(0, 7) > ym ? dim : 0;
+  return { ym, day, dim, el: day / dim, left: Math.max(0, dim - day) };
+}
+const progRow = (lb, a, p, el, extra = '') => {
+  if (p === null || p === undefined || !p) return `<div class="ops-row muted"><span>${lb}</span><em>chưa có</em></div>`;
+  const r = a / p, cls = el === null ? (r >= 1 ? 'ok' : r >= 0.8 ? 'mid' : 'low') : r >= el ? 'ok' : r >= el * 0.8 ? 'mid' : 'low';
+  return `<div class="ops-row"><span>${lb}</span><span class="tgbar ${cls}"><i style="width:${Math.min(100, r * 100)}%"></i>${el !== null ? `<em style="left:${Math.min(100, el * 100)}%"></em>` : ''}</span><b class="num">${pct(r)}</b><small>${extra}</small></div>`;
+};
+// biểu đồ FYP: cột thực tế, đường target / plan, 2 kịch bản dự báo, vùng GAP
+function opsChart(rows, { fmt = money } = {}) {
+  const n = rows.length, W = Math.max(620, n * 86), h = 260, pad = { l: 8, r: 8, t: 26, b: 28 }, step = (W - pad.l - pad.r) / n;
+  const vals = rows.flatMap((r) => [r.act, r.tgt, r.plan, r.flat, r.grow]).filter((v) => v !== null && v !== undefined);
+  const max = Math.max(1, ...vals) * 1.08, y = (v) => pad.t + (h - pad.t - pad.b) * (1 - N(v) / max), cx = (i) => pad.l + step * i + step / 2, bw = Math.min(40, step * 0.5);
+  const line = (k, cls, from = 0) => { const p = rows.map((r, i) => (i >= from && r[k] !== null && r[k] !== undefined ? [cx(i), y(r[k])] : null)).filter(Boolean); return p.length > 1 ? `<path class="${cls}" d="${p.map((q, i) => `${i ? 'L' : 'M'}${q[0]},${q[1]}`).join(' ')}"/>` : ''; };
+  const dots = (k, cls) => rows.map((r, i) => (r[k] !== null && r[k] !== undefined ? `<circle class="${cls}" cx="${cx(i)}" cy="${y(r[k])}" r="3.5"/>` : '')).join('');
+  const gaps = rows.map((r, i) => { if (!r.fut || r.tgt === null || r.flat === null) return ''; const lo = Math.min(r.tgt, r.flat), hi = Math.max(r.tgt, r.flat); return `<rect class="${r.flat < r.tgt ? 'gap-neg' : 'gap-pos'}" x="${cx(i) - step * 0.42}" width="${step * 0.84}" y="${y(hi)}" height="${Math.max(1, y(lo) - y(hi))}"/>`; }).join('');
+  const bars = rows.map((r, i) => (r.act === null || r.act === undefined ? '' : `<path class="${r.partial ? 'bar part' : r.est ? 'bar est' : 'bar'}" d="M${cx(i) - bw / 2},${h - pad.b} V${y(r.act) + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${h - pad.b} Z"/><text class="val" x="${cx(i)}" y="${y(r.act) - 6}" text-anchor="middle">${fmt(r.act)}</text>`)).join('');
+  const hit = rows.map((r, i) => `<rect x="${cx(i) - step / 2}" y="0" width="${step}" height="${h}" fill="transparent"><title>${esc([mLong(r.m), r.act != null ? `Thực tế${r.partial ? ' (tạm tính)' : r.est ? ' (ước, TB 3 tháng)' : ''}: ${fmt(r.act)}` : null, r.tgt != null ? `Target: ${fmt(r.tgt)}` : null, r.plan != null ? `Plan: ${fmt(r.plan)}` : null, r.flat != null ? `Giữ trung vị 6T: ${fmt(r.flat)}` : null, r.grow != null ? `Giữ tốc độ tăng 6T: ${fmt(r.grow)}` : null].filter(Boolean).join('\n'))}</title></rect>`).join('');
+  return `<div class="chart-scroll"><svg class="chart ops-chart" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;min-width:${Math.min(W, 560)}px" role="img">
+    <line class="grid" x1="0" x2="${W}" y1="${h - pad.b}" y2="${h - pad.b}"/>${gaps}${bars}
+    ${line('tgt', 'ln-tgt')}${dots('tgt', 'dt-tgt')}${line('plan', 'ln-plan')}${dots('plan', 'dt-plan')}
+    ${line('flat', 'ln-flat')}${line('grow', 'ln-grow')}
+    ${rows.map((r, i) => `<text x="${cx(i)}" y="${h - 9}" text-anchor="middle">${mLabel(r.m)}</text>`).join('')}${hit}</svg></div>`;
+}
+// biểu đồ nhỏ cho 1 động lực: thực tế, trung vị, mức cần có
+function driverMini(rows, k, fmt, title) {
+  const n = rows.length, W = 360, h = 150, pad = { l: 6, r: 6, t: 18, b: 22 }, step = (W - pad.l - pad.r) / n;
+  const vals = rows.flatMap((r) => [r[k], r['req_' + k]]).concat([r0(rows, k)]).filter((v) => v !== null && v !== undefined && isFinite(v));
+  const max = Math.max(1e-9, ...vals) * 1.12, y = (v) => pad.t + (h - pad.t - pad.b) * (1 - v / max), cx = (i) => pad.l + step * i + step / 2;
+  const md = r0(rows, k);
+  const act = rows.map((r, i) => (r[k] !== null && r[k] !== undefined && isFinite(r[k]) ? [i, r[k], r.est, r.partial] : null)).filter(Boolean);
+  const path = act.filter((p) => !p[3]).map((p, j) => `${j ? 'L' : 'M'}${cx(p[0])},${y(p[1])}`).join(' ');
+  return `<div class="drv"><div class="drv-h"><b>${title}</b><small>trung vị 6T ${fmt(md)}</small></div><svg class="chart" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto">
+    ${md ? `<line class="ln-med" x1="${pad.l}" x2="${W - pad.r}" y1="${y(md)}" y2="${y(md)}"/>` : ''}<path class="ln-act" d="${path}"/>
+    ${act.map((p) => `<circle class="${p[3] ? 'dt-part' : p[2] ? 'dt-est' : 'dt-act'}" cx="${cx(p[0])}" cy="${y(p[1])}" r="3.5"><title>${mLabel(rows[p[0]].m)}: ${fmt(p[1])}${p[2] ? ' (ước)' : p[3] ? ' (tạm tính)' : ''}</title></circle>`).join('')}
+    ${rows.map((r, i) => (r['req_' + k] ? `<g><circle class="dt-req" cx="${cx(i)}" cy="${y(r['req_' + k])}" r="4.5"/><text class="val req" x="${cx(i)}" y="${y(r['req_' + k]) - 8}" text-anchor="middle">${fmt(r['req_' + k])}</text><title>Cần cho target ${mLabel(r.m)}: ${fmt(r['req_' + k])}</title></g>` : '')).join('')}
+    ${rows.map((r, i) => `<text x="${cx(i)}" y="${h - 6}" text-anchor="middle">${mLabel(r.m).slice(0, 3)}</text>`).join('')}</svg></div>`;
+}
+const r0 = (rows, k) => rows._med?.[k] ?? null;
+// MBA Pro: tiến độ tới mức Bạc (trung bình 4 điều kiện)
+function mbaProg(a) {
+  const mb = DS.mba.get(a.c) || {}, t = 0;
+  const r1 = Math.min(1, Math.max(N(mb.n1a) / MBA.n1a[t], N(mb.n1b) / MBA.n1b[t])), r2 = Math.min(1, N(mb.fyc) / MBA.fyc[t]), r3 = Math.min(1, N(mb.newUm) / MBA.newUm), r4 = mb.p13 == null || N(mb.p13) >= MBA.p13 ? 1 : 0;
+  return { mb, r: (r1 + r2 + r3 + r4) / 4, held: !!mb.cur };
+}
+// Silver fast-track cho ĐL mới (memo 0001M02/2026): M0–M2 đạt 3 HĐ + 40 triệu FYP + đào tạo SBW + ĐNCC ≥ 4 buổi/tháng (M0+M1, M2)
+const FT = { fyp: 40000, cc: 3, dn: 4 };
+function fastTrack(list) {
+  const M = DS.months, ym = M[3], asOf = DS.meta.asOf;
+  return list.map((a) => {
+    const t = tenureAt(a, ym); if (t === null || t < 0 || t > 3) return null;
+    const j = String(a.j).slice(0, 7), mp = DS.manproNew.get(a.c);
+    const since = M.filter((m) => m >= j && monthDiff(j, m) <= 2);
+    const fyp = mp && mp.fyp != null ? N(mp.fyp) : sum(since, (m) => a.fyp[M.indexOf(m)]);
+    const cc = mp && mp.cc != null ? N(mp.cc) : sum(since, (m) => a.cc[M.indexOf(m)]);
+    const sbw = mp ? mp.sbw === 'Y' : null, dn1 = mp ? N(mp.dn1) : null, dn2 = mp ? N(mp.dn2) : null;
+    const parts = [Math.min(1, fyp / FT.fyp), Math.min(1, cc / FT.cc), sbw ? 1 : 0, dn1 === null ? 0 : Math.min(1, dn1 / FT.dn)];
+    if (t >= 2) parts.push(dn2 === null ? 0 : Math.min(1, dn2 / FT.dn));
+    const score = sum(parts) / parts.length;
+    const deadline = addMonths(j, 2), end = new Date(+deadline.slice(0, 4), +deadline.slice(5, 7), 0);
+    const daysLeft = Math.ceil((end - new Date(asOf)) / 864e5);
+    const fast = mp?.fast === 'Y';
+    const miss = [fyp < FT.fyp && `FYP ${money(FT.fyp - fyp)}`, cc < FT.cc && `${FT.cc - cc} HĐ`, !sbw && 'đào tạo SBW', (dn1 === null || dn1 < FT.dn) && `ĐNCC M0+M1 ${FT.dn - N(dn1)} buổi`, t >= 2 && (dn2 === null || dn2 < FT.dn) && `ĐNCC M2 ${FT.dn - N(dn2)} buổi`].filter(Boolean);
+    const status = fast ? 'done' : t > 2 ? 'closed' : score >= 0.6 || (fyp >= FT.fyp / 2 && cc >= 2) ? 'pot' : 'watch';
+    return { a, t, j, fyp, cc, sbw, dn1, dn2, score, deadline, daysLeft, fast, miss, status, active: since.some((m) => isActive(a, M.indexOf(m))) };
+  }).filter(Boolean);
+}
+function titlesOverview(list) {
+  const year = +String(DS.meta.asOf).slice(0, 4), paceM = +String(DS.meta.asOf).slice(5, 7) - 1, pace = paceM / 12;
+  const md = list.map((a) => N(a.mdrtf) / MDRT[0].v);
+  const ums = list.filter((a) => a.um), mb = ums.map(mbaProg);
+  const ft = fastTrack(list).filter((x) => x.t <= 2);
+  const bucket = (rs) => [[1, '≥ 100%', 'ok'], [0.8, '80–99%', 'mid'], [0.6, '60–79%', 'low']].map(([lo, lb, cls], i, arr) => ({ lb, cls, n: rs.filter((r) => r >= lo && (i === 0 || r < arr[i - 1][0])).length }));
+  const bk = (rs, total, unit) => { const b = bucket(rs), cum = (i) => sum(b.slice(0, i + 1), (x) => x.n); return `<div class="tb-bars">${b.map((x, i) => `<div class="tb-row"><span>${x.lb}</span><span class="tb-bar ${x.cls}"><i style="width:${total ? Math.min(100, (x.n / Math.max(1, b[0].n + b[1].n + b[2].n)) * 100) : 0}%"></i></span><b class="num">${f0(x.n)}</b><small>lũy kế ${f0(cum(i))} ${unit}</small></div>`).join('')}</div>`; };
+  const card = (title, big, sub, inner, tab) => `<div class="tcard" data-goto-titles="${tab}" role="button" tabindex="0"><div class="tc-h"><b>${title}</b><span class="go">Chi tiết ›</span></div><div class="tc-big"><b class="num">${big}</b><small>${sub}</small></div>${inner}</div>`;
+  return `<section class="panel"><div class="panel-h"><div><h3>Danh hiệu & tiến độ · ${esc(scopeLabel())}</h3><p>MDRT ${year + 1} theo MDRT-FYP tới hiện tại · MBA Pro ${year + 1} (UM+) theo 4 điều kiện mức Bạc · đúng nhịp năm ≈ ${pct(pace)} (hết ${paceM}/12 tháng)</p></div></div>
+    <div class="panel-b"><div class="tgrid">
+      ${card(`MDRT ${year + 1}`, f0(md.filter((r) => r >= 1).length), `đang đạt (tạm tính) · ${f0(md.filter((r) => r >= pace && r < 1).length)} người đúng nhịp ≥ ${pct(pace)}`, bk(md, list.length, 'người'), 'mdrt')}
+      ${card(`MBA Pro ${year + 1}`, f0(mb.filter((x) => x.held).length), `UM+ có danh hiệu tạm tính · ${f0(mb.filter((x) => x.r >= 1).length)} đủ 4/4 điều kiện Bạc`, bk(mb.map((x) => x.r), ums.length, 'UM+'), 'mba')}
+      ${card('Silver Fast-track', f0(ft.filter((x) => x.status === 'pot').length), `tiềm năng / ${f0(ft.length)} ĐL mới M0–M2 · đã đạt ${f0(ft.filter((x) => x.fast).length)}`,
+        `<div class="tb-bars">${[['M0', 0], ['M1', 1], ['M2', 2]].map(([lb, t]) => { const xs = ft.filter((x) => x.t === t); return `<div class="tb-row"><span>${lb}</span><span class="tb-bar ok"><i style="width:${xs.length ? (xs.filter((x) => x.active).length / xs.length) * 100 : 0}%"></i></span><b class="num">${f0(xs.length)}</b><small>${f0(xs.filter((x) => x.active).length)} có HĐ · ${f0(xs.filter((x) => x.status === 'pot').length)} tiềm năng</small></div>`; }).join('')}</div>`, 'fast')}
+    </div></div></section>`;
+}
+const scopeLabel = () => (S.area !== 'all' ? 'khu vực ' + S.area : S.branch ? 'nhánh ' + branchName() : S.rh === 'all' ? 'ALL' : rhShort());
+function opsSection(list) {
+  const M = DS.months, ck = monthClock(), ym = ck.ym, sr = series6(list), med = sr.med;
+  const year = ym.slice(0, 4), q0 = addMonths(ym, -((+ym.slice(5, 7) - 1) % 3)), qm = [q0, addMonths(q0, 1), addMonths(q0, 2)];
+  const tF = scopeTarget(ym, 'fyp'), pF = scopePlan(ym, 'fyp'), tN = scopeTarget(ym, 'nr'), pN = scopePlan(ym, 'nr'), tA = scopeTarget(ym, 'aa'), pA = scopePlan(ym, 'aa');
+  const qT = qm.map((m) => scopeTarget(m, 'fyp')), qP = qm.map((m) => scopePlan(m, 'fyp'));
+  const g3 = groupStats(list, 3), qAct = sum(qm.filter((m) => M.includes(m) && m <= ym), (m) => g3.fypM[M.indexOf(m)]);
+  const qTT = qT.some((v) => v !== null) ? sum(qT, N) : null, qPP = qP.some((v) => v !== null) ? sum(qP, N) : null;
+  const elQ = (qm.indexOf(ym) + ck.el) / 3;
+  const needDay = tF !== null && ck.left > 0 ? Math.max(0, tF - sr.cur.fyp) / ck.left : null;
+  const reqAA = tF !== null && med.fpa ? tF / med.fpa : null;
+  const runRate = ck.el >= 0.25 ? sr.cur.fyp / ck.el : null;
+  const fcFlat = med.fyp, fcGrow = sr.grow(ym);
+  const kc = (lb, big, rows, foot = '') => `<div class="kpi ops-k"><div class="lb">${lb}</div><div class="v num">${big}</div>${rows}${foot ? `<div class="s">${foot}</div>` : ''}</div>`;
+  const kpis = [
+    kc(`FYP ${mLabel(ym)} · đến ${dmy(DS.meta.asOf)}`, money(sr.cur.fyp), progRow('Target', sr.cur.fyp, tF, ck.el, tF !== null ? money(tF) : '') + progRow('Plan', sr.cur.fyp, pF, ck.el, pF !== null ? money(pF) : ''),
+      `${needDay !== null ? `Cần <b>${money(needDay)}/ngày</b> trong ${ck.left} ngày còn lại · ` : ''}thời gian đã qua ${pct(ck.el)} (vạch đen)`),
+    kc(`FYP quý ${Math.floor((+ym.slice(5, 7) - 1) / 3) + 1}/${year} · đến nay`, money(qAct), progRow('Target quý', qAct, qTT, elQ, qTT !== null ? money(qTT) : '') + progRow('Plan quý', qAct, qPP, elQ, qPP !== null ? money(qPP) : ''), `Đã qua ${pct(elQ)} thời gian quý`),
+    kc(`Tuyển mới (NR) ${mLabel(ym)}`, f0(sr.cur.nr), progRow('Target', sr.cur.nr, tN, ck.el, tN !== null ? f0(tN) : '') + progRow('Plan', sr.cur.nr, pN, ck.el, pN !== null ? f0(pN) : ''), `Trung vị 3 tháng: ${f0(med.nr)} NR/tháng`),
+    kc(`1mAA ${mLabel(ym)} (ĐL có HĐ thực cấp)`, f0(sr.cur.aa), progRow('Cần cho target', sr.cur.aa, reqAA === null ? null : Math.ceil(reqAA), ck.el, reqAA !== null ? f0(Math.ceil(reqAA)) : '') + progRow(tA !== null ? 'Target 1mAA' : 'Plan 1mAA', sr.cur.aa, tA ?? pA, ck.el, tA ?? pA ?? ''), `Trung vị 6T: ${f0(med.aa)} ĐL · FYP/ĐL có bán ${money(med.fpa)}`),
+    kc(`Dự báo cả tháng ${mLabel(ym)}`, money(Math.max(fcFlat, sr.cur.fyp)), `<div class="ops-row"><span>Giữ tốc độ 6T</span><b class="num" style="grid-column:2/4;text-align:left">${money(fcGrow)}</b></div>${runRate !== null ? `<div class="ops-row"><span>Theo nhịp ngày</span><b class="num" style="grid-column:2/4;text-align:left">${money(runRate)}</b></div>` : ''}`,
+      tF !== null ? `So target: ${fcFlat >= tF ? `<span class="ok">vượt ${money(fcFlat - tF)}</span>` : `<span class="err">hụt ${money(tF - fcFlat)}</span>`} nếu giữ trung vị` : 'Chưa có target tháng'),
+  ].join('');
+  // chuỗi tháng: 6 tháng lịch sử + tháng đang chạy + các tháng còn lại trong năm
+  const future = []; for (let m = ym; m <= `${year}-12`; m = addMonths(m, 1)) future.push(m);
+  const rows = [...sr.pts.map((p) => ({ m: p.m, act: p.fyp, est: p.est, tgt: scopeTarget(p.m, 'fyp'), plan: scopePlan(p.m, 'fyp'), flat: null, grow: null })),
+    ...future.map((m) => ({ m, fut: true, act: m === ym ? sr.cur.fyp : undefined, partial: m === ym, tgt: scopeTarget(m, 'fyp'), plan: scopePlan(m, 'fyp'), flat: med.fyp, grow: sr.grow(m) }))];
+  const last = rows[sr.pts.length - 1]; last.flat = last.act; last.grow = last.act; // nối đường dự báo từ tháng đủ gần nhất
+  const fut = rows.filter((r) => future.includes(r.m)), withT = fut.filter((r) => r.tgt !== null);
+  const sT = sum(withT, (r) => r.tgt), sFlat = sum(withT, (r) => r.flat), sGrow = sum(withT, (r) => r.grow);
+  const wP = withT.filter((r) => r.plan !== null), sPlan = wP.length ? sum(wP, (r) => r.plan) : null, sTP = sum(wP, (r) => r.tgt);
+  const span = withT.length ? `${mLabel(withT[0].m)}–${mLabel(withT.at(-1).m)}` : '';
+  const gapCard = (lb, v, sub) => { const d = v - sT; return `<div class="gap-c ${d >= 0 ? 'pos' : 'neg'}"><span>${lb}</span><b class="num">${money(v)}</b><em>${d >= 0 ? `Vượt ${money(d)} (+${pct(d / sT)})` : `Hụt ${money(-d)} (−${pct(-d / sT)})`}</em><small>${sub}</small></div>`; };
+  const gapHtml = withT.length ? `<div class="gap-grid">
+      <div class="gap-c tgt"><span>Target ${span} (${withT.length} tháng)</span><b class="num">${money(sT)}</b><em>TB ${money(sT / withT.length)}/tháng = ${med.fyp ? f1(sT / withT.length / med.fyp) : '–'}× trung vị 6T</em><small>${sPlan !== null ? `Plan của anh ${wP.length < withT.length ? `(${wP.length}/${withT.length} tháng)` : ''}: ${money(sPlan)} = ${pct(sPlan / sTP)} target cùng tháng` : 'Chưa nhập Plan – vào Kế hoạch › Nhập target'}</small></div>
+      ${gapCard('Nếu giữ mức trung vị 6 tháng', sFlat, `${money(med.fyp)}/tháng, không cải thiện`)}
+      ${gapCard(`Nếu giữ tốc độ tăng 6 tháng (${sr.gM >= 0 ? '+' : ''}${pct(sr.gM, 1)}/tháng)`, sGrow, sr.hasPrev ? `TB T07–T09 so TB T04–T06: ${sr.gQ >= 0 ? '+' : ''}${pct(sr.gQ, 1)} · cùng nguồn lực hiện tại` : 'thiếu số 3 tháng trước')}
+    </div>` : `<div class="banner"><span>ℹ️</span><div>Chưa có target cho ${esc(scopeLabel())} từ ${mLabel(ym)} – nhập ở <a href="#plan">Kế hoạch</a> hoặc upload file Target.</div></div>`;
+  // động lực cần có
+  const dr = [...sr.pts.map((p) => ({ m: p.m, est: p.est, aa: p.aa, cpa: p.cpa, cs: p.cs })), ...future.map((m) => { const T = scopeTarget(m, 'fyp'); return { m, partial: m === ym, aa: m === ym ? sr.cur.aa : null, cpa: m === ym && sr.cur.aa ? sr.cur.cc / sr.cur.aa : null, cs: m === ym && sr.cur.cc ? sr.cur.fyp / sr.cur.cc : null,
+    req_aa: T && med.cpa && med.cs ? T / (med.cpa * med.cs) : null, req_cpa: T && med.aa && med.cs ? T / (med.aa * med.cs) : null, req_cs: T && med.aa && med.cpa ? T / (med.aa * med.cpa) : null, T }; })];
+  dr._med = med;
+  const tgtMonths = dr.filter((r) => r.T);
+  const kAll = (T) => (T && med.aa && med.cpa && med.cs ? Math.cbrt(T / (med.aa * med.cpa * med.cs)) - 1 : null);
+  const badge = (v, m) => (v === null || !m ? '' : ` <span class="badge ${v / m <= 1 ? 'b-green' : v / m <= 1.15 ? 'b-amber' : 'b-red'}">${v >= m ? '+' : ''}${pct(v / m - 1)}</span>`);
+  const lastFull = sr.pts.at(-1);
+  const drvRow = (lb, k, fmt, cur, reqK) => `<tr><td><b>${lb}</b></td><td class="r num">${fmt(med[k])}</td><td class="r num">${fmt(lastFull[k])}</td><td class="r num">${fmt(cur)}</td>${tgtMonths.map((r) => `<td class="r num">${fmt(r['req_' + reqK])}${badge(r['req_' + reqK], med[k])}</td>`).join('')}</tr>`;
+  const drvTable = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Động lực</th><th class="r">Trung vị 6T</th><th class="r">${mLabel(lastFull.m)}</th><th class="r">${mLabel(ym)} đến nay</th>${tgtMonths.map((r) => `<th class="r">Cần cho ${mLabel(r.m)}</th>`).join('')}</tr></thead><tbody>
+    ${drvRow('1mAA (ĐL có HĐ)', 'aa', (v) => f0(v === null ? null : Math.ceil(v)), sr.cur.aa, 'aa')}
+    ${drvRow('HĐ / 1mAA', 'cpa', (v) => (v === null || v === undefined ? '–' : nf2.format(v)), sr.cur.aa ? sr.cur.cc / sr.cur.aa : null, 'cpa')}
+    ${drvRow('Case size (FYP/HĐ)', 'cs', money, sr.cur.cc ? sr.cur.fyp / sr.cur.cc : null, 'cs')}
+    ${tgtMonths.length ? `<tr class="qsum"><td><b>Hoặc cải thiện đều cả 3</b></td><td colspan="3" class="muted small">mỗi yếu tố tăng cùng một tỷ lệ so với trung vị</td>${tgtMonths.map((r) => { const k = kAll(r.T); return `<td class="r">${k === null ? '–' : `<span class="badge ${k <= 0 ? 'b-green' : k <= 0.1 ? 'b-amber' : 'b-red'}">${k >= 0 ? '+' : ''}${pct(k, 1)} mỗi yếu tố</span>`}</td>`; }).join('')}</tr>` : ''}
+  </tbody></table></div><p class="note">Mỗi ô "Cần cho …" = mức cần đạt của yếu tố đó nếu 2 yếu tố còn lại giữ trung vị 6 tháng (target = 1mAA × HĐ/1mAA × case size). Màu: xanh = không cao hơn trung vị, cam ≤ +15%, đỏ > +15%.</p>`;
+  return `<section class="panel ops"><div class="panel-h"><div><h3>Điều hành hôm nay · ${esc(scopeLabel())}</h3><p>Dữ liệu BC70 chốt <b>${dmy(DS.meta.asOf)}</b> · ngày ${ck.day}/${ck.dim} của ${mLabel(ym)} (${pct(ck.el)} thời gian) · Target = chỉ tiêu giao, Plan = kế hoạch anh tự đặt</p></div></div>
+    <div class="panel-b"><div class="kpis ops-kpis">${kpis}</div></div></section>
+  <section class="panel"><div class="panel-h"><div><h3>FYP: thực tế vs Target / Plan và dự báo đến cuối năm</h3><p>6 tháng gần nhất + ${mLabel(ym)} (tạm tính) · 2 kịch bản: giữ mức trung vị 6 tháng, hoặc giữ tốc độ tăng trưởng 6 tháng với nguồn lực hiện tại · ô đỏ = GAP nếu không cải thiện</p></div></div>
+    <div class="panel-b">${opsChart(rows)}
+      <div class="legend"><span><i style="background:var(--green)"></i>Thực tế BC70</span><span><i style="background:#c5e8d5"></i>Ước T04–T06 (TB từ số 6 tháng)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#f79009"></i>Target</span><span><i style="background:#7f56d9"></i>Plan</span><span><i style="background:#98a2b3"></i>Giữ trung vị 6T</span><span><i style="background:#2e90fa"></i>Giữ tốc độ tăng 6T</span><span><i style="background:#fda29b"></i>GAP</span></div>
+      ${gapHtml}</div></section>
+  <section class="panel"><div class="panel-h"><div><h3>Cần bao nhiêu 1mAA · HĐ/1mAA · case size để đạt target</h3><p>So với trung vị 6 tháng gần nhất (${sr.pts.map((p) => mLabel(p.m)).join(', ')}${sr.pts.some((p) => p.est) ? '; T04–T06 ước từ tổng 6 tháng của BC70' : ''}) · chấm đỏ = mức cần có</p></div></div>
+    <div class="panel-b"><div class="drv-grid">${driverMini(dr, 'aa', (v) => f0(v === null ? null : Math.round(v)), '1mAA (ĐL có HĐ thực cấp)')}${driverMini(dr, 'cpa', (v) => (v == null ? '–' : nf2.format(v)), 'HĐ / 1mAA')}${driverMini(dr, 'cs', money, 'Case size')}</div>${drvTable}</div></section>
+  ${titlesOverview(list)}`;
+}
+
 function pageOverview(c) {
   if (!DS) return;
   const M = DS.months, i = S.focus, ym = M[i], list = scopeList();
@@ -1366,7 +1589,8 @@ function pageOverview(c) {
   // MAPA theo cấu trúc
   const mapaHtml = mapaPanel();
   const noYoy = fypYoy === null;
-  c.innerHTML = `
+  c.innerHTML = `${opsSection(list)}
+  <div class="sec-title"><h2>Kết quả tháng ${mLabel(ym)}${offMonth ? ' (chính thức)' : ''}</h2><span>chọn tháng ở thanh trên · so MoM / YoY</span></div>
   ${noYoy ? `<div class="banner"><span>ℹ️</span><div>Chưa có số <b>${mLong(yoyYm)}</b> nên chưa so được cùng kỳ (YoY). ${isAdmin ? 'Nhập ở trang <a href="#history">KQKD các kỳ trước</a>.' : ''}</div></div>` : ''}
   <div class="kpis">${kpis}</div>
   <div class="grid g3">
@@ -1378,6 +1602,7 @@ function pageOverview(c) {
   ${mapaHtml}
   <p class="note">Nguồn: ${DS.meta.sources.map((s) => `${esc(s.file)} (${esc(s.period || '')})`).join(' · ')}</p>`;
   $$('[data-area]', c).forEach((tr) => tr.onclick = () => { S.area = tr.dataset.area; S.open.clear(); location.hash = 'health'; });
+  $$('[data-goto-titles]', c).forEach((el) => el.onclick = () => { S.titleTab = el.dataset.gotoTitles; location.hash = 'titles'; });
   bindMapa(c);
 }
 
@@ -1717,6 +1942,29 @@ function pageTitles(c) {
       <td>${ck(c[0])} <span class="small muted num">${f0(mb.n1a)} · ${f0(mb.n1b)}</span></td><td class="r">${ck(c[1])} <span class="num">${money(mb.fyc)}</span></td><td>${ck(c[2])} <span class="small num">${f0(mb.newUm)}</span></td><td>${ck(c[3])} <span class="small num">${mb.p13 == null ? '–' : f1(mb.p13) + '%'}</span></td>
       <td class="small">${[!c[0] && `tuyển ${Math.max(0, MBA.n1a[t] - N(mb.n1a))} (3CC) / ${Math.max(0, MBA.n1b[t] - N(mb.n1b))} (1CC)`, !c[1] && `FYC ${money(MBA.fyc[t] - N(mb.fyc))}`, !c[2] && '1 UM+ mới', !c[3] && 'P13'].filter(Boolean).join(' · ') || '<span class="badge b-green">Đủ</span>'}</td></tr>`).join('')}
     </tbody></table></div>`;
+  } else if (tab === 'fast') {
+    const all = fastTrack(list), f = S.ftFilter || 'all';
+    const order = { pot: 0, watch: 1, done: 2, closed: 3 };
+    const rows = all.filter((x) => (f === 'all' ? true : f === 'pot' ? x.status === 'pot' : f === 'done' ? x.fast : x.t === +f.slice(1))).sort((x, y) => order[x.status] - order[y.status] || y.score - x.score);
+    const ST = { pot: '<span class="badge b-amber">Tiềm năng</span>', watch: '<span class="badge">Theo dõi</span>', done: '<span class="badge b-green">Đạt fast-track</span>', closed: '<span class="badge b-blue">M3 · chờ chốt</span>' };
+    const ok = (b, v) => `<span class="${b ? 'ok' : 'err'}">${v}</span>`;
+    const cnt = (fn) => all.filter(fn).length;
+    const byArea = [...new Set(all.map((x) => x.a.a))].sort().map((code) => { const xs = all.filter((x) => x.a.a === code); return { code, xs }; });
+    body = `<div class="kpis" style="margin-bottom:12px">
+      ${[0, 1, 2].map((t) => `<div class="kpi"><div class="lb">ĐL mới M${t}${t === 0 ? ` (gia nhập ${mLabel(DS.months[3])})` : ''}</div><div class="v num">${f0(cnt((x) => x.t === t))}</div><div class="s">${f0(cnt((x) => x.t === t && x.active))} đã có HĐ thực cấp · FYP ${money(sum(all.filter((x) => x.t === t), (x) => x.fyp))}</div></div>`).join('')}
+      <div class="kpi"><div class="lb">Silver fast-track tiềm năng</div><div class="v num" style="color:#b54708">${f0(cnt((x) => x.status === 'pot'))}</div><div class="s">tiến độ ≥ 60% hoặc ≥ 20 tr & 2 HĐ, còn trong hạn M2</div></div>
+      <div class="kpi"><div class="lb">Đã đạt fast-track</div><div class="v num">${f0(cnt((x) => x.fast))}</div><div class="s">theo báo cáo Manulife Pro dưới 3 tháng</div></div></div>
+    <p class="note" style="margin:0 0 8px">Điều kiện thăng hạng nhanh Manulife Pro Bạc (memo 0001M02/2026) – xét trong 2 tháng làm việc đầu (M0+M1, M2): <b>≥ 3 HĐ</b>, <b>≥ 40 triệu FYP</b>, hoàn thành đào tạo <b>SBW</b>, tham gia <b>ĐNCC ≥ 4 buổi/tháng</b> (M0+M1 và M2). Hạn xét = hết tháng M2.</p>
+    <div class="chips" style="margin-bottom:10px">${[['all', 'Tất cả'], ['pot', 'Tiềm năng'], ['M0', 'M0'], ['M1', 'M1'], ['M2', 'M2'], ['M3', 'M3 chờ chốt'], ['done', 'Đã đạt']].map(([k, l]) => `<button class="chip ${f === k ? 'on' : ''}" data-ft="${k}">${l}</button>`).join('')}</div>
+    <div class="tbl-wrap" style="max-height:560px"><table class="tbl"><thead><tr><th>Đại lý</th><th>KV</th><th>Gia nhập</th><th>Nhóm</th><th style="min-width:140px">FYP M0–M2 / 40 tr</th><th class="r">HĐ / 3</th><th>SBW</th><th class="r">ĐNCC M0+M1</th><th class="r">ĐNCC M2</th><th style="min-width:110px">Tiến độ</th><th>Còn thiếu</th><th class="r">Hạn xét</th><th>Trạng thái</th></tr></thead><tbody>
+    ${rows.slice(0, 500).map((x) => `<tr class="click${x.status === 'pot' ? ' hl' : ''}" data-open="${esc(x.a.c)}"><td><b>${esc(x.a.n)}</b> <span class="muted small">${esc(x.a.c)}</span></td><td>${esc(x.a.a)}</td><td>${dmy(x.a.j)}</td><td><span class="badge">M${x.t}</span></td>
+      <td>${meter(x.fyp / FT.fyp)}<span class="small num">${money(x.fyp)}</span></td><td class="r num">${ok(x.cc >= FT.cc, f0(x.cc))}</td><td>${x.sbw === null ? '–' : ok(x.sbw, x.sbw ? '✓' : 'Chưa')}</td><td class="r num">${x.dn1 === null ? '–' : ok(x.dn1 >= FT.dn, f0(x.dn1))}</td><td class="r num">${x.t < 2 ? '<span class="muted">chưa tới</span>' : x.dn2 === null ? '–' : ok(x.dn2 >= FT.dn, f0(x.dn2))}</td>
+      <td>${meter(x.score)}<span class="small muted">${pct(x.score)}</span></td><td class="small">${x.fast ? '–' : esc(x.miss.join(' · ')) || '<span class="ok">Đủ điều kiện</span>'}</td><td class="r num">${x.t > 2 ? '<span class="muted">hết hạn</span>' : `${f0(Math.max(0, x.daysLeft))} ngày`}</td><td>${ST[x.status]}</td></tr>`).join('') || '<tr><td colspan="13" class="muted">Không có ĐL mới trong phạm vi.</td></tr>'}
+    </tbody></table></div>
+    <h3 style="margin:18px 0 8px;font-size:15px">M0 / M1 / M2 theo khu vực</h3>
+    <div class="tbl-wrap" style="max-height:420px"><table class="tbl"><thead><tr><th>Khu vực</th>${[0, 1, 2].map((t) => `<th class="r">M${t} · số ĐL</th><th class="r">M${t} · có HĐ</th>`).join('')}<th class="r">FYP ĐL mới</th><th class="r">Tiềm năng</th><th class="r">Đã đạt</th></tr></thead><tbody>
+    ${byArea.map(({ code, xs }) => `<tr class="click" data-ft-area="${esc(code)}"><td><b>${esc(code)}</b></td>${[0, 1, 2].map((t) => { const ys = xs.filter((x) => x.t === t); return `<td class="r num">${f0(ys.length)}</td><td class="r num">${f0(ys.filter((x) => x.active).length)}${ys.length ? ` <span class="muted small">${pct(ys.filter((x) => x.active).length / ys.length)}</span>` : ''}</td>`; }).join('')}<td class="r num">${money(sum(xs, (x) => x.fyp))}</td><td class="r num">${f0(xs.filter((x) => x.status === 'pot').length)}</td><td class="r num">${f0(xs.filter((x) => x.fast).length)}</td></tr>`).join('')}
+    </tbody></table></div>`;
   } else if (tab === 'manpro') {
     const rows = list.map((a) => ({ a, mp: DS.manpro.get(a.c) })).filter((r) => r.mp && r.mp.next).sort((x, y) => N(x.mp.fypGap) - N(y.mp.fypGap));
     body = `<p class="note" style="margin:0 0 10px">Đại lý có thể lên danh hiệu cao hơn ở tháng sau, sắp theo FYP còn thiếu (ít nhất trước). Nguồn: báo cáo Manulife Pro từ 3 tháng.</p>
@@ -1728,8 +1976,10 @@ function pageTitles(c) {
     body = `<p class="note" style="margin:0 0 10px">FA có tiến độ thăng cấp UM cao nhất (theo BC70).</p><div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>Đại lý</th><th>Khu vực</th><th style="min-width:180px">Tiến độ UM</th><th class="r">FYP 6T</th><th class="r">Tuyển 6T có HĐ</th><th>3 tháng</th></tr></thead><tbody>
     ${rows.map((a) => `<tr class="click" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.c)}</span></td><td>${esc(a.a)}</td><td>${meter(N(a.ump))}<span class="small muted">${pct(N(a.ump))}</span></td><td class="r num">${money(a.fyp6)}</td><td class="r num">${f0(a.nra6)}</td><td>${dots(a)}</td></tr>`).join('')}</tbody></table></div>`;
   }
-  c.innerHTML = `<section class="panel"><div class="panel-b"><div class="tabs">${[['mdrt', `MDRT ${+year + 1}`], ['mba', `MBA Pro ${+year + 1}`], ['manpro', 'Manulife Pro'], ['um', 'Thăng cấp UM']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>${body}</div></section>`;
+  c.innerHTML = `<section class="panel"><div class="panel-b"><div class="tabs">${[['mdrt', `MDRT ${+year + 1}`], ['mba', `MBA Pro ${+year + 1}`], ['fast', 'Silver Fast-track · M0/M1'], ['manpro', 'Manulife Pro'], ['um', 'Thăng cấp UM']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>${body}</div></section>`;
   $$('[data-tab]', c).forEach((b) => b.onclick = () => { S.titleTab = b.dataset.tab; pageTitles(c); });
+  $$('[data-ft]', c).forEach((b) => b.onclick = () => { S.ftFilter = b.dataset.ft; pageTitles(c); });
+  $$('[data-ft-area]', c).forEach((tr) => tr.onclick = () => { S.area = tr.dataset.ftArea; render(); });
   $$('[data-open]', c).forEach((tr) => tr.onclick = () => openPerson(tr.dataset.open));
 }
 
@@ -1807,7 +2057,6 @@ const MAPA_SEG = { '1. Partial Month': 'P0', '2. 1st-3rd Month': 'M1', '3. 4th-6
 let PLAN = null; // Map 'YYYY-MM|SEG' -> vals
 const planKey = (m, s = 'TOTAL') => `${m}|${s}`;
 const pv = (m, s, k) => { const v = PLAN?.get(planKey(m, s))?.[k]; return v === undefined || v === null || v === '' ? null : +v; };
-let PLAN_BY = new Map(); // scope -> Map (target từng đầu RH)
 async function loadPlan() {
   const r = await sb.from('plan_targets').select('scope,month,segment,vals');
   if (r.error) throw new Error(r.error.message);
@@ -2072,11 +2321,11 @@ function planInput(body, Y, YM) {
     <div class="toolbar">${canEdit ? `<button class="btn btn-sm" id="pl-split">Chia target năm → 12 tháng</button><button class="btn btn-primary btn-sm" id="pl-save" disabled>Lưu thay đổi</button>` : ''}</div></div>
     <div class="panel-b"><div id="pl-msg" class="note"></div><table class="tbl edit-tbl" style="max-width:640px"><thead><tr><th class="r">FYP năm (triệu)</th><th class="r">NR năm</th><th class="r">1mAA bình quân/tháng</th></tr></thead>
     <tbody><tr><td>${inp(yKey, 'TOTAL', 'fyp')}</td><td>${inp(yKey, 'TOTAL', 'nr')}</td><td>${inp(yKey, 'TOTAL', 'aa')}</td></tr></tbody></table></div></section>
-  <section class="panel"><div class="panel-h"><div><h3>Target theo tháng · ${Y}</h3><p>Mỗi tháng của ${esc(rhShort())}. Dòng tổng quý / năm tự cộng ngay khi nhập. Để trống FYP tháng nếu muốn lấy tổng các phân khúc.</p></div></div>
-    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl" id="pl-months"><thead><tr><th>Tháng</th><th class="r">Target FYP (triệu)</th><th class="r">Target 1mAA</th><th class="r">Target HĐ</th><th class="r">Target NR</th><th class="r">Cộng FYP phân khúc</th><th class="r muted">FYP thực tế (tr)</th><th class="r muted">FYP cùng kỳ ${Y - 1} (tr)</th></tr></thead><tbody>
-    ${YM.map((m) => { const r = monthRef.get(m); return `<tr class="${m === ym ? 'sel' : ''}"><td><b>${mLabel(m)}</b></td><td>${inp(m, 'TOTAL', 'fyp')}</td><td>${inp(m, 'TOTAL', 'aa')}</td><td>${inp(m, 'TOTAL', 'cc')}</td><td>${inp(m, 'TOTAL', 'nr')}</td><td class="r num muted">${(() => { const s = SEGS.map(([k]) => pv(m, k, 'fyp')).filter((v) => v !== null); return s.length ? f0(sum(s)) : '–'; })()}</td><td class="r num muted">${r.act === null ? '–' : f0(r.act / 1000)}${m === M[3] ? '*' : ''}</td><td class="r num muted">${r.py === null ? '–' : f0(r.py / 1000)}</td></tr>`; }).join('')}
-    </tbody><tfoot>${[1, 2, 3, 4].map((q) => `<tr class="qsum"><td><b>Quý ${q}</b></td><td class="r num" data-sum="q${q}-fyp"></td><td class="r num" data-sum="q${q}-aa"></td><td class="r num" data-sum="q${q}-cc"></td><td class="r num" data-sum="q${q}-nr"></td><td></td><td class="r num muted" data-sum="q${q}-act"></td><td class="r num muted" data-sum="q${q}-py"></td></tr>`).join('')}
-      <tr class="tot"><td><b>TỔNG NĂM ${Y}</b></td><td class="r num" data-sum="y-fyp"></td><td class="r num" data-sum="y-aa"></td><td class="r num" data-sum="y-cc"></td><td class="r num" data-sum="y-nr"></td><td></td><td class="r num" data-sum="y-act"></td><td class="r num" data-sum="y-py"></td></tr></tfoot></table></div>
+  <section class="panel"><div class="panel-h"><div><h3>Target & Plan theo tháng · ${Y}</h3><p>Mỗi tháng của ${esc(rhShort())}. <b>Target</b> = chỉ tiêu được giao (file Target); <b>Plan</b> = kế hoạch anh tự đặt (cột tím) – trang Tổng quan so thực tế với cả hai. Dòng tổng quý / năm tự cộng ngay khi nhập. Để trống FYP tháng nếu muốn lấy tổng các phân khúc.</p></div></div>
+    <div class="panel-b" style="padding-top:6px"><div class="tbl-wrap"><table class="tbl edit-tbl" id="pl-months"><thead><tr><th>Tháng</th><th class="r">Target FYP (triệu)</th><th class="r">Target 1mAA</th><th class="r">Target HĐ</th><th class="r">Target NR</th><th class="r plan-h">Plan FYP (triệu)</th><th class="r plan-h">Plan 1mAA</th><th class="r plan-h">Plan NR</th><th class="r">Cộng FYP phân khúc</th><th class="r muted">FYP thực tế (tr)</th><th class="r muted">FYP cùng kỳ ${Y - 1} (tr)</th></tr></thead><tbody>
+    ${YM.map((m) => { const r = monthRef.get(m); return `<tr class="${m === ym ? 'sel' : ''}"><td><b>${mLabel(m)}</b></td><td>${inp(m, 'TOTAL', 'fyp')}</td><td>${inp(m, 'TOTAL', 'aa')}</td><td>${inp(m, 'TOTAL', 'cc')}</td><td>${inp(m, 'TOTAL', 'nr')}</td><td class="plan-c">${inp(m, 'PLAN', 'fyp')}</td><td class="plan-c">${inp(m, 'PLAN', 'aa')}</td><td class="plan-c">${inp(m, 'PLAN', 'nr')}</td><td class="r num muted">${(() => { const s = SEGS.map(([k]) => pv(m, k, 'fyp')).filter((v) => v !== null); return s.length ? f0(sum(s)) : '–'; })()}</td><td class="r num muted">${r.act === null ? '–' : f0(r.act / 1000)}${m === M[3] ? '*' : ''}</td><td class="r num muted">${r.py === null ? '–' : f0(r.py / 1000)}</td></tr>`; }).join('')}
+    </tbody><tfoot>${[1, 2, 3, 4].map((q) => `<tr class="qsum"><td><b>Quý ${q}</b></td><td class="r num" data-sum="q${q}-fyp"></td><td class="r num" data-sum="q${q}-aa"></td><td class="r num" data-sum="q${q}-cc"></td><td class="r num" data-sum="q${q}-nr"></td><td class="r num" data-sum="q${q}-pfyp"></td><td class="r num" data-sum="q${q}-paa"></td><td class="r num" data-sum="q${q}-pnr"></td><td></td><td class="r num muted" data-sum="q${q}-act"></td><td class="r num muted" data-sum="q${q}-py"></td></tr>`).join('')}
+      <tr class="tot"><td><b>TỔNG NĂM ${Y}</b></td><td class="r num" data-sum="y-fyp"></td><td class="r num" data-sum="y-aa"></td><td class="r num" data-sum="y-cc"></td><td class="r num" data-sum="y-nr"></td><td class="r num" data-sum="y-pfyp"></td><td class="r num" data-sum="y-paa"></td><td class="r num" data-sum="y-pnr"></td><td></td><td class="r num" data-sum="y-act"></td><td class="r num" data-sum="y-py"></td></tr></tfoot></table></div>
     <div class="note" id="pl-ysum"></div></div></section>
   <section class="panel"><div class="panel-h"><div><h3>Target phân khúc có bán · ${mLabel(ym)}</h3><p>Chọn tháng ở trên cùng. Bên trái là kết quả thực tế 3 tháng gần nhất từng phân khúc (BC70) để tính; số gợi ý (mờ) = target tháng chia theo tỷ trọng & năng suất 3 tháng.</p></div>
     <div class="toolbar">${canEdit ? '<button class="btn btn-sm" id="pl-suggest">Điền theo gợi ý</button>' : ''}</div></div>
@@ -2103,6 +2352,9 @@ function planInput(body, Y, YM) {
       put(pre + '-aa', avgOf(ms.map((m) => val(m, 'TOTAL', 'aa'))), (v) => 'TB ' + f0(v));
       put(pre + '-cc', sumOf(ms.map((m) => val(m, 'TOTAL', 'cc'))));
       put(pre + '-nr', sumOf(ms.map((m) => val(m, 'TOTAL', 'nr'))));
+      put(pre + '-pfyp', sumOf(ms.map((m) => val(m, 'PLAN', 'fyp'))));
+      put(pre + '-paa', avgOf(ms.map((m) => val(m, 'PLAN', 'aa'))), (v) => 'TB ' + f0(v));
+      put(pre + '-pnr', sumOf(ms.map((m) => val(m, 'PLAN', 'nr'))));
       put(pre + '-act', sumOf(ms.map((m) => (monthRef.get(m).act === null ? null : monthRef.get(m).act / 1000))));
       put(pre + '-py', sumOf(ms.map((m) => (monthRef.get(m).py === null ? null : monthRef.get(m).py / 1000))));
     }
