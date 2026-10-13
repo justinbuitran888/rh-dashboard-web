@@ -237,6 +237,7 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .dl-b{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}.dl-b .badge{font-size:10px;padding:1px 6px}
 .dr-main{display:flex;flex-direction:column;min-height:0;min-width:0}.dr-main .dr-b{flex:1}
 #drawer.wide .dr-b .mini-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.tbl th.now,.tbl td.now{background:#f0faf4}
 .tbl tr.warn-row td{background:#fef3f2}.kpi.click{cursor:pointer}.kpi.click:hover{border-color:var(--green)}
 @media (max-width:900px){.dr-split{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.dr-side{border-right:0;border-bottom:1px solid var(--line);max-height:34vh}#drawer.wide .dr-b .mini-kpis{grid-template-columns:1fr 1fr}}
 #scrim{position:fixed;inset:0;background:rgba(16,24,40,.35);z-index:55;display:none}
@@ -327,7 +328,11 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .oc-tiers .stack{flex:1}
 .oc-hero{cursor:default;background:linear-gradient(180deg,#fff,#fbfdfc)}
 .oc-hero .oc-h b{font-size:18px}.oc-hero .oc-h .av{width:46px;height:46px;font-size:15px}
-.oc-hero .oc-m{grid-template-columns:repeat(6,minmax(0,1fr))}
+.oc-hero .oc-m{grid-template-columns:repeat(6,minmax(0,1fr))}.oc-hero .oc-m2{grid-template-columns:repeat(3,minmax(0,1fr));max-width:620px}
+.oc-h4{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;background:#f7f9f8;border-radius:10px;overflow:hidden}
+.oc-h4 th,.oc-h4 td{padding:5px 7px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.oc-h4 thead th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+.oc-h4 tbody th{text-align:left;font-size:11px;color:var(--muted);font-weight:600}.oc-h4 td{font-weight:600}.oc-h4 .now{background:#e8f6ee;color:var(--green-d)}
+.oc-h4 tbody tr+tr td,.oc-h4 tbody tr+tr th{border-top:1px solid #eceff2}
 .oc-hero:hover{transform:none}
 .oc-sec{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:4px 2px -4px}
 .oc-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 9px;font-weight:600;font-size:12px;cursor:pointer;color:var(--ink-2)}
@@ -992,8 +997,8 @@ async function start() {
 async function loadDataset() {
   const r = await sb.from('v10_dataset').select('id,built_at,as_of,payload').order('id', { ascending: false }).limit(1).maybeSingle();
   if (r.error) throw new Error(r.error.message);
-  const st = await sb.from('app_settings').select('key,value').in('key', ['rh_groups', 'rh_area_override', 'memo_focus']);
-  for (const x of st.data || []) { if (x.key === 'rh_groups') RHG = Array.isArray(x.value) ? x.value : []; if (x.key === 'rh_area_override') RHO = x.value || {}; if (x.key === 'memo_focus') FOCUS_PINS = x.value || {}; }
+  const st = await sb.from('app_settings').select('key,value').in('key', ['rh_groups', 'rh_area_override', 'memo_focus', 'gtf_kpi']);
+  for (const x of st.data || []) { if (x.key === 'rh_groups') RHG = Array.isArray(x.value) ? x.value : []; if (x.key === 'rh_area_override') RHO = x.value || {}; if (x.key === 'memo_focus') FOCUS_PINS = x.value || {}; if (x.key === 'gtf_kpi') GTF_KPI = x.value || {}; }
   DS = r.data ? prepare(r.data) : null;
   if (DS) { applyScope(); await loadNodeTargets(); try { await loadPlan(); } catch (e) { console.warn('plan', e); } }
 }
@@ -1139,7 +1144,7 @@ function prepare(row) {
   const manpro = new Map((P.manpro || []).map((x) => [x.c, x]));
   const manproNew = new Map((P.manproNew || []).map((x) => [x.c, x]));
   const gtf = new Map((P.gtf || []).map((x) => [x.c, x]));
-  const gtfPipe = P.gtfPipe || [];
+  const gtfPipe = P.gtfPipe || [], gtfUm = P.gtfUm || [], dncc = P.dncc || {}, dnccLabel = P.dnccLabel || '';
   // khu vực & PSM+
   const areaInfo = new Map((P.areas || []).map((x) => [x.a, x]));
   const areas = [...new Set(agents.map((a) => a.a))].sort().map((code) => {
@@ -1151,7 +1156,7 @@ function prepare(row) {
   });
   const manual = P.manual || [];
   const hist = (P.hist || []).map((h) => ({ ...h, ch: Array.isArray(h.ch) ? h.ch : [] }));
-  return { gtfPipe, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
+  return { gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
     psmTree: new Map((P.psmTree || []).map((x) => [x.c, x])), mapa: P.mapa || [], mapaMonth: P.mapaMonth || meta.officialMonth };
 }
 
@@ -2004,20 +2009,27 @@ function hcPathTo(a) {
   const persons = ups.filter((p) => p.um && p !== a || (p === a && a.um)).map((p) => 'p:' + p.c);
   return [...base, ...persons];
 }
+// chỉ số nhóm theo thời gian: tháng hiện tại → 3 tháng → 6 tháng → 12 tháng
+function horizonStats(list) {
+  const M = DS.months, f3 = (k) => sum(list, (a) => N(a[k][0]) + N(a[k][1]) + N(a[k][2]));
+  return {
+    fyp: [sum(list, (a) => a.fyp[3]), f3('fyp'), sum(list, (a) => a.fyp6), sum(list, (a) => a.fyp12)],
+    act: [list.filter((a) => isActive(a, 3)).length, sum(list, (a) => act3(a, 2)), sum(list, (a) => a.act6), sum(list, (a) => a.am12)],
+    cc: [sum(list, (a) => a.cc[3]), f3('cc'), sum(list, (a) => a.cc6), sum(list, (a) => a.cc12)],
+    lbl: [`${mLabel(M[3])}*`, '3 tháng', '6 tháng', '12 tháng'],
+  };
+}
 function hcMetrics(it, hero) {
-  const s = groupStats(it.list), M = DS.months;
+  const s = groupStats(it.list), M = DS.months, h = horizonStats(it.list);
   const dUM = it.direct.filter((a) => a.um).length, dFA = it.direct.length - dUM;
   const sellers = [0, 1, 2].map((i) => it.direct.filter((a) => isActive(a, i)).length);
-  const m = (lb, v, sub = '') => `<div><span>${lb}</span><b>${v}</b>${sub ? ` <small>${sub}</small>` : ''}</div>`;
-  const cells = [
-    m('FYP 6T nhóm', money(s.fyp6)),
-    m('3mAA', f0(s.aa3), `${f1(s.aa3 / 3)}/th`),
-    m('Bán đều', pct(s.n ? s.even / s.n : 0), `(${s.even})`),
-    m('Nguồn lực', f0(s.n), `${s.um} UM+`),
-    m('Trực tiếp', `${dUM}/${dFA}`, 'UM+/FA'),
-    m(`Bán ${mLabel(M[2])}`, f0(sellers[2]), 'trực tiếp'),
-  ];
-  return `<div class="oc-m">${cells.join('')}</div>
+  const row = (lb, vals, fmt, tip) => `<tr><th title="${esc(tip)}">${lb}</th>${vals.map((v, i) => `<td class="${i === 0 ? 'now' : ''}">${fmt(v)}</td>`).join('')}</tr>`;
+  return `<table class="oc-h4"><thead><tr><th></th>${h.lbl.map((l, i) => `<th class="${i === 0 ? 'now' : ''}">${l}</th>`).join('')}</tr></thead><tbody>
+      ${row('FYP', h.fyp, (v) => money(v, true), 'FYP thực cấp của cả nhóm (BC70)')}
+      ${row('ĐL có bán', h.act, f0, 'Tháng này: số ĐL có HĐ thực cấp · 3/6/12 tháng: tổng lượt ĐL có HĐ (3 tháng = 3mAA)')}
+      ${row('Số HĐ', h.cc, f0, 'Số hợp đồng thực cấp')}
+    </tbody></table>
+    <div class="oc-m oc-m2"><div><span>Nguồn lực</span><b>${f0(s.n)}</b> <small>${s.um} UM+</small></div><div><span>Trực tiếp</span><b>${dUM}/${dFA}</b> <small>UM+/FA</small></div><div><span>Bán đều 3T</span><b>${pct(s.n ? s.even / s.n : 0)}</b> <small>(${s.even})</small></div></div>
     <div class="oc-tiers">${tierStack(s)}<span class="num">S ${s.S} · G ${s.G} · P ${s.P}</span>${spark(sellers)}</div>`;
 }
 function hcCard(it, { hero = false } = {}) {
@@ -2175,6 +2187,60 @@ function gtfCondHtml(e) {
     <div class="cond ${ok(e.fileOk)}"><span class="t">${ic(e.fileOk)} Hồ sơ GTF</span><span class="r">${esc(g.file || '–')}</span>${g.fileNote ? `<span class="h">${esc(g.fileNote)}</span>` : ''}</div>
     <p class="note">Cấp MSĐL ${dmy(g.start)} · hạn đánh giá ${dmy(g.end)}${e.days !== null ? ` (${e.days >= 0 ? 'còn ' + e.days + ' ngày' : 'đã qua ' + -e.days + ' ngày'})` : ''}${g.reachedOn ? ` · đạt điều kiện ngày ${dmy(g.reachedOn)}` : ''} · người tuyển: ${esc(g.recName || g.rec || '–')}${e.mgr ? ` · quản lý trực tiếp: ${esc(e.mgr.n)}` : ''}</p>
     ${e.post ? `<div class="cond ${ok(e.post.ok)}"><span class="t">${ic(e.post.ok)} 6 tháng đầu sau bổ nhiệm (UM GTF đạt chuẩn)</span><span class="r num">FYC nhóm ${money(e.post.fyc)} · ${e.post.act}/${e.post.recs} ĐL tuyển có HĐ</span><span class="h">Cần FYC toàn nhóm ≥ 40 tr và ≥ 2 ĐL tuyển trực tiếp có 1 HĐ & 16 tr FYP (memo 0019M07/2026) – đạt thì người tuyển ${esc(g.recName || '')} được thưởng; cuối năm UM GTF có ≥2 ĐL tuyển có SX & FYC ≥ 40 tr thì tính "UM+ mới" (MBA tiêu chí 3) cho quản lý trực tiếp.</span></div>` : ''}`;
+}
+
+
+// ---------- UM+ GTF đã bổ nhiệm: KPI hằng tháng để nhận phí dịch vụ phát triển đội ngũ (memo 0004M04/2024, 0018M09/2026) ----------
+let GTF_KPI = {}; // { rows: [{ m: 1, nw, np, fyc(tr) }] } – ngưỡng theo tháng thứ m sau bổ nhiệm, admin nhập
+function teamFycWeighted(u, i) { // FYC toàn nhóm theo cấp: bản thân & cấp 1 = 100%, cấp n = ½ cấp n-1
+  const walk = (x, w) => sum(x.kids, (k) => w * N(k.fyc[i]) + walk(k, w / 2));
+  return N(u.fyc[i]) + walk(u, 1);
+}
+function gtfUmRows(list) {
+  const codes = new Set(list.map((a) => a.c)), M = DS.months;
+  return DS.gtfUm.filter((g) => codes.has(g.c)).map((g) => {
+    const a = DS.by.get(g.c), team = a.team(), recs = DS.agents.filter((r) => r.rec === a.c);
+    const n = g.dt ? monthDiff(String(g.dt).slice(0, 7), M[3]) : null; // tháng thứ n (0 = tháng bổ nhiệm)
+    const months = M.map((m, i) => ({ m, act: team.filter((z) => isActive(z, i)).length, fyc: teamFycWeighted(a, i), rec: recs.filter((r) => isActive(r, i)).length, mi: g.dt ? monthDiff(String(g.dt).slice(0, 7), m) : null }));
+    const dn = DS.dncc[a.c] || null, kpi = (GTF_KPI.rows || []).find((r) => +r.m === n) || null;
+    const chk = kpi ? { nw: N(g.nw) >= N(kpi.nw), np: months[3].act >= N(kpi.np), fyc: months[3].fyc >= N(kpi.fyc) * 1000 } : null;
+    const notes = [g.keep === 'N' && 'BC70: chưa đạt duy trì GTF', dn && N(dn.n) < 4 && `ĐNCC kỳ gần nhất ${f0(dn.n)}/4 buổi`, !dn && 'không có số ĐNCC', months[2].act === 0 && `${mLabel(M[2])} không có ĐL nào có HĐ`, N(g.nw) < 2 && 'đội ngũ < 2 ĐL đang làm việc', chk && !chk.np && 'thiếu ĐL có SX theo ngưỡng', chk && !chk.fyc && 'thiếu FYC toàn tổ theo ngưỡng'].filter(Boolean);
+    return { g, a, n, months, dn, kpi, chk, notes, risk: notes.length };
+  }).sort((x, y) => y.risk - x.risk || N(x.n) - N(y.n));
+}
+function gtfUmHtml(list) {
+  const rows = gtfUmRows(list), M = DS.months;
+  if (!rows.length) return '<p class="note">Không có UM+ GTF trong phạm vi.</p>';
+  const k = (lb, v, sub, cls = '') => `<div class="kpi"><div class="lb">${lb}</div><div class="v num" ${cls}>${f0(v)}</div><div class="s">${sub}</div></div>`;
+  const kpiRows = GTF_KPI.rows || [];
+  const editor = isAdmin ? `<details class="mf-det" style="margin:10px 0"><summary>Ngưỡng KPI theo tháng sau bổ nhiệm (admin nhập theo memo 0004M04/2024)</summary>
+      <table class="tbl edit-tbl" style="max-width:640px"><thead><tr><th>Tháng thứ</th><th class="r">ĐL làm việc toàn tổ ≥</th><th class="r">ĐL có SX trong tháng ≥</th><th class="r">FYC toàn tổ (tr) ≥</th></tr></thead><tbody>
+      ${Array.from({ length: 12 }, (_, i) => i + 1).map((m) => { const r = kpiRows.find((x) => +x.m === m) || {}; return `<tr><td><b>M${m}</b></td>${['nw', 'np', 'fyc'].map((f) => `<td><input data-gk="${m}|${f}" inputmode="decimal" value="${r[f] ?? ''}"></td>`).join('')}</tr>`; }).join('')}
+      </tbody></table><button class="btn btn-primary btn-sm" id="gk-save">Lưu ngưỡng</button> <span id="gk-msg" class="note"></span></details>` : '';
+  return `<div class="kpis" style="margin:6px 0 10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+      ${k('UM+ GTF đang theo dõi', rows.length, `bổ nhiệm từ 04/2024 hoặc trong 24 tháng`)}
+      ${k('Đạt duy trì GTF (BC70)', rows.filter((r) => r.g.keep === 'Y').length, 'cột "[GTF] Kết quả duy trì GTF"', 'style="color:var(--green-d)"')}
+      ${k('Chưa đạt duy trì', rows.filter((r) => r.g.keep === 'N').length, 'nguy cơ không nhận phí tháng này', 'style="color:#b42318"')}
+      ${k('ĐNCC < 4 buổi', rows.filter((r) => r.dn && N(r.dn.n) < 4).length, 'điều kiện bắt buộc nhận phí (0018M09/2026)', 'style="color:#b54708"')}
+    </div>
+    <div class="banner" style="margin-bottom:10px"><span>📌</span><div><b>Lưu ý nhận phí dịch vụ phát triển đội ngũ hằng tháng:</b> (1) UM+ GTF tham dự <b>≥ 4 buổi "Đội ngũ chuyên cần"</b> trong tháng, quét QR trên M-PA, tối đa 1 buổi/ngày, chốt dữ liệu cuối ngày liền kề trước ngày cuối tháng (0018M09/2026); (2) đạt KPI tháng theo memo 0004M04/2024 – theo dõi <b>ĐL làm việc toàn tổ</b>, <b>ĐL có sản xuất</b>, <b>FYC toàn tổ theo cấp</b> (cấp 1 = 100%, cấp sau = ½ cấp trước); (3) chỉ tính 1 HĐ tự bán có FYP cao nhất trong tháng đầu, không tính HĐ mà khách hàng là đại lý; (4) phải còn giữ chức danh UM+ tại tháng tính phí. ${kpiRows.length ? '' : '<b>Chưa có ngưỡng KPI theo tháng</b> – admin nhập ở mục bên dưới để tính đạt/không đạt.'}</div></div>
+    ${editor}
+    <div class="tbl-wrap" style="max-height:560px"><table class="tbl"><thead><tr><th>UM+ GTF</th><th>Tháng thứ</th><th>Duy trì GTF</th><th class="r">ĐNCC</th><th class="r">ĐL làm việc toàn tổ</th>${M.map((m, i) => `<th class="r${i === 3 ? ' now' : ''}">${mLabel(m)}${i === 3 ? '*' : ''}<br><small>ĐL có HĐ · FYC tổ</small></th>`).join('')}<th class="r">FYC nhánh 12T</th><th>Lưu ý</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr class="click${r.g.keep === 'N' ? ' warn-row' : ''}" data-open="${esc(r.a.c)}"><td><b>${esc(r.a.n)}</b><br><small class="muted">${esc(r.a.t)} · KV ${esc(r.a.a)} · bổ nhiệm ${dmy(r.g.dt)}</small></td><td><span class="badge">M${r.n ?? '–'}</span></td>
+      <td>${r.g.keep === 'Y' ? '<span class="badge b-green">Đạt</span>' : r.g.keep === 'N' ? '<span class="badge b-red">Chưa đạt</span>' : '–'}</td>
+      <td class="r num">${r.dn ? `<span class="${N(r.dn.n) >= 4 ? 'ok' : 'err'}">${f0(r.dn.n)}/4</span>` : '–'}</td><td class="r num">${f0(r.g.nw)}${r.kpi ? ` <small class="${r.chk.nw ? 'ok' : 'err'}">/${f0(r.kpi.nw)}</small>` : ''}</td>
+      ${r.months.map((x, i) => `<td class="r num${i === 3 ? ' now' : ''}">${x.mi !== null && x.mi < 0 ? '<span class="muted">–</span>' : `${f0(x.act)} · ${money(x.fyc)}${i === 3 && r.kpi ? `<br><small class="${r.chk.np && r.chk.fyc ? 'ok' : 'err'}">ngưỡng ${f0(r.kpi.np)} · ${f0(r.kpi.fyc)} tr</small>` : ''}`}</td>`).join('')}
+      <td class="r num">${money(r.g.f12)}</td><td class="small" style="white-space:normal;min-width:180px">${r.notes.length ? r.notes.map((n) => `<span class="err">• ${esc(n)}</span>`).join('<br>') : '<span class="ok">Ổn</span>'}</td></tr>`).join('')}
+    </tbody></table></div><p class="note">* tháng đang chạy, tạm tính đến ${dmy(DS.meta.asOf)}. ĐNCC: ${esc(DS.dnccLabel.split(' | ')[0]?.replace(/ Số lần tham dự/, '') || 'kỳ gần nhất')}… (báo cáo ĐNCC mới nhất). "ĐL làm việc toàn tổ" theo cột [GTF] của BC70; ĐL có HĐ và FYC tổ từng tháng tính lại từ BC70 theo cấu trúc hiện tại.</p>`;
+}
+function bindGtfKpi(c) {
+  const b = $('#gk-save', c); if (!b) return;
+  b.onclick = async () => {
+    const rows = []; for (let m = 1; m <= 12; m++) { const r = { m }; let any = false; for (const f of ['nw', 'np', 'fyc']) { const v = $(`input[data-gk="${m}|${f}"]`, c).value.trim().replace(',', '.'); if (v !== '' && !isNaN(+v)) { r[f] = +v; any = true; } } if (any) rows.push(r); }
+    GTF_KPI = { rows }; const res = await sb.from('app_settings').upsert({ key: 'gtf_kpi', value: GTF_KPI });
+    $('#gk-msg', c).innerHTML = res.error ? `<span class="err">${esc(res.error.message)}</span>` : '<span class="ok">Đã lưu.</span>';
+    if (!res.error) pageTitles(c);
+  };
 }
 
 function openPerson(code) {
@@ -2365,7 +2431,9 @@ function pageTitles(c) {
       <td>${e.self ? '<span class="ok">✓</span>' : '<span class="err">Chưa</span>'}</td><td class="r num">${e.ref ? `<span class="${e.rec >= e.ref.rec ? 'ok' : 'err'}">${f0(e.rec)}/${e.ref.rec}</span>` : f0(e.rec)}</td><td class="r num">${e.ref ? `<span class="${e.tp >= e.ref.tp ? 'ok' : 'err'}">${f0(e.tp)}/${e.ref.tp}</span>` : f0(e.tp)}</td>
       <td>${e.fileOk ? '<span class="ok">Đạt</span>' : `<span class="badge b-red">${esc(g.fileNote || 'Chưa đạt')}</span>`}</td><td>${meter(e.score)}<span class="small muted">${pct(e.score)}</span></td>
       <td class="small" style="white-space:normal;min-width:210px">${e.done ? (e.post ? `6T đầu: FYC nhóm ${money(e.post.fyc)} · ${e.post.act} ĐL tuyển có HĐ ${e.post.ok ? '<span class="ok">✓ đạt chuẩn</span>' : ''}` : '–') : esc(e.miss.join(' · '))}</td><td>${gtfBadge(e)}</td></tr>`; }).join('') || '<tr><td colspan="13" class="muted">Không có ứng viên GTF trong phạm vi.</td></tr>'}
-    </tbody></table></div>`;
+    </tbody></table></div>
+    <h3 style="margin:22px 0 4px;font-size:16px">UM+ GTF đã bổ nhiệm · KPI hằng tháng để nhận phí dịch vụ</h3>
+    ${gtfUmHtml(list)}`;
   } else if (tab === 'manpro') {
     const rk = (t) => (/bạch kim|platinum/i.test(t || '') ? 3 : /vàng|gold/i.test(t || '') ? 2 : /bạc|silver/i.test(t || '') ? 1 : 0);
     const LV = ['Manulife Pro Bạc', 'Manulife Pro Vàng', 'Manulife Pro Bạch Kim'];
@@ -2414,6 +2482,7 @@ function pageTitles(c) {
   $$('[data-ft]', c).forEach((b) => b.onclick = () => { S.ftFilter = b.dataset.ft; pageTitles(c); });
   $$('[data-mpf]', c).forEach((b) => b.onclick = () => { S.mpFilter = b.dataset.mpf; pageTitles(c); });
   $$('[data-gtf]', c).forEach((b) => b.onclick = () => { S.gtfFilter = b.dataset.gtf; pageTitles(c); });
+  bindGtfKpi(c);
   $$('[data-ft-area]', c).forEach((tr) => tr.onclick = () => { S.area = tr.dataset.ftArea; render(); });
   $$('[data-open]', c).forEach((tr) => tr.onclick = () => openPerson(tr.dataset.open));
 }
