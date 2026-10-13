@@ -131,10 +131,11 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .tcard{border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;cursor:pointer;display:grid;gap:8px}.tcard:hover{border-color:var(--green);background:var(--green-ll)}
 .tc-h{display:flex;justify-content:space-between}.tc-h .go{font-size:12px;color:var(--green)}.tc-big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.tc-big b{font-size:26px}.tc-big small{color:var(--muted);font-size:12px}
 .tb-bars{display:grid;gap:5px}.tb-row{display:grid;grid-template-columns:62px minmax(40px,1fr) 40px;gap:6px;align-items:center;font-size:12px}.tb-row b{text-align:right}.tb-row small{grid-column:2/-1;margin-top:-3px;color:var(--muted);font-size:10.5px}
+.tb-bars.wide .tb-row{grid-template-columns:118px minmax(40px,1fr) 40px}
 .tb-bar{height:8px;border-radius:5px;background:#eef0f3;position:relative;overflow:hidden}.tb-bar i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--green)}.tb-bar.mid i{background:#f79009}.tb-bar.low i{background:#fdb022}
 @media (max-width:900px){.drv-grid,.tgrid{grid-template-columns:1fr}}
 .chips{display:flex;gap:6px;flex-wrap:wrap}.chips .chip{cursor:pointer;border:1px solid var(--line);background:#fff}.chips .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
-.tbl tr.hl td{background:#fffaeb}.tbl tr.hl:hover td{background:#fef0c7}
+.tbl tr.hl td{background:#fffaeb}.tbl tr.ok-row td{background:#f6fef9}.tbl tr.hl:hover td{background:#fef0c7}
 .tbl th.plan-h{color:#6941c6;background:#f9f5ff}.tbl td.plan-c input{border-color:#d9c9fb;background:#fcfaff}
 .tbl tr.qsum td{background:#fafbfb;font-size:12.5px}
 .segsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:4px 0 12px}
@@ -2013,11 +2014,42 @@ function pageTitles(c) {
     ${byArea.map(({ code, xs }) => `<tr class="click" data-ft-area="${esc(code)}"><td><b>${esc(code)}</b></td>${[0, 1, 2].map((t) => { const ys = xs.filter((x) => x.t === t); return `<td class="r num">${f0(ys.length)}</td><td class="r num">${f0(ys.filter((x) => x.active).length)}${ys.length ? ` <span class="muted small">${pct(ys.filter((x) => x.active).length / ys.length)}</span>` : ''}</td>`; }).join('')}<td class="r num">${money(sum(xs, (x) => x.fyp))}</td><td class="r num">${f0(xs.filter((x) => x.status === 'pot').length)}</td><td class="r num">${f0(xs.filter((x) => x.fast).length)}</td></tr>`).join('')}
     </tbody></table></div>`;
   } else if (tab === 'manpro') {
-    const rows = list.map((a) => ({ a, mp: DS.manpro.get(a.c) })).filter((r) => r.mp && r.mp.next).sort((x, y) => N(x.mp.fypGap) - N(y.mp.fypGap));
-    body = `<p class="note" style="margin:0 0 10px">Đại lý có thể lên danh hiệu cao hơn ở tháng sau, sắp theo FYP còn thiếu (ít nhất trước). Nguồn: báo cáo Manulife Pro từ 3 tháng.</p>
-    <div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>Đại lý</th><th>Khu vực</th><th>Hiện tại (T+1)</th><th>Lên</th><th class="r">FYP thiếu</th><th class="r">HĐ thiếu</th><th class="r">Tháng SX thiếu</th><th>Đào tạo</th></tr></thead><tbody>
-    ${rows.slice(0, 400).map(({ a, mp }) => `<tr class="click" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.c)}</span></td><td>${esc(a.a)}</td><td>${esc(mp.estT1 || mp.official || '–')}</td><td><span class="badge b-blue">${esc(mp.next)}</span></td><td class="r num">${N(mp.fypGap) > 0 ? money(mp.fypGap) : '✓'}</td><td class="r num">${N(mp.ccGap) > 0 ? f0(mp.ccGap) : '✓'}</td><td class="r num">${N(mp.monthGap) > 0 ? f0(mp.monthGap) : '✓'}</td><td>${mp.train === 'Y' ? '✓' : '<span class="badge b-red">Chưa</span>'}</td></tr>`).join('')}
-    </tbody></table></div>`;
+    const rk = (t) => (/bạch kim|platinum/i.test(t || '') ? 3 : /vàng|gold/i.test(t || '') ? 2 : /bạc|silver/i.test(t || '') ? 1 : 0);
+    const LV = ['Manulife Pro Bạc', 'Manulife Pro Vàng', 'Manulife Pro Bạch Kim'];
+    const all = list.map((a) => { const mp = DS.manpro.get(a.c); if (!mp) return null;
+      const miss = [N(mp.fypGap) > 0 && 'fyp', N(mp.ccGap) > 0 && 'cc', N(mp.monthGap) > 0 && 'month', mp.train !== 'Y' && 'train'].filter(Boolean);
+      const off = rk(mp.official), t1 = rk(mp.estT1);
+      return { a, mp, miss, off, t1, up: !!mp.next, risk: off > 0 && t1 < off }; }).filter(Boolean);
+    const ups = all.filter((r) => r.up), f = S.mpFilter || 'all';
+    const holders = [1, 2, 3].map((k) => all.filter((r) => r.off === k).length), est = [1, 2, 3].map((k) => all.filter((r) => r.t1 === k).length);
+    const tierHold = [1, 2, 3].map((k) => list.filter((a) => ({ S: 1, G: 2, P: 3 })[a.tier] === k).length);
+    const rows = (f === 'risk' ? all.filter((r) => r.risk) : ups.filter((r) => (f === 'all' ? true : f === 'ready' ? r.miss.length === 0 : f === 'one' ? r.miss.length === 1 : f === 'train' ? r.miss.includes('train') : f.startsWith('L') ? rk(r.mp.next) === +f.slice(1) : true)))
+      .sort((x, y) => x.miss.length - y.miss.length || N(x.mp.fypGap) - N(y.mp.fypGap) || N(x.mp.ccGap) - N(y.mp.ccGap));
+    const k = (lb, v, sub, cls = '') => `<div class="kpi"><div class="lb">${lb}</div><div class="v num" ${cls}>${v}</div><div class="s">${sub}</div></div>`;
+    const missCnt = (key) => ups.filter((r) => r.miss.includes(key)).length;
+    const condBar = (lb, key, extra) => { const n = missCnt(key); return `<div class="tb-row"><span style="white-space:nowrap">${lb}</span><span class="tb-bar low"><i style="width:${ups.length ? (n / ups.length) * 100 : 0}%"></i></span><b class="num">${f0(n)}</b><small>${extra}</small></div>`; };
+    const lvRow = (lv, i) => { const xs = ups.filter((r) => rk(r.mp.next) === i + 1); return `<tr class="click" data-mpf="L${i + 1}"><td><span class="badge b-blue">${lv.replace('Manulife Pro ', '')}</span></td><td class="r num">${f0(xs.length)}</td><td class="r num"><b style="color:var(--green-d)">${f0(xs.filter((r) => !r.miss.length).length)}</b></td><td class="r num">${f0(xs.filter((r) => r.miss.length === 1).length)}</td><td class="r num">${f0(xs.filter((r) => r.miss.length >= 2).length)}</td><td class="r num">${money(sum(xs, (r) => Math.max(0, N(r.mp.fypGap))))}</td><td class="r num">${f0(sum(xs, (r) => Math.max(0, N(r.mp.ccGap))))}</td></tr>`; };
+    body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(165px,1fr))">
+      ${k('Đang giữ danh hiệu (chính thức)', f0(sum(holders)), `Bạc ${f0(holders[0])} · Vàng ${f0(holders[1])} · Bạch Kim ${f0(holders[2])}`)}
+      ${k('Tạm tính tháng sau (T+1)', f0(sum(est)), `Bạc ${f0(est[0])} · Vàng ${f0(est[1])} · Bạch Kim ${f0(est[2])} · ${sum(est) - sum(holders) >= 0 ? '+' : ''}${f0(sum(est) - sum(holders))} so chính thức`)}
+      ${k('Có thể lên hạng', f0(ups.length), `${LV.map((l, i) => `${l.replace('Manulife Pro ', '')} ${f0(ups.filter((r) => rk(r.mp.next) === i + 1).length)}`).join(' · ')}`)}
+      ${k('Đủ điều kiện – chờ chốt', f0(ups.filter((r) => !r.miss.length).length), 'đã đủ FYP, HĐ, tháng SX & đào tạo', 'style="color:var(--green-d)"')}
+      ${k('Chỉ thiếu 1 điều kiện', f0(ups.filter((r) => r.miss.length === 1).length), `trong đó ${f0(ups.filter((r) => r.miss.length === 1 && r.miss[0] === 'train').length)} chỉ thiếu đào tạo`, 'style="color:#b54708"')}
+      ${k('Nguy cơ rớt hạng', f0(all.filter((r) => r.risk).length), 'tạm tính T+1 thấp hơn danh hiệu chính thức', 'style="color:#b42318"')}
+    </div>
+    <div class="grid g2" style="margin-bottom:12px">
+      <div class="drv"><div class="drv-h" style="margin-bottom:8px"><b>Đang thiếu điều kiện gì (trong ${f0(ups.length)} ĐL có thể lên hạng)</b></div><div class="tb-bars wide">
+        ${condBar('Thiếu FYP', 'fyp', `cần thêm ${money(sum(ups, (r) => Math.max(0, N(r.mp.fypGap))))}`)}
+        ${condBar('Thiếu HĐ', 'cc', `cần thêm ${f0(sum(ups, (r) => Math.max(0, N(r.mp.ccGap))))} HĐ`)}
+        ${condBar('Thiếu tháng SX', 'month', `${f0(sum(ups, (r) => Math.max(0, N(r.mp.monthGap))))} tháng có sản xuất`)}
+        ${condBar('Chưa đào tạo', 'train', 'hoàn thành yêu cầu đào tạo')}</div></div>
+      <div class="drv"><div class="drv-h" style="margin-bottom:4px"><b>Theo mức lên hạng</b><small>bấm 1 dòng để lọc</small></div><table class="tbl"><thead><tr><th>Lên</th><th class="r">Số ĐL</th><th class="r">Đủ ĐK</th><th class="r">Thiếu 1</th><th class="r">Thiếu ≥2</th><th class="r">FYP thiếu</th><th class="r">HĐ thiếu</th></tr></thead><tbody>${LV.map(lvRow).join('')}</tbody></table>
+        <p class="note" style="margin:6px 0 0">Đang có theo BC70: Silver ${f0(tierHold[0])} · Gold ${f0(tierHold[1])} · Platinum ${f0(tierHold[2])}</p></div>
+    </div>
+    <div class="chips" style="margin-bottom:10px">${[['all', `Tất cả lên hạng (${ups.length})`], ['ready', 'Đủ điều kiện'], ['one', 'Thiếu 1 điều kiện'], ['train', 'Chưa đào tạo'], ['L1', '→ Bạc'], ['L2', '→ Vàng'], ['L3', '→ Bạch Kim'], ['risk', 'Nguy cơ rớt hạng']].map(([kk, l]) => `<button class="chip ${f === kk ? 'on' : ''}" data-mpf="${kk}">${l}</button>`).join('')}</div>
+    <div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>Đại lý</th><th>Khu vực</th><th>Chính thức</th><th>Tạm tính T+1</th><th>Lên</th><th class="r">FYP thiếu</th><th class="r">HĐ thiếu</th><th class="r">Tháng SX thiếu</th><th>Đào tạo</th><th>Còn thiếu</th></tr></thead><tbody>
+    ${rows.slice(0, 500).map(({ a, mp, miss, risk }) => `<tr class="click${!miss.length && !risk ? ' ok-row' : miss.length === 1 ? ' hl' : ''}" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.c)}</span></td><td>${esc(a.a)}</td><td>${esc((mp.official || '–').replace('Manulife Pro ', ''))}</td><td>${risk ? `<span class="badge b-red">${esc((mp.estT1 || 'Không').replace('Manulife Pro ', ''))}</span>` : esc((mp.estT1 || '–').replace('Manulife Pro ', ''))}</td><td>${mp.next ? `<span class="badge b-blue">${esc(mp.next.replace('Manulife Pro ', ''))}</span>` : '–'}</td><td class="r num">${N(mp.fypGap) > 0 ? money(mp.fypGap) : '✓'}</td><td class="r num">${N(mp.ccGap) > 0 ? f0(mp.ccGap) : '✓'}</td><td class="r num">${N(mp.monthGap) > 0 ? f0(mp.monthGap) : '✓'}</td><td>${mp.train === 'Y' ? '✓' : '<span class="badge b-red">Chưa</span>'}</td><td>${miss.length ? `<span class="small">${miss.length} điều kiện</span>` : '<span class="badge b-green">Đủ</span>'}</td></tr>`).join('') || '<tr><td colspan="10" class="muted">Không có ĐL phù hợp.</td></tr>'}
+    </tbody></table></div><p class="note">Nguồn: báo cáo Manulife Pro từ 3 tháng (tạm tính T+1). Sắp theo số điều kiện còn thiếu rồi FYP thiếu. Tô xanh = đủ điều kiện, tô vàng = chỉ thiếu 1.</p>`;
   } else {
     const rows = list.filter((a) => !a.um && a.ump != null).sort((x, y) => N(y.ump) - N(x.ump)).slice(0, 300);
     body = `<p class="note" style="margin:0 0 10px">FA có tiến độ thăng cấp UM cao nhất (theo BC70).</p><div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>Đại lý</th><th>Khu vực</th><th style="min-width:180px">Tiến độ UM</th><th class="r">FYP 6T</th><th class="r">Tuyển 6T có HĐ</th><th>3 tháng</th></tr></thead><tbody>
@@ -2026,6 +2058,7 @@ function pageTitles(c) {
   c.innerHTML = `<section class="panel"><div class="panel-b"><div class="tabs">${[['mdrt', `MDRT ${+year + 1}`], ['mba', `MBA Pro ${+year + 1}`], ['fast', 'Silver Fast-track · M0/M1'], ['manpro', 'Manulife Pro'], ['um', 'Thăng cấp UM']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>${body}</div></section>`;
   $$('[data-tab]', c).forEach((b) => b.onclick = () => { S.titleTab = b.dataset.tab; pageTitles(c); });
   $$('[data-ft]', c).forEach((b) => b.onclick = () => { S.ftFilter = b.dataset.ft; pageTitles(c); });
+  $$('[data-mpf]', c).forEach((b) => b.onclick = () => { S.mpFilter = b.dataset.mpf; pageTitles(c); });
   $$('[data-ft-area]', c).forEach((tr) => tr.onclick = () => { S.area = tr.dataset.ftArea; render(); });
   $$('[data-open]', c).forEach((tr) => tr.onclick = () => openPerson(tr.dataset.open));
 }
