@@ -134,6 +134,9 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .tb-bars.wide .tb-row{grid-template-columns:118px minmax(40px,1fr) 40px}
 .tb-bar{height:8px;border-radius:5px;background:#eef0f3;position:relative;overflow:hidden}.tb-bar i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--green)}.tb-bar.mid i{background:#f79009}.tb-bar.low i{background:#fdb022}
 @media (max-width:900px){.drv-grid,.tgrid{grid-template-columns:1fr}}
+.credit-box{border:1px solid #b2ddff;background:#f5faff;border-radius:12px;padding:10px 12px;margin:12px 0}.credit-box.mgr{border-color:#fedf89;background:#fffcf5}
+.credit-box .cb-h{font-size:13px;margin-bottom:6px}.credit-box ul{margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.55}.credit-box li{margin:2px 0}
+.cb-row{padding:6px 0;border-top:1px dashed #d1e9ff}.cb-row:first-of-type{border-top:0}.cb-row ul{list-style:none;padding-left:0}
 .chips{display:flex;gap:6px;flex-wrap:wrap}.chips .chip{cursor:pointer;border:1px solid var(--line);background:#fff}.chips .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
 .tbl tr.hl td{background:#fffaeb}.tbl tr.ok-row td{background:#f6fef9}.tbl tr.hl:hover td{background:#fef0c7}
 .tbl th.plan-h{color:#6941c6;background:#f9f5ff}.tbl td.plan-c input{border-color:#d9c9fb;background:#fcfaff}
@@ -1862,6 +1865,77 @@ function cond(title, have, need, fmt = f0, hint = '', okText = '') {
   const ok = have >= need, r = need ? have / need : 1;
   return `<div class="cond ${ok ? 'ok' : 'miss'}"><span class="t">${ok ? '✓' : '✗'} ${title}</span><span class="r num">${fmt(have)} / ${fmt(need)}</span>${meter(r)}<span class="h">${ok ? (okText || 'Đã đạt') : `Còn thiếu <b>${fmt(need - have)}</b>${hint ? ' · ' + hint : ''}`}</span></div>`;
 }
+
+// =====================================================================
+//  KẾT QUẢ ĐƯỢC TÍNH CHO AI (memo 0050M01/2026 MBA Pro · 0064M01/2025 & 0019M09/2026 thăng cấp / duy trì UM+)
+// =====================================================================
+const evalYear = () => String(DS.meta.asOf).slice(0, 4);
+const upOf = (x) => x.parent || (x.p && x.p !== x.c ? DS.by.get(x.p) || null : null); // quản lý trực tiếp (kể cả khác khu vực)
+// UM mới trong năm đánh giá: được thăng cấp lên UM trong năm (không phải GTF), đang giữ chức danh UM+
+function isNewUM(a) {
+  if (!a || !a.um) return false;
+  const y = evalYear(), td = String(a.td || ''), j = String(a.j || '');
+  if (!td.startsWith(y) || (a.t || '').toUpperCase() !== 'UM') return false;
+  if (a.gtf_date || DS.gtf.has(a.c)) return false; // UM+ GTF không tính là "UM mới"
+  return j.slice(0, 7) < td.slice(0, 7); // trước đó là FA rồi mới thăng cấp
+}
+const isRecruitY = (x) => String(x.j || '').startsWith(evalYear()); // ĐL tuyển mới trong năm đánh giá
+function mbaRecruitStatus(x) { // tiêu chí 1: 3 HĐ & 40 tr hoặc 1 HĐ & 16 tr FYP trong năm (ĐL mới năm nay → 12 tháng = từ khi gia nhập)
+  const cc = N(x.cc12), fyp = N(x.fyp12);
+  return { cc, fyp, a: cc >= 3 && fyp >= 40000, b: cc >= 1 && fyp >= 16000 };
+}
+const prod6ok = (x) => N(x.cc6) >= 1 && N(x.fyc6) >= 4000; // ĐL tuyển dụng trực tiếp có sản xuất 6 tháng (≥1 HĐ & FYC ≥ 4 tr)
+// danh sách người hưởng kết quả của x: [{p, tags:[{k,txt}], via}]
+function creditsOf(x) {
+  const out = new Map(), add = (p, k, txt, via = null) => { if (!p || p === x) return; if (!out.has(p.c)) out.set(p.c, { p, tags: [], via }); out.get(p.c).tags.push({ k, txt }); };
+  const u1 = upOf(x), m1 = u1 && u1.um ? u1 : null, y = evalYear();
+  if (m1) {
+    add(m1, 'mba', `MBA Pro – FYC của ${x.n} vào "FYC cấp trực tiếp" (tiêu chí 2)`);
+    if (isRecruitY(x)) { const st = mbaRecruitStatus(x); add(m1, 'mba', `MBA Pro – ĐL tuyển mới ${y} cấp trực tiếp (tiêu chí 1): ${st.a ? 'đã đạt 3HĐ & 40tr' : st.b ? 'đã đạt 1HĐ & 16tr' : `chưa đạt (${f0(st.cc)} HĐ · ${money(st.fyp)})`}`); }
+    if (isNewUM(x)) add(m1, 'mba', `MBA Pro – ${x.n} là UM+ mới ${y} → tính 1 "UM+ mới cấp trực tiếp" (tiêu chí 3)`);
+    if (!x.um && N(x.ump) >= 0.5) add(m1, 'um', `Nếu ${x.n} thăng cấp UM trong ${y} → ${m1.n} thêm 1 UM+ mới (MBA tiêu chí 3) và đội của ${x.n} sẽ cộng dồn lên ${m1.n}`);
+    // UM mới: kết quả cấp trực tiếp của UM mới được cộng cho UM+ quản lý trực tiếp của UM mới
+    const u2 = upOf(m1);
+    if (isNewUM(m1) && u2 && u2.um) {
+      const m2 = u2;
+      add(m2, 'mba', `MBA Pro – ${m1.n} là UM mới ${y}: FYC${isRecruitY(x) ? ' và ĐL tuyển mới có sản xuất' : ''} của ${x.n} được cộng cả cho ${m2.n} (tiêu chí ${isRecruitY(x) ? '1 & 2' : '2'})`, m1);
+    }
+  }
+  const r = x.rec && x.rec !== x.c ? DS.by.get(x.rec) : null;
+  if (r) add(r, 'rec', `Thăng cấp / duy trì chức danh – "ĐL tuyển dụng trực tiếp có sản xuất 6 tháng" (≥1 HĐ & FYC ≥4 tr): ${prod6ok(x) ? 'đang đạt' : `chưa đạt (${f0(x.cc6)} HĐ · FYC ${money(x.fyc6)})`}${r.um ? '' : ` → giúp ${r.n} (FA) lên UM`}`);
+  return [...out.values()];
+}
+const CREDIT_CLS = { mba: 'b-blue', rec: 'b-green', um: 'b-amber' };
+const creditChips = (x) => creditsOf(x).map((c) => `<span class="badge ${c.tags.some((t) => t.k === 'mba') ? 'b-blue' : c.tags.some((t) => t.k === 'rec') ? 'b-green' : 'b-amber'}" title="${esc(c.tags.map((t) => t.txt).join('\n'))}">${esc(c.p.n.split(' ').slice(-2).join(' '))}${c.via ? ' ↑' : ''}</span>`).join(' ');
+function creditsHtml(a) {
+  const cs = creditsOf(a), y = evalYear();
+  const mine = cs.length ? `<div class="credit-box"><div class="cb-h">🔗 Kết quả của <b>${esc(a.n)}</b> đang được tính cho</div>
+    ${cs.map((c) => `<div class="cb-row"><a href="#" data-open="${esc(c.p.c)}"><b>${esc(c.p.n)}</b></a> <span class="muted small">${esc(c.p.t)}${c.via ? ` · qua UM mới ${esc(c.via.n)}` : c.p === upOf(a) ? ' · quản lý trực tiếp' : ''}${c.p.c === a.rec ? ' · người tuyển dụng' : ''}</span>
+      <ul>${c.tags.map((t) => `<li><span class="badge ${CREDIT_CLS[t.k]}">${t.k === 'mba' ? 'MBA Pro' : t.k === 'rec' ? 'Thăng cấp/duy trì' : 'Tiềm năng UM'}</span> ${esc(t.txt)}</li>`).join('')}</ul></div>`).join('')}</div>` : '';
+  if (!a.um) return mine;
+  // góc nhìn quản lý: đóng góp từ đội ngũ cho danh hiệu của a
+  const direct = a.kids, newUMs = direct.filter(isNewUM);
+  const viaNew = newUMs.flatMap((u) => u.kids.map((k) => ({ k, u })));
+  const rec1 = [...direct.map((k) => ({ k, u: null })), ...viaNew].filter(({ k }) => isRecruitY(k));
+  const st = rec1.map((r) => ({ ...r, s: mbaRecruitStatus(r.k) }));
+  const nA = st.filter((r) => r.s.a).length, nB = st.filter((r) => r.s.b).length;
+  const near = st.filter((r) => !r.s.b && (r.s.cc >= 1 || r.s.fyp >= 8000)).sort((p, q) => q.s.fyp - p.s.fyp);
+  const near3 = st.filter((r) => r.s.b && !r.s.a && (r.s.cc >= 2 || r.s.fyp >= 25000)).sort((p, q) => q.s.fyp - p.s.fyp);
+  const pot = direct.filter((k) => !k.um && N(k.ump) >= 0.5).sort((p, q) => N(q.ump) - N(p.ump));
+  const recs = DS.agents.filter((r) => r.rec === a.c), recOk = recs.filter(prod6ok);
+  const meNew = isNewUM(a), up2 = upOf(a), m2 = up2 && up2.um ? up2 : null;
+  const tips = [
+    meNew && m2 ? `<b>${esc(a.n)}</b> là <b>UM mới ${y}</b> → mọi ĐL tuyển mới có sản xuất và FYC cấp trực tiếp của ${esc(a.n)} được tính <b>cho cả ${esc(a.n)} và ${esc(m2.n)}</b>; bản thân ${esc(a.n)} cũng là 1 "UM+ mới" (tiêu chí 3) của ${esc(m2.n)}. Hai người nên cùng đẩy các ĐL dưới đây.` : '',
+    newUMs.length ? `Có <b>${newUMs.length} UM mới ${y}</b> trực tiếp (${newUMs.map((u) => `<a href="#" data-open="${esc(u.c)}">${esc(u.n)}</a>`).join(', ')}) → đã có ${newUMs.length}/1 UM+ mới (tiêu chí 3) và kết quả cấp trực tiếp của họ được cộng dồn lên ${esc(a.n)}.` : `Chưa có UM+ mới ${y} trực tiếp (tiêu chí 3 cần 1).${pot.length ? ` Ứng viên gần nhất: ${pot.slice(0, 3).map((k) => `<a href="#" data-open="${esc(k.c)}">${esc(k.n)}</a> (${pct(N(k.ump))})`).join(', ')}.` : ''}`,
+    `ĐL tuyển mới ${y} được tính (tiêu chí 1, gồm cả qua UM mới): <b>${nA}</b> đạt 3HĐ&40tr · <b>${nB}</b> đạt 1HĐ&16tr / ${st.length} ĐL mới.`,
+    near.length ? `Sắp đạt 1HĐ&16tr: ${near.slice(0, 5).map((r) => `<a href="#" data-open="${esc(r.k.c)}">${esc(r.k.n)}</a> (${f0(r.s.cc)} HĐ · ${money(r.s.fyp)}${r.u ? ` · qua ${esc(r.u.n)}` : ''})`).join(', ')}` : '',
+    near3.length ? `Gần 3HĐ&40tr: ${near3.slice(0, 5).map((r) => `<a href="#" data-open="${esc(r.k.c)}">${esc(r.k.n)}</a> (${f0(r.s.cc)} HĐ · ${money(r.s.fyp)})`).join(', ')}` : '',
+    `Thăng cấp / duy trì chức danh: ${recOk.length}/${recs.length} ĐL do ${esc(a.n)} tuyển trực tiếp có sản xuất 6 tháng (≥1 HĐ & FYC ≥4 tr).`,
+  ].filter(Boolean);
+  return mine + `<div class="credit-box mgr"><div class="cb-h">🧭 Gợi ý vận hành · danh hiệu của ${esc(a.n)} nhận đóng góp từ đâu</div><ul>${tips.map((t) => `<li>${t}</li>`).join('')}</ul>
+    <p class="note" style="margin:6px 0 0">Theo memo 0050M01/2026 (MBA Pro): tiêu chí 1 & 2 tính cấp báo cáo trực tiếp; kết quả cấp trực tiếp của <b>UM mới</b> (thăng cấp trong năm, không GTF, còn giữ UM+ cuối năm) được cộng cho UM+ quản lý trực tiếp của UM mới. Theo 0019M09/2026: thăng cấp / duy trì UM+ xét ĐL do mình <b>tuyển dụng trực tiếp</b> có sản xuất. UM mới xác định theo ngày hiệu lực chức danh trong BC70.</p></div>`;
+}
+
 function openPerson(code) {
   const a = DS.by.get(code); if (!a) return;
   S.sel = code;
@@ -1923,9 +1997,9 @@ function openPerson(code) {
       <div class="mini"><div class="k">3mAA toàn nhóm</div><div class="x num">${f0(groupStats(members).aa3)}</div></div>
       <div class="mini"><div class="k">Trực tiếp bán (BC70)</div><div class="x">${spark(a.d1.slice(0, 3))} <span class="num small">${a.d1.slice(0, 3).map(f0).join(' · ')}</span></div></div>
     </div>
-    ${direct.length ? `<div class="tbl-wrap" style="max-height:340px"><table class="tbl"><thead><tr><th>Đại lý</th><th>Chức danh</th><th>3 tháng</th><th class="r">FYP 3T</th><th class="r">FYP 6T</th></tr></thead><tbody>
-      ${direct.map((k) => `<tr class="click" data-open="${esc(k.c)}"><td><i class="tier ${k.tier || ''}"></i> ${esc(k.n)} <span class="muted small">${esc(k.c)}</span></td><td>${esc(k.t)} ${tierBadge(k.tier)}</td><td>${dots(k)}</td><td class="r num">${money(N(k.fyp[0]) + N(k.fyp[1]) + N(k.fyp[2]))}</td><td class="r num">${money(k.fyp6)}</td></tr>`).join('')}
-    </tbody></table></div>` : ''}</div>` : '';
+    ${direct.length ? `<div class="tbl-wrap" style="max-height:340px"><table class="tbl"><thead><tr><th>Đại lý</th><th>Chức danh</th><th>3 tháng</th><th class="r">FYP 3T</th><th class="r">FYP 6T</th><th>Tính cho</th></tr></thead><tbody>
+      ${direct.map((k) => { const cs = creditsOf(k), multi = cs.filter((c) => c.tags.some((t) => t.k === 'mba')).length >= 2; return `<tr class="click${multi ? ' hl' : ''}" data-open="${esc(k.c)}"><td><i class="tier ${k.tier || ''}"></i> ${esc(k.n)} <span class="muted small">${esc(k.c)}</span>${isRecruitY(k) ? ' <span class="badge b-green">mới ' + evalYear() + '</span>' : ''}${isNewUM(k) ? ' <span class="badge b-blue">UM mới</span>' : ''}</td><td>${esc(k.t)} ${tierBadge(k.tier)}</td><td>${dots(k)}</td><td class="r num">${money(N(k.fyp[0]) + N(k.fyp[1]) + N(k.fyp[2]))}</td><td class="r num">${money(k.fyp6)}</td><td style="white-space:normal">${creditChips(k)}</td></tr>`; }).join('')}
+    </tbody></table></div><p class="note" style="margin-top:6px">Cột "Tính cho": người được cộng kết quả của từng ĐL (rê chuột để xem tiêu chí; ↑ = cộng qua UM mới). Dòng tô vàng = 1 ĐL được tính cho từ 2 UM+ đang chạy MBA Pro.</p>` : ''}</div>` : '';
 
   $('#drawer').innerHTML = `
   <div class="dr-h"><div class="av ${a.um ? 'um' : ''}" style="width:44px;height:44px;font-size:14px">${esc(initials(a.n))}</div>
@@ -1941,6 +2015,7 @@ function openPerson(code) {
       <div class="mini"><div class="k">HĐ 12 tháng</div><div class="x num">${f0(a.cc12)}</div></div>
       <div class="mini"><div class="k">Tháng có HĐ / 12</div><div class="x num">${f0(a.am12)}</div></div>
     </div>
+    ${creditsHtml(a)}
     <div class="sec"><h4>Kết quả sản xuất</h4>${barChart(prodItems, { h: 170, fmt: (v) => money(v) })}
       <div class="tbl-wrap"><table class="tbl"><thead><tr><th></th>${M.map((y, i) => `<th class="r">${mLabel(y)}${i === 3 ? '*' : ''}</th>`).join('')}</tr></thead><tbody>
       <tr><td>FYP</td>${a.fyp.map((v) => `<td class="r num">${money(v)}</td>`).join('')}</tr>
@@ -1984,11 +2059,12 @@ function pageTitles(c) {
       return { a, mb, ci, t, c: [c1, c2, c3, c4], ok: [c1, c2, c3, c4].filter(Boolean).length };
     }).sort((x, y) => y.ci - x.ci || y.ok - x.ok || N(y.mb.fyc) - N(x.mb.fyc));
     const ck = (b) => (b ? '<span class="badge b-green">✓</span>' : '<span class="badge b-red">✗</span>');
-    body = `<div class="kpis" style="margin-bottom:12px">${MBA.levels.map((l) => `<div class="kpi"><div class="lb">${l} tạm tính</div><div class="v">${rows.filter((r) => r.mb.cur === l).length}</div></div>`).join('')}<div class="kpi"><div class="lb">UM+ đủ 3/4 điều kiện mức kế</div><div class="v">${rows.filter((r) => r.ok === 3).length}</div><div class="s">Còn ${left} tháng</div></div></div>
-    <div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>UM+</th><th>Khu vực</th><th>Tạm tính</th><th>Mục tiêu</th><th>Tuyển mới SX</th><th class="r">FYC (luật 50)</th><th>UM+ mới</th><th>P13 ≥70%</th><th>Thiếu</th></tr></thead><tbody>
+    body = `<div class="kpis" style="margin-bottom:12px">${MBA.levels.map((l) => `<div class="kpi"><div class="lb">${l} tạm tính</div><div class="v">${rows.filter((r) => r.mb.cur === l).length}</div></div>`).join('')}<div class="kpi"><div class="lb">UM+ đủ 3/4 điều kiện mức kế</div><div class="v">${rows.filter((r) => r.ok === 3).length}</div><div class="s">Còn ${left} tháng</div></div><div class="kpi"><div class="lb">UM mới ${year} (cộng dồn lên quản lý)</div><div class="v">${list.filter(isNewUM).length}</div><div class="s">KQ cấp trực tiếp của UM mới được tính cả cho UM+ quản lý trực tiếp của họ</div></div></div>
+    <div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>UM+</th><th>Khu vực</th><th>Tạm tính</th><th>Mục tiêu</th><th>Tuyển mới SX</th><th class="r">FYC (luật 50)</th><th>UM+ mới</th><th>P13 ≥70%</th><th>Thiếu</th><th>Liên kết UM mới</th></tr></thead><tbody>
     ${rows.map(({ a, mb, ci, t, c }) => `<tr class="click" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.t)}</span></td><td>${esc(a.a)}</td><td>${ci >= 0 ? `<span class="badge b-green">${esc(mb.cur.replace('MBA Pro ', ''))}</span>` : '–'}</td><td>${esc(MBA.levels[t].replace('MBA Pro ', ''))}</td>
       <td>${ck(c[0])} <span class="small muted num">${f0(mb.n1a)} · ${f0(mb.n1b)}</span></td><td class="r">${ck(c[1])} <span class="num">${money(mb.fyc)}</span></td><td>${ck(c[2])} <span class="small num">${f0(mb.newUm)}</span></td><td>${ck(c[3])} <span class="small num">${mb.p13 == null ? '–' : f1(mb.p13) + '%'}</span></td>
-      <td class="small">${[!c[0] && `tuyển ${Math.max(0, MBA.n1a[t] - N(mb.n1a))} (3CC) / ${Math.max(0, MBA.n1b[t] - N(mb.n1b))} (1CC)`, !c[1] && `FYC ${money(MBA.fyc[t] - N(mb.fyc))}`, !c[2] && '1 UM+ mới', !c[3] && 'P13'].filter(Boolean).join(' · ') || '<span class="badge b-green">Đủ</span>'}</td></tr>`).join('')}
+      <td class="small">${[!c[0] && `tuyển ${Math.max(0, MBA.n1a[t] - N(mb.n1a))} (3CC) / ${Math.max(0, MBA.n1b[t] - N(mb.n1b))} (1CC)`, !c[1] && `FYC ${money(MBA.fyc[t] - N(mb.fyc))}`, !c[2] && '1 UM+ mới', !c[3] && 'P13'].filter(Boolean).join(' · ') || '<span class="badge b-green">Đủ</span>'}</td>
+      <td class="small" style="white-space:normal">${(() => { const nu = a.kids.filter(isNewUM), me = isNewUM(a) && upOf(a)?.um ? upOf(a) : null; return [me ? `<span class="badge b-blue">UM mới</span> KQ cộng cho ${esc(me.n)}` : '', nu.length ? `${nu.length} UM mới trực tiếp: ${nu.map((u) => esc(u.n)).join(', ')} → cộng dồn` : ''].filter(Boolean).join('<br>') || '<span class="muted">–</span>'; })()}</td></tr>`).join('')}
     </tbody></table></div>`;
   } else if (tab === 'fast') {
     const all = fastTrack(list), f = S.ftFilter || 'all';
@@ -2052,8 +2128,9 @@ function pageTitles(c) {
     </tbody></table></div><p class="note">Nguồn: báo cáo Manulife Pro từ 3 tháng (tạm tính T+1). Sắp theo số điều kiện còn thiếu rồi FYP thiếu. Tô xanh = đủ điều kiện, tô vàng = chỉ thiếu 1.</p>`;
   } else {
     const rows = list.filter((a) => !a.um && a.ump != null).sort((x, y) => N(y.ump) - N(x.ump)).slice(0, 300);
-    body = `<p class="note" style="margin:0 0 10px">FA có tiến độ thăng cấp UM cao nhất (theo BC70).</p><div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>Đại lý</th><th>Khu vực</th><th style="min-width:180px">Tiến độ UM</th><th class="r">FYP 6T</th><th class="r">Tuyển 6T có HĐ</th><th>3 tháng</th></tr></thead><tbody>
-    ${rows.map((a) => `<tr class="click" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.c)}</span></td><td>${esc(a.a)}</td><td>${meter(N(a.ump))}<span class="small muted">${pct(N(a.ump))}</span></td><td class="r num">${money(a.fyp6)}</td><td class="r num">${f0(a.nra6)}</td><td>${dots(a)}</td></tr>`).join('')}</tbody></table></div>`;
+    body = `<p class="note" style="margin:0 0 10px">FA có tiến độ thăng cấp UM cao nhất (theo BC70).</p><div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>Đại lý</th><th>Khu vực</th><th style="min-width:180px">Tiến độ UM</th><th class="r">FYP 6T</th><th class="r">Tuyển 6T có HĐ</th><th>3 tháng</th><th>Khi lên UM, tính cho</th></tr></thead><tbody>
+    ${rows.map((a) => { const m1 = upOf(a)?.um ? upOf(a) : null, m2 = null; return `<tr class="click" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.c)}</span></td><td>${esc(a.a)}</td><td>${meter(N(a.ump))}<span class="small muted">${pct(N(a.ump))}</span></td><td class="r num">${money(a.fyp6)}</td><td class="r num">${f0(a.nra6)}</td><td>${dots(a)}</td><td class="small" style="white-space:normal">${m1 ? `<b>${esc(m1.n)}</b>: +1 UM+ mới (MBA tiêu chí 3) và đội của ĐL này cộng dồn lên${m2 ? ` · ${esc(m2.n)} không được tính trực tiếp` : ''}` : '<span class="muted">–</span>'}</td></tr>`; }).join('')}</tbody></table></div>
+    <p class="note">Khi FA thăng cấp UM trong năm (không GTF), người đó là "UM mới": được tính 1 UM+ mới cho UM+ quản lý trực tiếp, và ĐL tuyển mới có sản xuất + FYC cấp trực tiếp của UM mới được cộng cho UM+ quản lý trực tiếp đó (memo 0050M01/2026).</p>`;
   }
   c.innerHTML = `<section class="panel"><div class="panel-b"><div class="tabs">${[['mdrt', `MDRT ${+year + 1}`], ['mba', `MBA Pro ${+year + 1}`], ['fast', 'Silver Fast-track · M0/M1'], ['manpro', 'Manulife Pro'], ['um', 'Thăng cấp UM']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>${body}</div></section>`;
   $$('[data-tab]', c).forEach((b) => b.onclick = () => { S.titleTab = b.dataset.tab; pageTitles(c); });
@@ -2600,6 +2677,7 @@ function pageData(c) {
 }
 
 start().catch((e) => { console.error(e); gate(`<h1>Lỗi khởi động</h1><p>${esc(e.message)}</p>`); });
+window.RH_openPerson = (c) => openPerson(c); // dùng cho kiểm thử / liên kết ngoài
 })();
 </script>
 </body>
