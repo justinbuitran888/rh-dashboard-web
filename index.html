@@ -1150,6 +1150,17 @@ function prepare(row) {
     ...a, cc: a.cc || [], fyp: a.fyp || [], fyc: a.fyc || [], act: a.act || [], nr: a.nr || [], d1: a.d1 || [],
     tier: TIER[a.mpseg] || null, kids: [], parent: null,
   }));
+  // FYP thực cấp chính thức (báo cáo KD ĐL, cột 23) thay cho FYP tính thưởng của BC70 ở các tháng có báo cáo; giữ bản BC70 ở fypB
+  const OF = P.offFyp && Array.isArray(P.offFyp.months) && P.offFyp.months.length ? P.offFyp : null;
+  const offIdx = OF ? months.map((m, i) => (OF.months.includes(m) ? i : -1)).filter((i) => i >= 0) : [];
+  for (const a of agents) {
+    a.fypB = a.fyp.slice();
+    if (!offIdx.length) continue;
+    const o = OF.ag[a.c]; a.fyp = a.fyp.slice(); let d6 = 0;
+    for (const i of offIdx) { const v = o ? N(o[i]) : 0; if (i <= 2) d6 += v - N(a.fypB[i]); a.fyp[i] = v; }
+    if (a.fyp6 !== null && a.fyp6 !== undefined) a.fyp6 = N(a.fyp6) + d6;
+    if (a.fyp12 !== null && a.fyp12 !== undefined) a.fyp12 = N(a.fyp12) + d6;
+  }
   const by = new Map(agents.map((a) => [a.c, a]));
   for (const a of agents) {
     const p = a.p && a.p !== a.c ? by.get(a.p) : null;
@@ -1174,14 +1185,14 @@ function prepare(row) {
   const areaInfo = new Map((P.areas || []).map((x) => [x.a, x]));
   const areas = [...new Set(agents.map((a) => a.a))].sort().map((code) => {
     const info = areaInfo.get(code) || {};
-    const list = agents.filter((a) => a.a === code);
+    const list = agents.filter((a) => a.a === code); list._area = code;
     const chain = Array.isArray(info.chain) ? info.chain.filter((x) => x && x !== 'Total') : [];
     const ap = (P.areaPsm || {})[code] || {};
     return { code, psm: ap.psm || info.psm || (chain.length ? chain.at(-1).split(' - ').slice(1).join(' - ') : null), psmCode: ap.psmCode || null, bctt: ap.bctt || null, tv: info.tv || null, l2: info.l2 || null, l3: info.l3 || null, chain, list, tops: list.filter((a) => !a.parent), sa: N(meta.saByArea?.[code]) };
   });
   const manual = P.manual || [];
   const hist = (P.hist || []).map((h) => ({ ...h, ch: Array.isArray(h.ch) ? h.ch : [] }));
-  return { saFyp: P.saFyp || null, gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
+  return { offFyp: OF, offIdx: new Set(offIdx), saFyp: P.saFyp || null, gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
     psmTree: new Map((P.psmTree || []).map((x) => [x.c, x])), mapa: P.mapa || [], mapaMonth: P.mapaMonth || meta.officialMonth };
 }
 
@@ -1237,7 +1248,7 @@ function mapaMix(m) {
 }
 // ---------- chỉ số cho 1 nhóm đại lý ----------
 // "Hoạt động" = có FYP thực cấp > 0 trong tháng (theo yêu cầu vận hành). Cờ "Hoạt động tháng" của BC70 (≥1 HĐ & FYP ≥ 4 tr) chỉ dùng để ước các tháng ngoài BC70.
-const isActive = (a, i) => N(a.fyp[i]) > 0;
+const isActive = (a, i) => N((a.fypB || a.fyp)[i]) > 0; // FYP > 0 theo BC70 (đã chốt định nghĩa 547 ĐL T09)
 const isActBC = (a, i) => N(a.act[i]) > 0;
 // SA có FYP thực cấp > 0 theo khu vực (từ BC70) – chỉ khi xem toàn RH / khu vực, không lọc nhánh
 function saFyp(ym) { const i = DS.months.indexOf(ym); if (i < 0 || !DS.saFyp || S.branch) return 0; const areas = S.area === 'all' ? new Set(scopeList().map((a) => a.a)) : new Set([S.area]); let n = 0; for (const [k, v] of Object.entries(DS.saFyp)) if (areas.has(k)) n += N(v[i]); return n; }
@@ -1254,9 +1265,20 @@ function groupStats(list, end = 2) {
     if (k >= 2) s.even++; else if (k === 1) s.once++; else s.zero++;
     for (let i = 0; i < 4; i++) { if (isActive(a, i)) s.actM[i]++; s.fypM[i] += N(a.fyp[i]); s.ccM[i] += N(a.cc[i]); if (joinedIn(a, M[i])) s.nrM[i]++; }
   }
+  const saA = saAreasOf(list); s.saM = [0, 1, 2, 3].map((i) => saOffFyp(saA, i)); for (let i = 0; i < 4; i++) s.fypM[i] += s.saM[i];
   return s;
 }
-function scopeList() { return S.area === 'all' ? DS.agents : DS.agents.filter((a) => a.a === S.area); }
+function scopeList() { if (S.area === 'all') return DS.agents; const l = DS.agents.filter((a) => a.a === S.area); l._area = S.area; return l; }
+// FYP thực cấp của SA (báo cáo KD ĐL phục vụ) cộng vào tổng khi danh sách là cả phạm vi hoặc 1 khu vực
+function saAreasOf(list) { return list === DS.agents ? DS.areaSet : list._area ? new Set([list._area]) : null; }
+function fypSrcNote(list, ym) {
+  const i = DS.months.indexOf(ym); if (i < 0) return 'Theo báo cáo tháng';
+  const g = groupStats(list, Math.max(2, i)), bc = sum(list, (a) => a.fypB ? a.fypB[i] : a.fyp[i]);
+  if (!DS.offIdx?.has(i)) return `Theo BC70 (FYP tính thưởng) · ${f0(g.ccM[i])} HĐ thực cấp`;
+  const der = (DS.offFyp.derived || []).includes(ym);
+  return `Báo cáo KD ĐL${g.saM[i] ? ` (gồm SA ${money(g.saM[i])})` : ''}${der ? ' · suy từ cột FYP 3 tháng' : ''} · ${f0(g.ccM[i])} HĐ · FYP tính thưởng BC70: ${money(bc)}`;
+}
+function saOffFyp(areas, i) { if (!areas || !DS.offFyp || !DS.offIdx.has(i)) return 0; let n = 0; for (const [k, v] of Object.entries(DS.offFyp.sa || {})) if (areas.has(k)) n += N(v[i]); return n; }
 function manualFor(ym, area = scopeKey()) { const r = DS.manual.find((x) => x.month === ym && x.area === area); return r ? r.vals || {} : null; }
 // số liệu tháng (ưu tiên dữ liệu thật; tháng ngoài phạm vi BC70 lấy từ số nhập tay)
 function monthValue(ym, key, list) {
@@ -1848,8 +1870,8 @@ function pageOverview(c) {
   const fypNow = val('fyp', ym), fypPrev = val('fyp', prevYm), fypYoy = val('fyp', yoyYm);
   const scopeName = S.area === 'all' ? rhShort() : 'khu vực ' + S.area;
   const kpis = [
-    kpi(`FYP thực cấp · ${mLabel(ym)}`, money(offMonth ? offFyp : fypNow),
-      offMonth ? `Báo cáo KD chính thức · ${f0(offCc)} HĐ. Theo BC70 (đã điều chỉnh): ${money(fypNow)}` : `Theo BC70 · ${f0(val('cc', ym))} HĐ thực cấp`,
+    kpi(`FYP thực cấp · ${mLabel(ym)}`, money(fypNow),
+      fypSrcNote(list, ym),
       delta(fypNow, fypPrev) + delta(fypNow, fypYoy, { label: 'YoY' })),
     kpi(`Tuyển mới (NR) · ${mLabel(ym)}`, f0(val('nr', ym)), 'Số ĐL được cấp mã trong tháng (theo ngày hiệu lực HĐĐL)',
       delta(val('nr', ym), val('nr', prevYm)) + delta(val('nr', ym), val('nr', yoyYm), { label: 'YoY' })),
@@ -1875,11 +1897,11 @@ function pageOverview(c) {
   const areaRows = DS.areas.map((a) => {
     const s = groupStats(a.list, Math.max(2, i));
     const hy = (DS.hist || []).find((h) => h.a === a.code && h.m === yoyYm);
-    return { a, s, fyp: s.fypM[i], fypPrev: i > 0 ? s.fypM[i - 1] : null, fypYoy: hy ? N(hy.fyp) : null, act: s.actM[i], nr: s.nrM[i], off: offMonth ? sum(a.list, (x) => x.offyp) : null };
+    return { a, s, fyp: s.fypM[i], fypPrev: i > 0 ? s.fypM[i - 1] : null, fypYoy: hy ? N(hy.fyp) : null, act: s.actM[i], nr: s.nrM[i], off: null };
   }).sort((x, y) => N(y.off ?? y.fyp) - N(x.off ?? x.fyp));
   const areaTable = `<div class="tbl-wrap" style="max-height:520px"><table class="tbl"><thead><tr><th>Khu vực</th><th>PSM+ quản lý</th><th class="r">Nguồn lực</th><th class="r">UM+</th><th class="r">FYP ${mLabel(ym)}${offMonth ? ' (chính thức)' : ''}</th><th>MoM*</th><th>YoY</th><th class="r">Active</th><th class="r">3mAA</th><th class="r">NR</th><th class="r">FYP 6T</th></tr></thead><tbody>
     ${areaRows.map((r) => `<tr class="click" data-area="${esc(r.a.code)}"><td><b>${esc(r.a.code)}</b></td><td>${esc(r.a.psm || '–')}</td><td class="r num">${f0(r.s.n)}</td><td class="r num">${f0(r.s.um)}</td><td class="r num">${money(r.off ?? r.fyp)}</td><td>${i > 0 ? delta(r.fyp, r.fypPrev, { label: '' }) : '–'}</td><td>${r.fypYoy !== null ? delta(r.off ?? r.fyp, r.fypYoy, { label: '' }) : '<span class="muted small">–</span>'}</td><td class="r num">${f0(r.act)} <span class="muted small">${pct(r.act / r.s.n)}</span></td><td class="r num">${i >= 2 ? f0(r.s.aa3) : '–'}</td><td class="r num">${f0(r.nr)}</td><td class="r num">${money(r.s.fyp6)}</td></tr>`).join('')}
-  </tbody></table></div><p class="note" style="margin:10px 0 0">* MoM so theo FYP BC70 (cùng chuẩn giữa các tháng). YoY so với FYP thực cấp ${mLabel(yoyYm)} trong báo cáo tháng năm trước. Bấm 1 khu vực để mở cây đội ngũ.</p>`;
+  </tbody></table></div><p class="note" style="margin:10px 0 0">* FYP thực cấp theo báo cáo KD ĐL (gồm SA của khu vực). YoY so với FYP thực cấp ${mLabel(yoyYm)} trong báo cáo tháng năm trước. Bấm 1 khu vực để mở cây đội ngũ.</p>`;
 
   // MAPA theo cấu trúc
   const mapaHtml = mapaPanel();
@@ -1888,7 +1910,7 @@ function pageOverview(c) {
   <div class="sec-title"><h2>Kết quả tháng ${mLabel(ym)}${offMonth ? ' (chính thức)' : ''}</h2><span>chọn tháng ở thanh trên · so MoM / YoY</span></div>
   ${noYoy ? `<div class="banner"><span>ℹ️</span><div>Chưa có số <b>${mLong(yoyYm)}</b> nên chưa so được cùng kỳ (YoY). ${isAdmin ? 'Nhập ở trang <a href="#history">KQKD các kỳ trước</a>.' : ''}</div></div>` : ''}
   <div class="kpis">${kpis}</div>
-  ${(() => { const T = { fyp: ['FYP theo tháng', `${scopeName} · FYP BC70 (đã điều chỉnh)`, (v) => money(v)], nr: ['Tuyển mới (NR) theo tháng', 'ĐL được cấp mã trong tháng', f0], active: ['ĐL có hoạt động theo tháng', 'Có FYP thực cấp > 0 (không gồm SA) · 3 tháng gần nhất cộng lại = 3mAA · tháng từ báo cáo tháng = ĐL có nộp HĐ có phí', f0] }, k = T[S.trendTab] ? S.trendTab : 'fyp';
+  ${(() => { const T = { fyp: ['FYP theo tháng', `${scopeName} · FYP thực cấp (báo cáo KD ĐL + SA; tháng chưa có báo cáo dùng BC70)`, (v) => money(v)], nr: ['Tuyển mới (NR) theo tháng', 'ĐL được cấp mã trong tháng', f0], active: ['ĐL có hoạt động theo tháng', 'Có FYP thực cấp > 0 (không gồm SA) · 3 tháng gần nhất cộng lại = 3mAA · tháng từ báo cáo tháng = ĐL có nộp HĐ có phí', f0] }, k = T[S.trendTab] ? S.trendTab : 'fyp';
     return `<section class="panel" id="trend-panel"><div class="panel-h"><div><h3>${T[k][0]}</h3><p>${T[k][1]}</p></div><div class="tabs" style="margin:0;border:0">${Object.entries(T).map(([kk, v]) => `<button data-trend="${kk}" class="${kk === k ? 'on' : ''}">${v[0].replace(' theo tháng', '')}</button>`).join('')}</div></div>
       <div class="panel-b">${barChart(items(k), { fmt: T[k][2], big: true, h: 250 })}${legend}</div></section>`; })()}
   <section class="panel"><div class="panel-h"><div><h3>Khu vực · ${mLabel(ym)}</h3><p>Sắp xếp theo FYP · ${DS.areas.length} khu vực</p></div></div><div class="panel-b" style="padding-top:6px">${areaTable}</div></section>
@@ -2367,7 +2389,7 @@ function openPerson(code) {
       <tr><td>Số HĐ</td>${a.cc.map((v) => `<td class="r num">${f0(v)}</td>`).join('')}</tr>
       <tr><td>FYC</td>${a.fyc.map((v) => `<td class="r num">${money(v)}</td>`).join('')}</tr>
       ${DS.meta.officialMonth === M[2] && a.offyp != null ? `<tr><td>FYP chính thức</td><td></td><td></td><td class="r num">${money(a.offyp)}</td><td></td></tr>` : ''}
-      </tbody></table></div><p class="note">* ${mLabel(M[3])} tạm tính đến ${dmy(asOf)}. FYP theo BC70 đã điều chỉnh${a.offpend ? ` · ${f0(a.offpend)} HĐ đang thẩm định` : ''}.</p></div>
+      </tbody></table></div><p class="note">* ${mLabel(M[3])} tạm tính đến ${dmy(asOf)}. FYP thực cấp theo báo cáo KD ĐL (tháng chưa có báo cáo: FYP tính thưởng BC70)${a.offpend ? ` · ${f0(a.offpend)} HĐ đang thẩm định` : ''}.</p></div>
     <div class="sec"><h4>Tuyển dụng</h4>
       <div class="mini-kpis"><div class="mini"><div class="k">Tuyển mới / tháng</div><div class="x">${spark(a.nr.slice(0, 3))} <span class="num small">${a.nr.slice(0, 4).map(f0).join(' · ')}</span></div></div>
       <div class="mini"><div class="k">Tuyển 6T có hoạt động</div><div class="x num">${f0(a.nra6)}</div></div>
