@@ -109,6 +109,7 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .chart .bar.est{fill:#c5e8d5}
 .ops-chart.hide-tgt .s-tgt,.ops-chart.hide-plan .s-plan,.ops-chart.hide-aa .s-aa,.ops-chart.hide-req .s-req,.ops-chart.hide-req .gap-aa,.ops-chart.hide-req .gap-t.aa,.ops-chart.hide-aatgt .s-aatgt{display:none}
 .ops-chart .fut-bg{fill:#f8f9fb}.ops-chart .gap-aa{fill:#fda29b;opacity:.6}.ops-chart text.gap-t.aa{font-size:10.5px}
+.chart.big text{font-size:12px}.chart.big text.val{font-size:12.5px;font-weight:700}
 .spk{display:inline-flex;align-items:flex-end;gap:2px;height:22px;vertical-align:middle}.spk i{display:block;width:6px;background:var(--green);border-radius:2px}
 .mf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
 .mf-card{border:1px solid var(--line-2);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;background:#fff}.mf-card.pin{border-color:#f79009;box-shadow:0 0 0 2px #fef0c7}
@@ -1320,9 +1321,9 @@ function render() {
 // =====================================================================
 //  BIỂU ĐỒ (SVG thuần)
 // =====================================================================
-function barChart(items, { h = 190, fmt = f0, unit = '' } = {}) {
-  // items: [{label, v, partial, manual, tip}]
-  const W = Math.max(360, items.length * 90), pad = { l: 8, r: 8, t: 22, b: 26 };
+function barChart(items, { h = 190, fmt = f0, unit = '', big = false } = {}) {
+  // items: [{label, v, partial, manual, tip}] · big = biểu đồ rộng toàn trang, chữ lớn
+  const W = big ? Math.max(720, items.length * 62) : Math.max(360, items.length * 90), pad = { l: 8, r: 8, t: big ? 26 : 22, b: big ? 30 : 26 };
   const max = Math.max(1, ...items.map((x) => N(x.v)));
   const bw = Math.min(42, (W - pad.l - pad.r) / items.length * 0.6), step = (W - pad.l - pad.r) / items.length;
   const y = (v) => pad.t + (h - pad.t - pad.b) * (1 - N(v) / max);
@@ -1335,6 +1336,7 @@ function barChart(items, { h = 190, fmt = f0, unit = '' } = {}) {
       <text class="val" x="${cx}" y="${yy - 6}" text-anchor="middle">${fmt(x.v)}</text>`}
       <text x="${cx}" y="${h - 8}" text-anchor="middle">${esc(x.label)}</text></g>`;
   }).join('');
+  if (big) return `<div class="chart-scroll"><svg class="chart big" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;min-width:${Math.min(W, 680)}px" role="img"><line class="grid" x1="0" x2="${W}" y1="${h - pad.b}" y2="${h - pad.b}"/>${bars}</svg></div>`;
   return `<svg class="chart" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;max-height:${h + 40}px" role="img"><line class="grid" x1="0" x2="${W}" y1="${h - pad.b}" y2="${h - pad.b}"/>${bars}</svg>`;
 }
 document.addEventListener('mousemove', (e) => {
@@ -1791,7 +1793,7 @@ function pageOverview(c) {
     const v = monthValue(y, key, list), partial = y === M[3], src = monthSrc(y);
     return { label: mLabel(y), v, partial, cls: SRC_CLS[src], tip: `${mLong(y)}: ${v === null ? 'chưa có' : key === 'fyp' ? money(v) : f0(v)}${partial ? ` (tạm tính đến ${dmy(DS.meta.asOf)})` : ''}${SRC_NOTE[src] || ''}` };
   });
-  const legend = `<div class="legend"><span><i style="background:var(--green)"></i>Tháng đủ (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#2e90fa"></i>Báo cáo tháng (năm trước)</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span></div>`;
+  const legend = `<div class="legend"><span><i style="background:var(--green)"></i>Tháng đủ (BC70)</span><span><i style="background:#9fdcbc"></i>Tháng đang chạy</span><span><i style="background:#2e90fa"></i>Báo cáo tháng (Báo cáo tại thời điểm)</span><span><i style="background:#7c8aa0"></i>Số nhập tay</span></div>`;
 
   // bảng khu vực
   const areaRows = DS.areas.map((a) => {
@@ -1810,17 +1812,16 @@ function pageOverview(c) {
   <div class="sec-title"><h2>Kết quả tháng ${mLabel(ym)}${offMonth ? ' (chính thức)' : ''}</h2><span>chọn tháng ở thanh trên · so MoM / YoY</span></div>
   ${noYoy ? `<div class="banner"><span>ℹ️</span><div>Chưa có số <b>${mLong(yoyYm)}</b> nên chưa so được cùng kỳ (YoY). ${isAdmin ? 'Nhập ở trang <a href="#history">KQKD các kỳ trước</a>.' : ''}</div></div>` : ''}
   <div class="kpis">${kpis}</div>
-  <div class="grid g3">
-    <section class="panel"><div class="panel-h"><div><h3>FYP theo tháng</h3><p>${scopeName} · FYP BC70 (đã điều chỉnh)</p></div></div><div class="panel-b">${barChart(items('fyp'), { fmt: (v) => money(v) })}${legend}</div></section>
-    <section class="panel"><div class="panel-h"><div><h3>Tuyển mới (NR) theo tháng</h3><p>ĐL được cấp mã</p></div></div><div class="panel-b">${barChart(items('nr'))}${legend}</div></section>
-    <section class="panel"><div class="panel-h"><div><h3>ĐL có hoạt động theo tháng</h3><p>≥ 1 HĐ thực cấp · 3 tháng gần nhất cộng lại = 3mAA</p></div></div><div class="panel-b">${barChart(items('active'))}${legend}</div></section>
-  </div>
+  ${(() => { const T = { fyp: ['FYP theo tháng', `${scopeName} · FYP BC70 (đã điều chỉnh)`, (v) => money(v)], nr: ['Tuyển mới (NR) theo tháng', 'ĐL được cấp mã trong tháng', f0], active: ['ĐL có hoạt động theo tháng', '≥ 1 HĐ thực cấp · 3 tháng gần nhất cộng lại = 3mAA · tháng từ báo cáo tháng = ĐL có nộp HĐ có phí', f0] }, k = T[S.trendTab] ? S.trendTab : 'fyp';
+    return `<section class="panel" id="trend-panel"><div class="panel-h"><div><h3>${T[k][0]}</h3><p>${T[k][1]}</p></div><div class="tabs" style="margin:0;border:0">${Object.entries(T).map(([kk, v]) => `<button data-trend="${kk}" class="${kk === k ? 'on' : ''}">${v[0].replace(' theo tháng', '')}</button>`).join('')}</div></div>
+      <div class="panel-b">${barChart(items(k), { fmt: T[k][2], big: true, h: 250 })}${legend}</div></section>`; })()}
   <section class="panel"><div class="panel-h"><div><h3>Khu vực · ${mLabel(ym)}</h3><p>Sắp xếp theo FYP · ${DS.areas.length} khu vực</p></div></div><div class="panel-b" style="padding-top:6px">${areaTable}</div></section>
   ${mapaHtml}
   <p class="note">Nguồn: ${DS.meta.sources.map((s) => `${esc(s.file)} (${esc(s.period || '')})`).join(' · ')}</p>`;
   $$('[data-area]', c).forEach((tr) => tr.onclick = () => { S.area = tr.dataset.area; S.open.clear(); location.hash = 'health'; });
   $$('[data-goto-titles]', c).forEach((el) => el.onclick = () => { S.titleTab = el.dataset.gotoTitles; location.hash = 'titles'; });
   bindMemoFocus(c);
+  $$('[data-trend]', c).forEach((b) => b.onclick = () => { S.trendTab = b.dataset.trend; const y = scrollY; render(); scrollTo(0, y); });
   $$('[data-ops-t]', c).forEach((b) => b.onclick = () => { if (!S.opsHide) S.opsHide = new Set(['aatgt']); const k = b.dataset.opsT; S.opsHide.has(k) ? S.opsHide.delete(k) : S.opsHide.add(k); b.classList.toggle('off', S.opsHide.has(k)); $('.ops-chart', c).classList.toggle('hide-' + k, S.opsHide.has(k)); });
   bindMapa(c);
 }
