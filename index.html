@@ -111,12 +111,21 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .ops-chart .fut-bg{fill:#f8f9fb}.ops-chart .gap-aa{fill:#fda29b;opacity:.6}.ops-chart text.gap-t.aa{font-size:10.5px}
 .chart.big text{font-size:12px}.chart.big text.val{font-size:12.5px;font-weight:700}
 .spk{display:inline-flex;align-items:flex-end;gap:2px;height:22px;vertical-align:middle}.spk i{display:block;width:6px;background:var(--green);border-radius:2px}
-.mf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
-.mf-card{border:1px solid var(--line-2);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;background:#fff}.mf-card.pin{border-color:#f79009;box-shadow:0 0 0 2px #fef0c7}
-.mf-h{display:flex;gap:5px;flex-wrap:wrap;align-items:center}.mf-d{margin-left:auto;font-size:11.5px;color:var(--muted)}.mf-d.err{color:#b42318;font-weight:600}
-.mf-t{font-size:14px;line-height:1.35;cursor:pointer}.mf-t:hover{color:var(--green-d);text-decoration:underline}.mf-s{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.5}
-.mf-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.mf-stats>div{background:#f8fafc;border-radius:9px;padding:6px 8px;display:grid}.mf-stats b{font-size:18px}.mf-stats small{font-size:10.5px;color:var(--muted);line-height:1.3}
-.mf-l{margin:0;font-size:12px;line-height:1.5}.mf-a{margin:0;font-size:12px;background:#ecfdf3;border-radius:8px;padding:6px 8px;color:#05603a}.mf-f{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.mf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.mf-card{border:1px solid var(--line-2);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff}.mf-card.pin{border-color:#f79009;box-shadow:0 0 0 2px #fef0c7}
+.mf-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.mf-cat{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.mf-pill{font-size:11.5px;padding:2px 9px;border-radius:999px;background:#f2f4f7;color:var(--ink-2);white-space:nowrap}.mf-pill.hot{background:#fef3f2;color:#b42318;font-weight:600}
+.mf-t{margin:0;font-size:16px;line-height:1.3}.mf-b{margin:0;font-size:13px;color:var(--ink-2);line-height:1.5}
+.mf-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px}.mf-stats>div{border-radius:12px;padding:10px;background:#f8fafc;display:grid;gap:2px}
+.mf-stats>div.ok{background:#ecfdf3}.mf-stats>div.warn{background:#fffaeb}.mf-stats b{font-size:24px;line-height:1}.mf-stats small{font-size:11.5px;color:var(--ink-2);line-height:1.3}
+.mf-det{border:1px solid var(--line-2);border-radius:10px;padding:0 10px}.mf-det summary{cursor:pointer;padding:8px 0;font-size:13px;font-weight:600;color:var(--green-d)}.mf-det[open]{padding-bottom:8px}
+.mf-tbl{width:100%;border-collapse:collapse;font-size:12.5px}.mf-tbl th{text-align:left;white-space:nowrap;font-weight:600;color:var(--muted);font-size:11px;padding:4px 6px;border-bottom:1px solid var(--line-2)}.mf-tbl td{padding:5px 6px;border-bottom:1px solid #f2f4f7;white-space:nowrap}
+.mf-tbl td small{display:block;color:var(--muted);font-size:10.5px}.mf-tbl a{color:inherit;font-weight:600}
+.mf-a{margin:0;font-size:12.5px;line-height:1.5;color:#05603a;background:#ecfdf3;border-radius:10px;padding:8px 10px}.mf-a::before{content:'Gợi ý: ';font-weight:700}
+.mf-f{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.mf-more{margin-top:14px}.mf-more summary{cursor:pointer;font-weight:600;font-size:14px;padding:6px 0}
+.mf-list td small{display:block;color:var(--muted);font-size:11.5px;white-space:normal;margin-top:2px}.mf-list td{white-space:normal}.mf-link{cursor:pointer}.mf-link:hover{color:var(--green-d)}
+.mf-mini{display:inline-block;margin:0 10px 2px 0;font-size:12px;color:var(--ink-2)}.mf-mini b{font-size:14px;color:var(--ink)}
 .ops-legend{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:6px;font-size:12px}
 .ops-legend .lg-static{display:inline-flex;align-items:center;gap:5px;color:var(--muted);margin-right:6px}.ops-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
 .lg-t{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}.lg-t.off{opacity:.45;text-decoration:line-through}
@@ -1593,20 +1602,19 @@ const codeKey = (p) => String(p.code || p.title || '').replace(/\s+/g, '').slice
 const isNewUMSince = (a, ym) => a && a.um && (a.t || '').toUpperCase() === 'UM' && String(a.td || '').slice(0, 7) >= ym && !(a.gtf_date || DS.gtf.has(a.c)) && String(a.j || '').slice(0, 7) < String(a.td || '').slice(0, 7);
 const nm = (a) => `<a href="#" data-open="${esc(a.c)}">${esc(a.n)}</a>`;
 // 0024M09 – Thưởng tăng tốc doanh số 09–12/2026: FYP cá nhân cộng dồn ≥ 200 tr / 300 tr, ≥ 3 tháng có 1CC, P13 ≥ 75%
+// bảng người cần đẩy: { title, cols, rows: [[a, ...cells]] }
 function rule0024(list) {
   const M = DS.months, idx = M.map((m, i) => (m >= '2026-09' && m <= '2026-12' ? i : -1)).filter((i) => i >= 0);
-  const left = M.length ? 12 - +M[3].slice(5, 7) + 1 : 0;
   const rows = list.map((a) => ({ a, cum: sum(idx, (i) => a.fyp[i]), mcc: idx.filter((i) => N(a.cc[i]) > 0).length, p13: a.p13 })).filter((r) => r.cum > 0);
-  const t3 = rows.filter((r) => r.cum >= 300000), t2 = rows.filter((r) => r.cum >= 200000 && r.cum < 300000), near = rows.filter((r) => r.cum >= 100000 && r.cum < 200000).sort((x, y) => y.cum - x.cum);
-  const p13r = [...t3, ...t2, ...near].filter((r) => r.p13 != null && N(r.p13) < 75);
-  return { stats: [[f0(t3.length), 'đã ≥ 300 tr (5% FYP + 15% 2RYP)'], [f0(t2.length), 'đã ≥ 200 tr (10% 2RYP)'], [f0(near.length), 'đang 100–200 tr – nhóm cần đẩy']],
-    lines: [near.length ? `Gần mốc 200 tr: ${near.slice(0, 6).map((r) => `${nm(r.a)} (${money(r.cum)}, cần ${money(200000 - r.cum)})`).join(', ')}` : '',
-      t2.length ? `Gần mốc 300 tr: ${t2.sort((x, y) => y.cum - x.cum).slice(0, 4).map((r) => `${nm(r.a)} (${money(r.cum)})`).join(', ')}` : '',
-      p13r.length ? `⚠ ${p13r.length} người đạt/gần đạt nhưng P13 < 75% – cần giữ hợp đồng năm 2: ${p13r.slice(0, 4).map((r) => nm(r.a)).join(', ')}` : '',
-      `Điều kiện ≥ 3 tháng có 1 HĐ trong T09–T12: ${rows.filter((r) => r.mcc >= 1).length} người đã có ≥1 tháng; còn ${left} tháng (gồm tháng này).`].filter(Boolean),
-    action: 'Lọc FA/UM+ đang 100–200 tr FYP cộng dồn từ T09 để có kế hoạch hẹn gặp khách; nhắc giữ P13 ≥ 75% và đều tay mỗi tháng ít nhất 1 HĐ.' };
+  const t3 = rows.filter((r) => r.cum >= 300000), t2 = rows.filter((r) => r.cum >= 200000 && r.cum < 300000).sort((x, y) => y.cum - x.cum), near = rows.filter((r) => r.cum >= 100000 && r.cum < 200000).sort((x, y) => y.cum - x.cum);
+  const p13 = (r) => (r.p13 == null ? '–' : N(r.p13) < 75 ? `<span class="err">${f1(r.p13)}%</span>` : `${f1(r.p13)}%`);
+  return { stats: [[t3.length, 'đạt mốc 300 tr', 'ok'], [t2.length, 'đạt mốc 200 tr', 'ok'], [near.length, 'đang 100–200 tr · cần đẩy', 'warn']],
+    tables: [
+      { title: `Cần đẩy lên mốc 200 tr (${near.length})`, cols: ['FYP từ T09', 'Còn thiếu', 'Tháng có HĐ', 'P13'], rows: near.map((r) => [r.a, money(r.cum), `<b>${money(200000 - r.cum)}</b>`, `${r.mcc}/3`, p13(r)]) },
+      { title: `Đã qua 200 tr – đẩy lên 300 tr (${t2.length})`, cols: ['FYP từ T09', 'Còn thiếu', 'Tháng có HĐ', 'P13'], rows: t2.map((r) => [r.a, money(r.cum), `<b>${money(300000 - r.cum)}</b>`, `${r.mcc}/3`, p13(r)]) }],
+    action: 'Hẹn gặp khách cho nhóm 100–200 tr, giữ mỗi tháng ít nhất 1 HĐ và P13 ≥ 75%.' };
 }
-// 0025M09 – PDV thúc đẩy kinh doanh nhóm (UM+, hằng tháng 09–12/2026): FYP nhóm trực tiếp ≥ 100 tr (luật 50), ≥ 3 ĐL trực tiếp có 1CC (UM+ cũng có 1CC), P13 nhóm ≥ 75% → 10 tr/tháng
+// 0025M09 – PDV thúc đẩy kinh doanh nhóm (UM+, hằng tháng 09–12/2026)
 function pdvGroup(u, i) {
   const fa = u.kids.filter((k) => !k.um), nu = u.kids.filter((k) => isNewUMSince(k, '2026-09'));
   const others = sum(fa, (k) => k.fyp[i]) + sum(nu, (k) => N(k.fyp[i]) + sum(k.team(), (z) => z.fyp[i]));
@@ -1615,25 +1623,48 @@ function pdvGroup(u, i) {
   return { total, n1, selfCc: N(u.cc[i]) > 0, ok: total >= 100000 && n1 >= 3 && N(u.cc[i]) > 0 };
 }
 function rule0025(list) {
-  const ums = list.filter((a) => a.um), last = pdv(2), cur = pdv(3);
-  function pdv(i) { return ums.map((u) => ({ u, ...pdvGroup(u, i) })); }
-  const okLast = last.filter((r) => r.ok), near = cur.filter((r) => !r.ok && (r.total >= 50000 || r.n1 >= 2)).sort((x, y) => y.total - x.total);
-  const miss1 = last.filter((r) => !r.ok && [r.total >= 100000, r.n1 >= 3, r.selfCc].filter(Boolean).length === 2);
-  return { stats: [[f0(okLast.length), `UM+ đạt ${mLabel(DS.months[2])} (≈ ${money(okLast.length * 10000)} PDV)`], [f0(miss1.length), `UM+ ${mLabel(DS.months[2])} chỉ thiếu 1 điều kiện`], [f0(cur.filter((r) => r.ok).length), `UM+ đã đạt ${mLabel(DS.months[3])} đến nay`]],
-    lines: [miss1.length ? `Thiếu 1 điều kiện ở ${mLabel(DS.months[2])}: ${miss1.slice(0, 6).map((r) => `${nm(r.u)} (${money(r.total)} · ${r.n1} ĐL 1HĐ${r.selfCc ? '' : ' · bản thân chưa có HĐ'})`).join(', ')}` : '',
-      near.length ? `Đang chạy ${mLabel(DS.months[3])}: ${near.slice(0, 6).map((r) => `${nm(r.u)} (${money(r.total)} · ${r.n1}/3 ĐL)`).join(', ')}` : ''].filter(Boolean),
-    action: 'Mỗi UM+ cần 3 FA trực tiếp có HĐ + bản thân 1 HĐ + 100 tr FYP nhóm trực tiếp trong tháng; FYP nhóm của UM mới (thăng cấp từ 09/2026) được cộng – ưu tiên kèm UM+ đang thiếu 1 điều kiện.' };
+  const ums = list.filter((a) => a.um), pdv = (i) => ums.map((u) => ({ u, ...pdvGroup(u, i) }));
+  const last = pdv(2), cur = pdv(3);
+  const okLast = last.filter((r) => r.ok), miss1 = last.filter((r) => !r.ok && [r.total >= 100000, r.n1 >= 3, r.selfCc].filter(Boolean).length === 2).sort((x, y) => y.total - x.total);
+  const near = cur.filter((r) => !r.ok && (r.total >= 50000 || r.n1 >= 2)).sort((x, y) => y.total - x.total);
+  const ck = (b, t) => (b ? `<span class="ok">✓ ${t}</span>` : `<span class="err">${t}</span>`);
+  const cells = (r) => [ck(r.total >= 100000, money(r.total)), ck(r.n1 >= 3, `${r.n1}/3`), ck(r.selfCc, r.selfCc ? 'có' : 'chưa')];
+  return { stats: [[okLast.length, `UM+ đạt ${mLabel(DS.months[2])}`, 'ok'], [miss1.length, `thiếu 1 điều kiện ${mLabel(DS.months[2])}`, 'warn'], [cur.filter((r) => r.ok).length, `đã đạt ${mLabel(DS.months[3])}`, '']],
+    tables: [
+      { title: `Đang chạy ${mLabel(DS.months[3])} – gần đạt (${near.length})`, cols: ['FYP nhóm ≥ 100 tr', 'ĐL có HĐ', 'UM+ có HĐ'], rows: near.map((r) => [r.u, ...cells(r)]) },
+      { title: `${mLabel(DS.months[2])} thiếu đúng 1 điều kiện (${miss1.length})`, cols: ['FYP nhóm ≥ 100 tr', 'ĐL có HĐ', 'UM+ có HĐ'], rows: miss1.map((r) => [r.u, ...cells(r)]) }],
+    action: 'Kèm UM+ đang thiếu 1 điều kiện: thường chỉ cần thêm 1 FA có HĐ hoặc 1 HĐ của chính UM+.' };
 }
 function ruleFocus(p, list) {
   const k = codeKey(p);
   if (k === '0024M09') return rule0024(list);
   if (k === '0025M09') return rule0025(list);
-  if (k === '0027M01' || k === '0028M01' || k === '0038M01') { const r = list.map((a) => N(a.mdrtf) / MDRT[0].v); return { stats: [[f0(r.filter((x) => x >= 1).length), 'đang đạt MDRT'], [f0(r.filter((x) => x >= 0.8 && x < 1).length), 'đạt 80–99%'], [f0(r.filter((x) => x >= 0.6 && x < 0.8).length), 'đạt 60–79%']], lines: [], action: 'Tập trung nhóm 60–99% MDRT-FYP: mỗi HĐ lớn cuối năm đổi được danh hiệu + vé hội nghị.', link: 'mdrt' }; }
-  if (k === '0050M01' || /MBA PRO/i.test(p.title)) { const ums = list.filter((a) => a.um).map(mbaProg); return { stats: [[f0(ums.filter((x) => x.held).length), 'UM+ có MBA Pro tạm tính'], [f0(ums.filter((x) => x.r >= 0.75 && x.r < 1).length), 'UM+ đủ ≥ 3/4 tiến độ'], [f0(list.filter(isNewUM).length), `UM mới ${evalYear()}`]], lines: [], action: 'Mỗi ĐL tuyển mới có 1 HĐ & 16 tr và mỗi UM mới đều tính vào MBA Pro – xem gợi ý "tính cho ai" trong chi tiết UM+.', link: 'mba' }; }
-  if (k === '0019M07' || k === '0017M09' || /GTF/i.test(p.title)) { const g = DS.gtfPipe.filter((x) => DS.areaSet.has(x.a)).map(gtfEval); return { stats: [[f0(g.filter((e) => e.st === 'urgent').length), 'ứng viên GTF sắp hết hạn'], [f0(g.filter((e) => e.st === 'file').length), 'chỉ còn chờ hồ sơ'], [f0(g.filter((e) => e.done).length), 'đã đạt bổ nhiệm']], lines: [], action: 'Hoàn thiện hồ sơ và kèm ứng viên GTF đạt 2 ĐL tuyển + 2 ĐL có SX trước hạn đánh giá.', link: 'gtf' }; }
-  if (k === '0002M06' || k === '0019M09' || k === '0004M09') { const fa = list.filter((a) => !a.um && N(a.ump) >= 0.7); return { stats: [[f0(fa.length), 'FA tiến độ UM ≥ 70%'], [f0(list.filter((a) => a.um && !a.kids.some((x) => isActive(x, 2))).length), 'UM+ chưa có CA trực tiếp bán T trước']], lines: [], action: k === '0004M09' || k === '0019M09' ? 'ĐL chuyển đổi chứng chỉ MIT thành công và có sản xuất được tính như 1 ĐL tuyển trực tiếp có sản xuất – rà danh sách ĐL chưa chuyển đổi để kích hoạt lại.' : 'FYC toàn nhóm 06–08/2026 được cộng thêm 100% – xét lại các UM+ sát chuẩn thăng cấp.', link: 'um' }; }
-  if (/manulife pro b[aạ]c|fast/i.test(p.title) || k === '0001M02') { const ft = fastTrack(list).filter((x) => x.t <= 2); return { stats: [[f0(ft.filter((x) => x.status === 'pot').length), 'ĐL mới tiềm năng fast-track'], [f0(ft.length), 'ĐL mới M0–M2']], lines: [], action: 'ĐL mới cần 3 HĐ + 40 tr FYP + SBW + ĐNCC 4 buổi/tháng trong M0–M2.', link: 'fast' }; }
+  if (k === '0027M01' || k === '0028M01' || k === '0038M01') { const r = list.map((a) => N(a.mdrtf) / MDRT[0].v); return { key: 'mdrt', stats: [[r.filter((x) => x >= 1).length, 'đang đạt MDRT', 'ok'], [r.filter((x) => x >= 0.8 && x < 1).length, 'đạt 80–99%', 'warn'], [r.filter((x) => x >= 0.6 && x < 0.8).length, 'đạt 60–79%', '']], action: 'Ưu tiên nhóm 80–99%: 1–2 HĐ lớn cuối năm là đạt danh hiệu.', link: 'mdrt' }; }
+  if (k === '0050M01' || /MBA PRO/i.test(p.title)) { const ums = list.filter((a) => a.um).map(mbaProg); return { key: 'mba', stats: [[ums.filter((x) => x.held).length, 'UM+ có MBA Pro tạm tính', 'ok'], [ums.filter((x) => x.r >= 0.75 && x.r < 1).length, 'UM+ đủ ≥ 3/4 tiến độ', 'warn'], [list.filter(isNewUM).length, `UM mới ${evalYear()}`, '']], action: 'Mỗi ĐL tuyển mới có 1 HĐ & 16 tr và mỗi UM mới đều tính vào MBA Pro.', link: 'mba' }; }
+  if (k === '0019M07' || k === '0017M09' || /GTF/i.test(p.title)) { const g = DS.gtfPipe.filter((x) => DS.areaSet.has(x.a)).map(gtfEval); return { key: 'gtf', stats: [[g.filter((e) => e.st === 'urgent').length, 'ứng viên GTF sắp hết hạn', 'warn'], [g.filter((e) => e.st === 'file').length, 'chỉ còn chờ hồ sơ', ''], [g.filter((e) => e.done).length, 'đã đạt bổ nhiệm', 'ok']], action: 'Hoàn thiện hồ sơ, kèm ứng viên đạt 2 ĐL tuyển + 2 ĐL có SX trước hạn.', link: 'gtf' }; }
+  if (k === '0002M06' || k === '0019M09' || k === '0004M09') return { key: 'um', stats: [[list.filter((a) => !a.um && N(a.ump) >= 0.7).length, 'FA tiến độ UM ≥ 70%', 'warn'], [list.filter((a) => a.um && !a.kids.some((x) => isActive(x, 2))).length, 'UM+ chưa có CA trực tiếp bán', '']], action: k === '0002M06' ? 'FYC nhóm 06–08/2026 được cộng thêm 100% – xét lại UM+ sát chuẩn thăng cấp.' : 'ĐL chuyển đổi MIT thành công và có SX được tính như 1 ĐL tuyển trực tiếp có SX.', link: 'um' };
+  if (/manulife pro b[aạ]c|fast/i.test(p.title) || k === '0001M02') { const ft = fastTrack(list).filter((x) => x.t <= 2); return { key: 'fast', stats: [[ft.filter((x) => x.status === 'pot').length, 'ĐL mới tiềm năng fast-track', 'warn'], [ft.length, 'ĐL mới M0–M2', '']], action: 'ĐL mới cần 3 HĐ + 40 tr FYP + SBW + ĐNCC 4 buổi/tháng trong M0–M2.', link: 'fast' }; }
   return null;
+}
+// tên & lợi ích dễ hiểu cho các memo hay dùng
+const MEMO_NAME = {
+  '0024M09': ['Thưởng tăng tốc doanh số T09–T12', 'FYP cá nhân cộng dồn ≥ 200 tr → thưởng 10% phí năm 2 · ≥ 300 tr → thêm 5% FYP'],
+  '0025M09': ['Phí dịch vụ thúc đẩy kinh doanh nhóm', 'UM+ nhận 10 tr/tháng: FYP nhóm trực tiếp ≥ 100 tr + 3 ĐL có HĐ + UM+ có HĐ'],
+  '0019M09': ['Hỗ trợ thăng cấp & duy trì UM+', 'ĐL chuyển đổi MIT thành công & có SX = 1 ĐL tuyển trực tiếp có SX'],
+  '0004M09': ['Hỗ trợ chuyển đổi chứng chỉ MIT', 'UM+ nhận phí khi ĐL được phân bổ chuyển đổi MIT & hoạt động lại'],
+  '0002M06': ['Hỗ trợ thăng cấp UM+ T06–T12', 'Cộng thêm 100% FYC nhóm T06–T08 vào tiêu chí thăng cấp'],
+  '0001M06': ['Hỗ trợ thăng cấp PSM+/HKD', 'Cộng thêm 100% FYP & 1mAA T06–T08 vào tiêu chí thăng cấp'],
+  '0017M09': ['Chương trình nhà tuyển dụng MAC', 'PSM+/HKD tuyển GTF MAC thành công nhận 50 tr / người'],
+  '0019M07': ['Hỗ trợ tuyển dụng UM GTF', 'UM+ tuyển UM GTF đạt chuẩn nhận 10 tr / người'],
+  '0050M01': ['MBA Pro 2027', 'Đánh giá cả năm 2026: ĐL mới có SX, FYC 250/350/500 tr, 1 UM mới, P13 ≥ 70%'],
+  '0027M01': ['MDRT 2027', 'MDRT-FYP 2026 ≥ 1,07 tỷ (COT 3,22 tỷ · TOT 6,44 tỷ)'],
+  '0038M01': ['Hành trình M-Star 2027', 'Vé hội nghị nước ngoài theo FYP cá nhân & P13'],
+};
+function memoName(p) {
+  const m = MEMO_NAME[codeKey(p)]; if (m) return m;
+  const t = String(p.title || '').replace(/^\s*\d{4}[A-Z]?M\d{2}\s+\d{4}\s*/i, '').trim();
+  const sum1 = String(p.summary || '').split(/[:.;]/)[0];
+  return [t || p.title, sum1.length > 140 ? sum1.slice(0, 140) + '…' : sum1];
 }
 function memoFocus(list) {
   if (!LIB) return null;
@@ -1655,16 +1686,27 @@ function memoFocus(list) {
 let FOCUS_PINS = {};
 function memoFocusHtml(list) {
   if (!LIB) return `<section class="panel memo-focus"><div class="panel-b"><p class="note" style="margin:0">Đang tải memo trọng tâm tháng…</p></div></section>`;
-  const all = memoFocus(list) || [], top = all.slice(0, S.focusAll ? 30 : 6), ym = DS.months[3];
-  const card = ({ p, days, rule, pinned }) => `<div class="mf-card${pinned ? ' pin' : ''}">
-    <div class="mf-h"><span class="badge b-blue">${esc(p.category || '')}</span>${(p.audience || []).map((x) => `<span class="badge">${esc(x)}</span>`).join('')}<span class="mf-d ${days !== null && days <= 31 ? 'err' : ''}">${days === null ? 'dài hạn' : days < 0 ? 'đã hết hạn' : `còn ${days} ngày · đến ${dmy(p.end_date)}`}</span></div>
-    <b class="mf-t" data-lib="${esc(p.id)}" role="button" tabindex="0">${esc(p.title)}</b>
-    <p class="mf-s">${esc(p.summary || '')}</p>
-    ${rule ? `<div class="mf-stats">${rule.stats.map(([v, l]) => `<div><b class="num">${v}</b><small>${esc(l)}</small></div>`).join('')}</div>${rule.lines.map((l) => `<p class="mf-l">${l}</p>`).join('')}<p class="mf-a">👉 ${esc(rule.action)}</p>` : ''}
-    <div class="mf-f">${rule?.link ? `<button class="btn btn-sm" data-goto-titles="${rule.link}">Xem danh sách</button>` : ''}<button class="btn btn-sm btn-ghost" data-lib="${esc(p.id)}">Đọc memo</button>${isAdmin ? `<button class="btn btn-sm btn-ghost" data-pin="${esc(p.id)}">${pinned ? '★ Bỏ ghim' : '☆ Ghim tháng này'}</button>` : ''}</div></div>`;
-  return `<section class="panel memo-focus"><div class="panel-h"><div><h3>🎯 Memo trọng tâm ${mLabel(ym)} · thúc đẩy doanh số</h3><p>Chương trình đang hiệu lực trong tháng, ưu tiên thi đua / hỗ trợ hoạt động / sản phẩm / tuyển dụng sắp hết hạn; số liệu "ai đang gần đạt" tính cho ${esc(scopeLabel())} từ BC70 chốt ${dmy(DS.meta.asOf)}${isAdmin ? ' · admin có thể ghim memo lên đầu' : ''}.</p></div>
-    ${all.length > 6 ? `<button class="btn btn-sm" id="mf-more">${S.focusAll ? 'Thu gọn' : `Xem tất cả ${all.length}`}</button>` : ''}</div>
-    <div class="panel-b"><div class="mf-grid">${top.map(card).join('') || '<p class="note">Không có memo đang hiệu lực trong tháng.</p>'}</div></div></section>`;
+  const all = memoFocus(list) || [], ym = DS.months[3];
+  // tránh lặp số liệu: mỗi nhóm số (MDRT, MBA, UM…) chỉ hiện ở memo đầu tiên
+  const used = new Set(); for (const x of all) { if (x.rule?.key) { if (used.has(x.rule.key)) x.rule = null; else used.add(x.rule.key); } }
+  const focus = all.filter((x) => x.rule && (x.rule.tables || x.pinned)).slice(0, 3), focusIds = new Set(focus.map((x) => x.p.id));
+  const others = all.filter((x) => !focusIds.has(x.p.id));
+  const dl = (days) => (days === null ? '<span class="mf-pill">dài hạn</span>' : `<span class="mf-pill ${days <= 31 ? 'hot' : ''}">còn ${days} ngày</span>`);
+  const tbl = (t) => `<details class="mf-det"><summary>${esc(t.title)}</summary>${t.rows.length ? `<table class="mf-tbl"><thead><tr><th>Người</th>${t.cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${t.rows.slice(0, 12).map(([a, ...c]) => `<tr><td><a href="#" data-open="${esc(a.c)}">${esc(a.n)}</a><small>${esc(a.a)}</small></td>${c.map((x) => `<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table>${t.rows.length > 12 ? `<p class="note" style="margin:4px 0 0">+ ${t.rows.length - 12} người khác</p>` : ''}` : '<p class="note" style="margin:6px 0 0">Chưa có ai.</p>'}</details>`;
+  const card = ({ p, days, rule, pinned }) => { const [name, benefit] = memoName(p); return `<div class="mf-card${pinned ? ' pin' : ''}">
+    <div class="mf-top"><span class="mf-cat">${esc(p.category || '')} · ${esc((p.audience || []).join(', '))}</span>${dl(days)}</div>
+    <h4 class="mf-t">${esc(name)}</h4><p class="mf-b">${esc(benefit)}</p>
+    <div class="mf-stats">${rule.stats.map(([v, l, c]) => `<div class="${c || ''}"><b class="num">${f0(v)}</b><small>${esc(l)}</small></div>`).join('')}</div>
+    ${(rule.tables || []).map(tbl).join('')}
+    <p class="mf-a">${esc(rule.action)}</p>
+    <div class="mf-f">${rule.link ? `<button class="btn btn-sm" data-goto-titles="${rule.link}">Xem danh sách</button>` : ''}<button class="btn btn-sm btn-ghost" data-lib="${esc(p.id)}">Đọc memo</button>${isAdmin ? `<button class="btn btn-sm btn-ghost" data-pin="${esc(p.id)}" title="Ghim lên đầu tháng này">${pinned ? '★' : '☆'}</button>` : ''}</div></div>`; };
+  const row = ({ p, days, rule, pinned }) => { const [name, benefit] = memoName(p); return `<tr><td><b class="mf-link" data-lib="${esc(p.id)}" role="button" tabindex="0">${pinned ? '★ ' : ''}${esc(name)}</b><small>${esc(benefit)}</small></td><td class="muted small">${esc((p.audience || []).join(', '))}</td>
+    <td>${rule ? rule.stats.slice(0, 2).map(([v, l]) => `<span class="mf-mini"><b>${f0(v)}</b> ${esc(l)}</span>`).join('') : '<span class="muted small">–</span>'}</td><td class="r">${dl(days)}</td>
+    <td class="r" style="white-space:nowrap">${rule?.link ? `<button class="btn btn-sm btn-ghost" data-goto-titles="${rule.link}">Danh sách</button>` : ''}${isAdmin ? `<button class="btn btn-sm btn-ghost" data-pin="${esc(p.id)}">${pinned ? '★' : '☆'}</button>` : ''}</td></tr>`; };
+  return `<section class="panel memo-focus"><div class="panel-h"><div><h3>🎯 Trọng tâm ${mLabel(ym)} · chương trình giúp tăng doanh số</h3><p>${esc(scopeLabel())} · số liệu BC70 chốt ${dmy(DS.meta.asOf)} · bấm "Người cần đẩy" để xem danh sách</p></div></div>
+    <div class="panel-b">${focus.length ? `<div class="mf-grid">${focus.map(card).join('')}</div>` : ''}
+    ${others.length ? `<details class="mf-more" ${S.focusAll ? 'open' : ''}><summary>Chương trình khác đang chạy (${others.length})</summary><div class="tbl-wrap"><table class="tbl mf-list"><thead><tr><th>Chương trình</th><th>Đối tượng</th><th>Trong phạm vi</th><th class="r">Hạn</th><th></th></tr></thead><tbody>${others.map(row).join('')}</tbody></table></div></details>` : ''}
+    ${!all.length ? '<p class="note">Không có memo đang hiệu lực trong tháng.</p>' : ''}</div></section>`;
 }
 function bindMemoFocus(c) {
   const box = $('#memo-focus', c); if (!box) return;
@@ -1673,7 +1715,7 @@ function bindMemoFocus(c) {
     $$('[data-lib]', box).forEach((el) => { el.onclick = (e) => { e.stopPropagation(); openPolicy(el.dataset.lib); }; });
     $$('[data-goto-titles]', box).forEach((el) => el.onclick = () => { S.titleTab = el.dataset.gotoTitles; location.hash = 'titles'; });
     $$('[data-open]', box).forEach((el) => el.onclick = (e) => { e.preventDefault(); openPerson(el.dataset.open); });
-    const more = $('#mf-more', box); if (more) more.onclick = () => { S.focusAll = !S.focusAll; draw(); };
+    const more = $('.mf-more', box); if (more) more.ontoggle = () => { S.focusAll = more.open; };
     $$('[data-pin]', box).forEach((b) => b.onclick = async () => {
       const ym = DS.months[3], id = b.dataset.pin, cur = new Set(FOCUS_PINS[ym] || []); cur.has(id) ? cur.delete(id) : cur.add(id);
       FOCUS_PINS = { ...FOCUS_PINS, [ym]: [...cur] };
