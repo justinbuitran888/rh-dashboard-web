@@ -110,6 +110,12 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .ops-chart.hide-tgt .s-tgt,.ops-chart.hide-plan .s-plan,.ops-chart.hide-aa .s-aa,.ops-chart.hide-req .s-req,.ops-chart.hide-req .gap-aa,.ops-chart.hide-req .gap-t.aa,.ops-chart.hide-aatgt .s-aatgt{display:none}
 .ops-chart .fut-bg{fill:#f8f9fb}.ops-chart .gap-aa{fill:#fda29b;opacity:.6}.ops-chart text.gap-t.aa{font-size:10.5px}
 .spk{display:inline-flex;align-items:flex-end;gap:2px;height:22px;vertical-align:middle}.spk i{display:block;width:6px;background:var(--green);border-radius:2px}
+.mf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.mf-card{border:1px solid var(--line-2);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;background:#fff}.mf-card.pin{border-color:#f79009;box-shadow:0 0 0 2px #fef0c7}
+.mf-h{display:flex;gap:5px;flex-wrap:wrap;align-items:center}.mf-d{margin-left:auto;font-size:11.5px;color:var(--muted)}.mf-d.err{color:#b42318;font-weight:600}
+.mf-t{font-size:14px;line-height:1.35;cursor:pointer}.mf-t:hover{color:var(--green-d);text-decoration:underline}.mf-s{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.mf-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.mf-stats>div{background:#f8fafc;border-radius:9px;padding:6px 8px;display:grid}.mf-stats b{font-size:18px}.mf-stats small{font-size:10.5px;color:var(--muted);line-height:1.3}
+.mf-l{margin:0;font-size:12px;line-height:1.5}.mf-a{margin:0;font-size:12px;background:#ecfdf3;border-radius:8px;padding:6px 8px;color:#05603a}.mf-f{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
 .ops-legend{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:6px;font-size:12px}
 .ops-legend .lg-static{display:inline-flex;align-items:center;gap:5px;color:var(--muted);margin-right:6px}.ops-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
 .lg-t{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}.lg-t.off{opacity:.45;text-decoration:line-through}
@@ -976,8 +982,8 @@ async function start() {
 async function loadDataset() {
   const r = await sb.from('v10_dataset').select('id,built_at,as_of,payload').order('id', { ascending: false }).limit(1).maybeSingle();
   if (r.error) throw new Error(r.error.message);
-  const st = await sb.from('app_settings').select('key,value').in('key', ['rh_groups', 'rh_area_override']);
-  for (const x of st.data || []) { if (x.key === 'rh_groups') RHG = Array.isArray(x.value) ? x.value : []; if (x.key === 'rh_area_override') RHO = x.value || {}; }
+  const st = await sb.from('app_settings').select('key,value').in('key', ['rh_groups', 'rh_area_override', 'memo_focus']);
+  for (const x of st.data || []) { if (x.key === 'rh_groups') RHG = Array.isArray(x.value) ? x.value : []; if (x.key === 'rh_area_override') RHO = x.value || {}; if (x.key === 'memo_focus') FOCUS_PINS = x.value || {}; }
   DS = r.data ? prepare(r.data) : null;
   if (DS) { applyScope(); await loadNodeTargets(); try { await loadPlan(); } catch (e) { console.warn('plan', e); } }
 }
@@ -1410,12 +1416,14 @@ const monthDiff = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5
 function series6(list) {
   const M = DS.months, g = groupStats(list, 2), s3 = (arr) => arr[0] + arr[1] + arr[2];
   const rf = Math.max(0, sum(list, (a) => a.fyp6) - s3(g.fypM)) / 3, rc = Math.max(0, sum(list, (a) => a.cc6) - s3(g.ccM)) / 3, ra = Math.max(0, sum(list, (a) => a.act6) - s3(g.actM)) / 3;
-  const pts = [-3, -2, -1].map((k) => ({ m: addMonths(M[0], k), fyp: rf, cc: rc, aa: ra, nr: null, est: true }))
+  const pts = [-3, -2, -1].map((k) => { const m = addMonths(M[0], k);
+      if (DS.histMonths?.has(m)) { const hs = histRows(m); if (hs.length) return { m, fyp: sum(hs, (h) => h.fyp), cc: sum(hs, (h) => h.cc), aa: ra, nr: sum(hs, (h) => h.nr), rep: true, est: true }; }
+      return { m, fyp: rf, cc: rc, aa: ra, nr: null, est: true }; })
     .concat([0, 1, 2].map((i) => ({ m: M[i], fyp: g.fypM[i], cc: g.ccM[i], aa: g.actM[i], nr: g.nrM[i] })));
   for (const p of pts) { p.cs = p.cc ? p.fyp / p.cc : null; p.cpa = p.aa ? p.cc / p.aa : null; p.fpa = p.aa ? p.fyp / p.aa : null; }
   const md = (k, xs = pts) => median(xs.map((p) => p[k]));
   const med = { fyp: md('fyp'), cc: md('cc'), aa: md('aa'), cs: md('cs'), cpa: md('cpa'), fpa: md('fpa'), nr: md('nr', pts.filter((p) => !p.est)) };
-  const q1 = rf * 3, q2 = s3(g.fypM), gQ = q1 > 0 ? q2 / q1 - 1 : null;
+  const q1 = sum(pts.slice(0, 3), (p) => p.fyp), q2 = s3(g.fypM), gQ = q1 > 0 ? q2 / q1 - 1 : null;
   const gM = gQ === null ? 0 : Math.max(-0.15, Math.min(0.15, Math.pow(1 + gQ, 1 / 3) - 1));
   const base = q2 / 3; // TB T-3..T-1, đặt ở tháng giữa
   return { pts, med, gQ, gM, base, cur: { fyp: g.fypM[3], cc: g.ccM[3], aa: g.actM[3], nr: g.nrM[3] }, hasPrev: q1 > 0,
@@ -1574,6 +1582,107 @@ function segPanel(list) {
   <section class="panel"><div class="panel-h"><div><h3>Đội ngũ UM+ · ${esc(scopeLabel())}</h3><p>CA = đại lý bình thường (không gồm SA) · trực tiếp = báo cáo trực tiếp cho UM+, toàn nhóm = mọi cấp bên dưới</p></div></div><div class="panel-b">${umKpis}</div></section>`;
 }
 
+
+// =====================================================================
+//  MEMO TRỌNG TÂM THÁNG – chương trình đang chạy có thể thúc đẩy doanh số + ai trong phạm vi đang gần đạt
+// =====================================================================
+const FOCUS_CAT = { 'Thi đua tháng': 3, 'Hỗ trợ hoạt động': 2.5, 'Khách hàng & sản phẩm': 2, 'Tuyển dụng & phát triển UM': 2, 'Danh hiệu': 1.6, 'PSM+ / HKD': 1.2, 'Sự kiện & vinh danh': 1 };
+const codeKey = (p) => String(p.code || p.title || '').replace(/\s+/g, '').slice(0, 7).toUpperCase(); // vd 0024M09
+const isNewUMSince = (a, ym) => a && a.um && (a.t || '').toUpperCase() === 'UM' && String(a.td || '').slice(0, 7) >= ym && !(a.gtf_date || DS.gtf.has(a.c)) && String(a.j || '').slice(0, 7) < String(a.td || '').slice(0, 7);
+const nm = (a) => `<a href="#" data-open="${esc(a.c)}">${esc(a.n)}</a>`;
+// 0024M09 – Thưởng tăng tốc doanh số 09–12/2026: FYP cá nhân cộng dồn ≥ 200 tr / 300 tr, ≥ 3 tháng có 1CC, P13 ≥ 75%
+function rule0024(list) {
+  const M = DS.months, idx = M.map((m, i) => (m >= '2026-09' && m <= '2026-12' ? i : -1)).filter((i) => i >= 0);
+  const left = M.length ? 12 - +M[3].slice(5, 7) + 1 : 0;
+  const rows = list.map((a) => ({ a, cum: sum(idx, (i) => a.fyp[i]), mcc: idx.filter((i) => N(a.cc[i]) > 0).length, p13: a.p13 })).filter((r) => r.cum > 0);
+  const t3 = rows.filter((r) => r.cum >= 300000), t2 = rows.filter((r) => r.cum >= 200000 && r.cum < 300000), near = rows.filter((r) => r.cum >= 100000 && r.cum < 200000).sort((x, y) => y.cum - x.cum);
+  const p13r = [...t3, ...t2, ...near].filter((r) => r.p13 != null && N(r.p13) < 75);
+  return { stats: [[f0(t3.length), 'đã ≥ 300 tr (5% FYP + 15% 2RYP)'], [f0(t2.length), 'đã ≥ 200 tr (10% 2RYP)'], [f0(near.length), 'đang 100–200 tr – nhóm cần đẩy']],
+    lines: [near.length ? `Gần mốc 200 tr: ${near.slice(0, 6).map((r) => `${nm(r.a)} (${money(r.cum)}, cần ${money(200000 - r.cum)})`).join(', ')}` : '',
+      t2.length ? `Gần mốc 300 tr: ${t2.sort((x, y) => y.cum - x.cum).slice(0, 4).map((r) => `${nm(r.a)} (${money(r.cum)})`).join(', ')}` : '',
+      p13r.length ? `⚠ ${p13r.length} người đạt/gần đạt nhưng P13 < 75% – cần giữ hợp đồng năm 2: ${p13r.slice(0, 4).map((r) => nm(r.a)).join(', ')}` : '',
+      `Điều kiện ≥ 3 tháng có 1 HĐ trong T09–T12: ${rows.filter((r) => r.mcc >= 1).length} người đã có ≥1 tháng; còn ${left} tháng (gồm tháng này).`].filter(Boolean),
+    action: 'Lọc FA/UM+ đang 100–200 tr FYP cộng dồn từ T09 để có kế hoạch hẹn gặp khách; nhắc giữ P13 ≥ 75% và đều tay mỗi tháng ít nhất 1 HĐ.' };
+}
+// 0025M09 – PDV thúc đẩy kinh doanh nhóm (UM+, hằng tháng 09–12/2026): FYP nhóm trực tiếp ≥ 100 tr (luật 50), ≥ 3 ĐL trực tiếp có 1CC (UM+ cũng có 1CC), P13 nhóm ≥ 75% → 10 tr/tháng
+function pdvGroup(u, i) {
+  const fa = u.kids.filter((k) => !k.um), nu = u.kids.filter((k) => isNewUMSince(k, '2026-09'));
+  const others = sum(fa, (k) => k.fyp[i]) + sum(nu, (k) => N(k.fyp[i]) + sum(k.team(), (z) => z.fyp[i]));
+  const self = N(u.fyp[i]), total = others + Math.min(self, others > 0 ? others : self);
+  const n1 = fa.filter((k) => N(k.cc[i]) > 0).length;
+  return { total, n1, selfCc: N(u.cc[i]) > 0, ok: total >= 100000 && n1 >= 3 && N(u.cc[i]) > 0 };
+}
+function rule0025(list) {
+  const ums = list.filter((a) => a.um), last = pdv(2), cur = pdv(3);
+  function pdv(i) { return ums.map((u) => ({ u, ...pdvGroup(u, i) })); }
+  const okLast = last.filter((r) => r.ok), near = cur.filter((r) => !r.ok && (r.total >= 50000 || r.n1 >= 2)).sort((x, y) => y.total - x.total);
+  const miss1 = last.filter((r) => !r.ok && [r.total >= 100000, r.n1 >= 3, r.selfCc].filter(Boolean).length === 2);
+  return { stats: [[f0(okLast.length), `UM+ đạt ${mLabel(DS.months[2])} (≈ ${money(okLast.length * 10000)} PDV)`], [f0(miss1.length), `UM+ ${mLabel(DS.months[2])} chỉ thiếu 1 điều kiện`], [f0(cur.filter((r) => r.ok).length), `UM+ đã đạt ${mLabel(DS.months[3])} đến nay`]],
+    lines: [miss1.length ? `Thiếu 1 điều kiện ở ${mLabel(DS.months[2])}: ${miss1.slice(0, 6).map((r) => `${nm(r.u)} (${money(r.total)} · ${r.n1} ĐL 1HĐ${r.selfCc ? '' : ' · bản thân chưa có HĐ'})`).join(', ')}` : '',
+      near.length ? `Đang chạy ${mLabel(DS.months[3])}: ${near.slice(0, 6).map((r) => `${nm(r.u)} (${money(r.total)} · ${r.n1}/3 ĐL)`).join(', ')}` : ''].filter(Boolean),
+    action: 'Mỗi UM+ cần 3 FA trực tiếp có HĐ + bản thân 1 HĐ + 100 tr FYP nhóm trực tiếp trong tháng; FYP nhóm của UM mới (thăng cấp từ 09/2026) được cộng – ưu tiên kèm UM+ đang thiếu 1 điều kiện.' };
+}
+function ruleFocus(p, list) {
+  const k = codeKey(p);
+  if (k === '0024M09') return rule0024(list);
+  if (k === '0025M09') return rule0025(list);
+  if (k === '0027M01' || k === '0028M01' || k === '0038M01') { const r = list.map((a) => N(a.mdrtf) / MDRT[0].v); return { stats: [[f0(r.filter((x) => x >= 1).length), 'đang đạt MDRT'], [f0(r.filter((x) => x >= 0.8 && x < 1).length), 'đạt 80–99%'], [f0(r.filter((x) => x >= 0.6 && x < 0.8).length), 'đạt 60–79%']], lines: [], action: 'Tập trung nhóm 60–99% MDRT-FYP: mỗi HĐ lớn cuối năm đổi được danh hiệu + vé hội nghị.', link: 'mdrt' }; }
+  if (k === '0050M01' || /MBA PRO/i.test(p.title)) { const ums = list.filter((a) => a.um).map(mbaProg); return { stats: [[f0(ums.filter((x) => x.held).length), 'UM+ có MBA Pro tạm tính'], [f0(ums.filter((x) => x.r >= 0.75 && x.r < 1).length), 'UM+ đủ ≥ 3/4 tiến độ'], [f0(list.filter(isNewUM).length), `UM mới ${evalYear()}`]], lines: [], action: 'Mỗi ĐL tuyển mới có 1 HĐ & 16 tr và mỗi UM mới đều tính vào MBA Pro – xem gợi ý "tính cho ai" trong chi tiết UM+.', link: 'mba' }; }
+  if (k === '0019M07' || k === '0017M09' || /GTF/i.test(p.title)) { const g = DS.gtfPipe.filter((x) => DS.areaSet.has(x.a)).map(gtfEval); return { stats: [[f0(g.filter((e) => e.st === 'urgent').length), 'ứng viên GTF sắp hết hạn'], [f0(g.filter((e) => e.st === 'file').length), 'chỉ còn chờ hồ sơ'], [f0(g.filter((e) => e.done).length), 'đã đạt bổ nhiệm']], lines: [], action: 'Hoàn thiện hồ sơ và kèm ứng viên GTF đạt 2 ĐL tuyển + 2 ĐL có SX trước hạn đánh giá.', link: 'gtf' }; }
+  if (k === '0002M06' || k === '0019M09' || k === '0004M09') { const fa = list.filter((a) => !a.um && N(a.ump) >= 0.7); return { stats: [[f0(fa.length), 'FA tiến độ UM ≥ 70%'], [f0(list.filter((a) => a.um && !a.kids.some((x) => isActive(x, 2))).length), 'UM+ chưa có CA trực tiếp bán T trước']], lines: [], action: k === '0004M09' || k === '0019M09' ? 'ĐL chuyển đổi chứng chỉ MIT thành công và có sản xuất được tính như 1 ĐL tuyển trực tiếp có sản xuất – rà danh sách ĐL chưa chuyển đổi để kích hoạt lại.' : 'FYC toàn nhóm 06–08/2026 được cộng thêm 100% – xét lại các UM+ sát chuẩn thăng cấp.', link: 'um' }; }
+  if (/manulife pro b[aạ]c|fast/i.test(p.title) || k === '0001M02') { const ft = fastTrack(list).filter((x) => x.t <= 2); return { stats: [[f0(ft.filter((x) => x.status === 'pot').length), 'ĐL mới tiềm năng fast-track'], [f0(ft.length), 'ĐL mới M0–M2']], lines: [], action: 'ĐL mới cần 3 HĐ + 40 tr FYP + SBW + ĐNCC 4 buổi/tháng trong M0–M2.', link: 'fast' }; }
+  return null;
+}
+function memoFocus(list) {
+  if (!LIB) return null;
+  const ym = DS.months[3], mStart = ym + '-01', mEnd = ym + '-' + String(new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate()).padStart(2, '0');
+  const pins = (FOCUS_PINS[ym] || []);
+  const act = LIB.filter((p) => (pins.includes(p.id) || FOCUS_CAT[p.category]) && (!p.start_date || p.start_date <= mEnd) && (!p.end_date || p.end_date >= mStart)
+    && !(p.start_date && p.start_date < addMonths(ym, -9) + '-01' && !p.end_date)); // bỏ thông báo nền cũ không thời hạn
+  const scored = act.map((p) => {
+    const days = p.end_date ? Math.ceil((new Date(p.end_date) - new Date(DS.meta.asOf)) / 864e5) : null;
+    const fresh = p.start_date && p.start_date >= addMonths(ym, -2) + '-01' ? 1.5 : 0;
+    const urgent = days !== null && days <= 100 ? 1.5 - days / 100 : 0;
+    const rule = ruleFocus(p, list);
+    const score = (FOCUS_CAT[p.category] || 1) + fresh + urgent + (rule ? 1.5 : 0) + (pins.includes(p.id) ? 10 : 0);
+    return { p, days, rule, score, pinned: pins.includes(p.id) };
+  }).sort((x, y) => y.score - x.score);
+  // gộp memo trùng mã (bản hiệu chỉnh)
+  const seen = new Set(); return scored.filter((x) => { const k = codeKey(x.p) + (x.p.code ? '' : x.p.title); if (seen.has(k)) return false; seen.add(k); return true; });
+}
+let FOCUS_PINS = {};
+function memoFocusHtml(list) {
+  if (!LIB) return `<section class="panel memo-focus"><div class="panel-b"><p class="note" style="margin:0">Đang tải memo trọng tâm tháng…</p></div></section>`;
+  const all = memoFocus(list) || [], top = all.slice(0, S.focusAll ? 30 : 6), ym = DS.months[3];
+  const card = ({ p, days, rule, pinned }) => `<div class="mf-card${pinned ? ' pin' : ''}">
+    <div class="mf-h"><span class="badge b-blue">${esc(p.category || '')}</span>${(p.audience || []).map((x) => `<span class="badge">${esc(x)}</span>`).join('')}<span class="mf-d ${days !== null && days <= 31 ? 'err' : ''}">${days === null ? 'dài hạn' : days < 0 ? 'đã hết hạn' : `còn ${days} ngày · đến ${dmy(p.end_date)}`}</span></div>
+    <b class="mf-t" data-lib="${esc(p.id)}" role="button" tabindex="0">${esc(p.title)}</b>
+    <p class="mf-s">${esc(p.summary || '')}</p>
+    ${rule ? `<div class="mf-stats">${rule.stats.map(([v, l]) => `<div><b class="num">${v}</b><small>${esc(l)}</small></div>`).join('')}</div>${rule.lines.map((l) => `<p class="mf-l">${l}</p>`).join('')}<p class="mf-a">👉 ${esc(rule.action)}</p>` : ''}
+    <div class="mf-f">${rule?.link ? `<button class="btn btn-sm" data-goto-titles="${rule.link}">Xem danh sách</button>` : ''}<button class="btn btn-sm btn-ghost" data-lib="${esc(p.id)}">Đọc memo</button>${isAdmin ? `<button class="btn btn-sm btn-ghost" data-pin="${esc(p.id)}">${pinned ? '★ Bỏ ghim' : '☆ Ghim tháng này'}</button>` : ''}</div></div>`;
+  return `<section class="panel memo-focus"><div class="panel-h"><div><h3>🎯 Memo trọng tâm ${mLabel(ym)} · thúc đẩy doanh số</h3><p>Chương trình đang hiệu lực trong tháng, ưu tiên thi đua / hỗ trợ hoạt động / sản phẩm / tuyển dụng sắp hết hạn; số liệu "ai đang gần đạt" tính cho ${esc(scopeLabel())} từ BC70 chốt ${dmy(DS.meta.asOf)}${isAdmin ? ' · admin có thể ghim memo lên đầu' : ''}.</p></div>
+    ${all.length > 6 ? `<button class="btn btn-sm" id="mf-more">${S.focusAll ? 'Thu gọn' : `Xem tất cả ${all.length}`}</button>` : ''}</div>
+    <div class="panel-b"><div class="mf-grid">${top.map(card).join('') || '<p class="note">Không có memo đang hiệu lực trong tháng.</p>'}</div></div></section>`;
+}
+function bindMemoFocus(c) {
+  const box = $('#memo-focus', c); if (!box) return;
+  const draw = () => { box.innerHTML = memoFocusHtml(scopeList()); wire(); };
+  const wire = () => {
+    $$('[data-lib]', box).forEach((el) => { el.onclick = (e) => { e.stopPropagation(); openPolicy(el.dataset.lib); }; });
+    $$('[data-goto-titles]', box).forEach((el) => el.onclick = () => { S.titleTab = el.dataset.gotoTitles; location.hash = 'titles'; });
+    $$('[data-open]', box).forEach((el) => el.onclick = (e) => { e.preventDefault(); openPerson(el.dataset.open); });
+    const more = $('#mf-more', box); if (more) more.onclick = () => { S.focusAll = !S.focusAll; draw(); };
+    $$('[data-pin]', box).forEach((b) => b.onclick = async () => {
+      const ym = DS.months[3], id = b.dataset.pin, cur = new Set(FOCUS_PINS[ym] || []); cur.has(id) ? cur.delete(id) : cur.add(id);
+      FOCUS_PINS = { ...FOCUS_PINS, [ym]: [...cur] };
+      const r = await sb.from('app_settings').upsert({ key: 'memo_focus', value: FOCUS_PINS }); if (r.error) alertMsg(r.error.message); draw();
+    });
+  };
+  if (!LIB) ensureLib().then(() => { if (box.isConnected) draw(); }).catch((e) => { box.innerHTML = `<div class="banner warn">Không tải được thư viện: ${esc(e.message)}</div>`; });
+  else wire();
+}
+const alertMsg = (m) => console.warn(m);
+
 function opsSection(list) {
   const M = DS.months, ck = monthClock(), ym = ck.ym, sr = series6(list), med = sr.med;
   const year = ym.slice(0, 4), q0 = addMonths(ym, -((+ym.slice(5, 7) - 1) % 3)), qm = [q0, addMonths(q0, 1), addMonths(q0, 2)];
@@ -1632,6 +1741,7 @@ function opsSection(list) {
   </tbody></table></div><p class="note">Mỗi ô "Cần cho …" = mức cần đạt của yếu tố đó nếu 2 yếu tố còn lại giữ trung vị 6 tháng (target = 1mAA × HĐ/1mAA × case size). Màu: xanh = không cao hơn trung vị, cam ≤ +15%, đỏ > +15%.</p>`;
   return `<section class="panel ops"><div class="panel-h"><div><h3>Điều hành hôm nay · ${esc(scopeLabel())}</h3><p>Dữ liệu BC70 chốt <b>${dmy(DS.meta.asOf)}</b> · ngày ${ck.day}/${ck.dim} của ${mLabel(ym)} (${pct(ck.el)} thời gian) · Target = chỉ tiêu giao, Plan = kế hoạch anh tự đặt</p></div></div>
     <div class="panel-b"><div class="kpis ops-kpis">${kpis}</div></div></section>
+  <div id="memo-focus">${memoFocusHtml(list)}</div>
   <section class="panel"><div class="panel-h"><div><h3>Target vs thực tế: FYP & 1mAA · dự báo đến cuối năm</h3><p>Cột = FYP thực tế (cột viền gạch = dự báo cả tháng) · đường cam = Target FYP · đường đỏ = <b>1mAA cần để đạt target</b> = Target ÷ (HĐ/1mAA ${med.cpa ? nf2.format(med.cpa) : '–'} × case size ${money(med.cs)} = ${money(perAA)} mỗi ĐL có bán, trung vị 6T) · đường xanh dương = 1mAA thực tế, nét đứt = dự báo · ô đỏ = GAP FYP</p></div></div>
     <div class="panel-b">${opsChart(rows)}
       <div class="ops-legend"><span class="lg-static"><i style="background:var(--green)"></i>FYP thực tế <i class="lg-fc"></i>dự báo <i style="background:#fda29b"></i>GAP</span>${[['tgt', '#f79009', 'Target FYP'], ['plan', '#7f56d9', 'Plan FYP'], ['aa', '#1570ef', '1mAA thực tế / dự báo'], ['req', '#d92d20', '1mAA cần để đạt target'], ['aatgt', '#f79009', '1mAA target trong file']].map(([k, c, l]) => { const off = S.opsHide ? S.opsHide.has(k) : k === 'aatgt'; return `<button class="lg-t${off ? ' off' : ''}" data-ops-t="${k}"><i style="background:${c}"></i>${l}</button>`; }).join('')}<small class="muted">bấm để ẩn / hiện · rê chuột vào tháng để xem đủ số</small></div>
@@ -1710,6 +1820,7 @@ function pageOverview(c) {
   <p class="note">Nguồn: ${DS.meta.sources.map((s) => `${esc(s.file)} (${esc(s.period || '')})`).join(' · ')}</p>`;
   $$('[data-area]', c).forEach((tr) => tr.onclick = () => { S.area = tr.dataset.area; S.open.clear(); location.hash = 'health'; });
   $$('[data-goto-titles]', c).forEach((el) => el.onclick = () => { S.titleTab = el.dataset.gotoTitles; location.hash = 'titles'; });
+  bindMemoFocus(c);
   $$('[data-ops-t]', c).forEach((b) => b.onclick = () => { if (!S.opsHide) S.opsHide = new Set(['aatgt']); const k = b.dataset.opsT; S.opsHide.has(k) ? S.opsHide.delete(k) : S.opsHide.add(k); b.classList.toggle('off', S.opsHide.has(k)); $('.ops-chart', c).classList.toggle('hide-' + k, S.opsHide.has(k)); });
   bindMapa(c);
 }
@@ -2695,23 +2806,28 @@ function libStatus(p) {
   if (e && (e - t) / 864e5 <= 14) return 'Sắp hết hạn'; return 'Đang hiệu lực';
 }
 const LIB_TONE = { 'Đang hiệu lực': 'b-green', 'Sắp hết hạn': 'b-amber', 'Sắp áp dụng': 'b-blue', 'Hết hạn': '', 'Tham khảo': 'b-silver' };
+async function ensureLib() {
+  if (LIB) return LIB;
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    const r = await sb.from('policies').select('id,code,title,folder,category,audience,start_date,end_date,summary,points,versions,drive_url,sent').order('start_date', { ascending: false, nullsFirst: false }).range(from, from + 999);
+    if (r.error) throw new Error(r.error.message);
+    out.push(...r.data); if (r.data.length < 1000) break;
+  }
+  LIB = out; return LIB;
+}
 async function pageLibrary(c) {
   if (!LIB) {
     c.innerHTML = '<div class="empty">Đang tải thư viện…</div>';
-    const out = [];
-    for (let from = 0; ; from += 1000) {
-      const r = await sb.from('policies').select('id,code,title,folder,category,audience,start_date,end_date,summary,points,versions,drive_url,sent').order('start_date', { ascending: false, nullsFirst: false }).range(from, from + 999);
-      if (r.error) { c.innerHTML = `<div class="banner warn">${esc(r.error.message)}</div>`; return; }
-      out.push(...r.data); if (r.data.length < 1000) break;
-    }
-    LIB = out;
+    try { await ensureLib(); } catch (e) { c.innerHTML = `<div class="banner warn">${esc(e.message)}</div>`; return; }
+    if (S.page !== 'library') return;
   }
   const cats = ['Tất cả', ...new Set(LIB.map((p) => p.category).filter(Boolean))];
   const q = norm(S.libQ);
   const rows = LIB.map((p) => ({ ...p, st: libStatus(p) })).filter((p) => (S.libCat === 'Tất cả' || p.category === S.libCat)
     && (S.libStatus === 'Tất cả' || (S.libStatus === 'Đang hiệu lực' ? ['Đang hiệu lực', 'Sắp hết hạn'].includes(p.st) : p.st === S.libStatus))
     && (!q || norm(`${p.code} ${p.title} ${p.summary} ${(p.points || []).join(' ')}`).includes(q)));
-  c.innerHTML = `
+  c.innerHTML = `<div id="memo-focus">${DS ? memoFocusHtml(DS.agents) : ''}</div>
   ${isAdmin ? `<section class="panel"><div class="panel-h"><div><h3>Quản trị thư viện</h3><p>${f0(LIB.length)} tài liệu trên database. Nạp/cập nhật bằng file policies_library.json (ghi đè theo mã tài liệu).</p></div><div class="toolbar"><button class="btn btn-primary btn-sm" id="lib-imp">Nhập file thư viện (.json)</button><input type="file" id="lib-file" accept=".json" hidden></div></div><div class="panel-b" id="lib-msg" style="padding-top:8px;padding-bottom:8px"></div></section>` : ''}
   <section class="panel"><div class="panel-b"><div class="toolbar" style="margin-bottom:14px">
     <input class="input" id="lib-q" placeholder="Tìm mã, tên, nội dung…" value="${esc(S.libQ)}" style="flex:1;min-width:200px">
@@ -2723,6 +2839,7 @@ async function pageLibrary(c) {
   const qi = $('#lib-q'); qi.oninput = () => { clearTimeout(qi._t); qi._t = setTimeout(() => { S.libQ = qi.value; pageLibrary(c).then(() => { const n = $('#lib-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }); }, 250); };
   $('#lib-st').onchange = (e) => { S.libStatus = e.target.value; pageLibrary(c); };
   $('#lib-cat').onchange = (e) => { S.libCat = e.target.value; pageLibrary(c); };
+  bindMemoFocus(c);
   $$('[data-lib]', c).forEach((el) => { el.onclick = () => openPolicy(el.dataset.lib); el.onkeydown = (e) => { if (e.key === 'Enter') openPolicy(el.dataset.lib); }; });
   if (isAdmin) {
     $('#lib-imp').onclick = () => $('#lib-file').click();
