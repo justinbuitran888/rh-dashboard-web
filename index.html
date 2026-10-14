@@ -154,6 +154,17 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .tc-h{display:flex;justify-content:space-between}.tc-h .go{font-size:12px;color:var(--green)}.tc-big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.tc-big b{font-size:26px}.tc-big small{color:var(--muted);font-size:12px}
 .tb-bars{display:grid;gap:5px}.tb-row{display:grid;grid-template-columns:62px minmax(40px,1fr) 40px;gap:6px;align-items:center;font-size:12px}.tb-row b{text-align:right}.tb-row small{grid-column:2/-1;margin-top:-3px;color:var(--muted);font-size:10.5px}
 .tb-bars.wide .tb-row{grid-template-columns:118px minmax(40px,1fr) 40px}
+/* Insight đội ngũ */
+.ins-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.ins-card{border:1px solid var(--line-2);border-left:4px solid var(--green);border-radius:12px;padding:12px 14px;cursor:pointer;display:grid;gap:6px;background:#fff}
+.ins-card:hover{background:var(--green-ll)}.ins-card.warn{border-left-color:#f79009}
+.ins-card .ins-t{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:13px}.ins-card .go{color:var(--muted);font-weight:500;font-size:12px}
+.ins-card .ins-big{font-size:26px;font-weight:700;line-height:1.1}.ins-card.warn .ins-big{color:#b54708}
+.ins-card p{margin:0;font-size:12.5px;line-height:1.45;color:#344054}
+.ins-h{margin:18px 0 6px;font-size:15px}
+.ins-chart .ln-aa{fill:none;stroke:#1570ef;stroke-width:2.2}.ins-chart .dt-aa{fill:#1570ef}.ins-chart .bar.rep{fill:#b2ddff}
+.ins-bar{display:inline-block;width:70px;height:6px;border-radius:4px;background:#eef2f6;vertical-align:middle;margin-right:6px;overflow:hidden}.ins-bar i{display:block;height:100%;background:var(--green)}
+.tbl td.hm{font-variant-numeric:tabular-nums;font-size:12px}.tbl td.hm-na{background:#fafafa}
 .tb-bar{height:8px;border-radius:5px;background:#eef0f3;position:relative;overflow:hidden}.tb-bar i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--green)}.tb-bar.mid i{background:#f79009}.tb-bar.low i{background:#fdb022}
 @media (max-width:900px){.drv-grid,.tgrid{grid-template-columns:1fr}}
 .credit-box{border:1px solid #b2ddff;background:#f5faff;border-radius:12px;padding:10px 12px;margin:12px 0}.credit-box.mgr{border-color:#fedf89;background:#fffcf5}
@@ -1192,7 +1203,7 @@ function prepare(row) {
   });
   const manual = P.manual || [];
   const hist = (P.hist || []).map((h) => ({ ...h, ch: Array.isArray(h.ch) ? h.ch : [] }));
-  return { offFyp: OF, offIdx: new Set(offIdx), saFyp: P.saFyp || null, gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
+  return { ins: P.ins || { mq: {}, snaps: {} }, offFyp: OF, offIdx: new Set(offIdx), saFyp: P.saFyp || null, gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
     psmTree: new Map((P.psmTree || []).map((x) => [x.c, x])), mapa: P.mapa || [], mapaMonth: P.mapaMonth || meta.officialMonth };
 }
 
@@ -1314,12 +1325,14 @@ const ICON = {
   history: '<path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/>',
   plan: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M22 12h-3"/>',
   library: '<path d="M4 19V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>',
+  insight: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"/>',
   data: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
 };
 const PAGES = [
   { id: 'overview', sec: 'Điều hành', name: 'Tổng quan vùng', sub: 'FYP, NR, hoạt động, 3mAA · so sánh MoM / YoY' },
   { id: 'health', sec: 'Điều hành', name: 'Sức khỏe đội ngũ', sub: 'RH → báo cáo trực tiếp → … → khu vực → UM+ → FA · bấm thẻ để đi xuống cấp dưới' },
   { id: 'titles', sec: 'Điều hành', name: 'Danh hiệu & tiến độ', sub: 'MDRT 2027 · MBA Pro 2027 · Manulife Pro · thăng cấp UM' },
+  { id: 'insight', sec: 'Điều hành', name: 'Insight đội ngũ', sub: 'Cohort M0 → M1 → fast-track · pipeline MDRT · MBA Pro · UM mới · thâm niên, thăng / giáng cấp · 3mAA' },
   { id: 'plan', sec: 'Điều hành', name: 'Kế hoạch & thực hiện', sub: 'Target năm · target tháng theo phân khúc · cần bao nhiêu 1mAA / HĐ' },
   { id: 'library', sec: 'Tra cứu', name: 'Thư viện chính sách', sub: 'Memo, chương trình thi đua, chính sách thu nhập' },
   { id: 'history', sec: 'Dữ liệu', name: 'KQKD các kỳ trước', sub: 'Nhập số tháng cũ để so YoY và nối xu hướng' },
@@ -1359,7 +1372,7 @@ $('#menu-btn').onclick = () => {
 };
 
 function topControls() {
-  if (!DS || !['overview', 'health', 'titles', 'plan', 'history'].includes(S.page)) return '';
+  if (!DS || !['overview', 'health', 'titles', 'insight', 'plan', 'history'].includes(S.page)) return '';
   const rhSel = `<select class="select" id="sel-rh" aria-label="Đầu RH" style="font-weight:700">${[['all', 'ALL · toàn bộ'], ...rhList().map((g) => [g.id, g.name])].map(([id, n]) => `<option value="${id}" ${S.rh === id ? 'selected' : ''}>${esc(id === 'all' ? n : 'RH · ' + n)} (${id === 'all' ? DS.areasAll.length : DS.areasAll.filter((a) => a.rh === id).length} KV)</option>`).join('')}</select>`;
   if (['plan', 'history'].includes(S.page)) return rhSel;
   const M = DS.months;
@@ -1379,7 +1392,7 @@ function render() {
   const bs = $('#sel-branch'); if (bs) bs.onchange = (e) => setBranch(e.target.value);
   const as = $('#sel-area'); if (as) as.onchange = (e) => { S.area = e.target.value; S.open.clear(); S.hPath = []; render(); };
   const c = $('#content'); c.onclick = null; c.onkeydown = null;
-  try { ({ overview: pageOverview, health: pageHealth, titles: pageTitles, history: pageHistory, plan: pagePlan, library: pageLibrary, data: pageData })[S.page](c); }
+  try { ({ overview: pageOverview, health: pageHealth, titles: pageTitles, insight: pageInsight, history: pageHistory, plan: pagePlan, library: pageLibrary, data: pageData })[S.page](c); }
   catch (e) { console.error(e); c.innerHTML = `<div class="banner warn">Lỗi hiển thị trang: ${esc(e.message)}</div>`; }
 }
 
@@ -2536,6 +2549,331 @@ function pageTitles(c) {
   bindGtfKpi(c);
   $$('[data-ft-area]', c).forEach((tr) => tr.onclick = () => { S.area = tr.dataset.ftArea; render(); });
   $$('[data-open]', c).forEach((tr) => tr.onclick = () => openPerson(tr.dataset.open));
+}
+
+// =====================================================================
+//  INSIGHT ĐỘI NGŨ – cohort tân binh, pipeline MDRT, MBA Pro, UM mới, demographic, 3mAA
+// =====================================================================
+const TRANK = { FA: 0, UM: 1, SUM: 2, DM: 3, SDM: 4, BM: 5, SBM: 6, AM: 7, SAM: 8 };
+const tRank = (t) => { const k = String(t || 'FA').toUpperCase(); return k in TRANK ? TRANK[k] : k === 'SA' ? 0 : 1; };
+const ym7 = (d) => String(d || '').slice(0, 7);
+const rateBadge = (r, hi = 0.5, lo = 0.3) => (r === null || r === undefined || !isFinite(r) ? '<span class="muted">–</span>' : `<span class="badge ${r >= hi ? 'b-green' : r >= lo ? 'b-amber' : 'b-red'}">${pct(r)}</span>`);
+const heat = (r) => (r === null || r === undefined || !isFinite(r) ? '<td class="hm-na"></td>' : `<td class="r hm" style="background:rgba(0,167,88,${(0.08 + Math.min(1, r) * 0.72).toFixed(2)});color:${r > 0.55 ? '#fff' : 'inherit'}">${pct(r)}</td>`);
+const yearNow = () => +String(DS.meta.asOf).slice(0, 4);
+// thâm niên theo nhóm (tháng làm việc tính tới tháng gần nhất)
+const TEN_B = [[0, 3, 'M0–M3'], [4, 6, 'M4–M6'], [7, 12, 'M7–M12'], [13, 24, '1–2 năm'], [25, 60, '2–5 năm'], [61, 120, '5–10 năm'], [121, 1e9, '> 10 năm']];
+const tenBucket = (a) => { const t = tenureAt(a, DS.months[3]); if (t === null) return null; return TEN_B.findIndex(([lo, hi]) => t >= lo && t <= hi); };
+
+// ---------- 1. cohort tân binh ----------
+function insCohort(list) {
+  const M = DS.months;
+  const recent = M.map((m, mi) => {
+    const xs = list.filter((a) => ym7(a.j) === m), ft = fastTrack(xs);
+    const at = (k) => (mi + k <= 3 ? xs.filter((a) => isActive(a, mi + k)).length : null);
+    const ever = xs.filter((a) => [0, 1, 2, 3].some((k) => mi + k <= 3 && isActive(a, mi + k))).length;
+    return { m, n: xs.length, at: [0, 1, 2, 3].map(at), ever, cc3: ft.filter((x) => x.cc >= FT.cc).length, f40: ft.filter((x) => x.fyp >= FT.fyp).length,
+      both: ft.filter((x) => x.cc >= FT.cc && x.fyp >= FT.fyp).length, pot: ft.filter((x) => x.status === 'pot').length, fast: ft.filter((x) => x.fast).length,
+      fyp: sum(xs, (a) => sum([0, 1, 2, 3].filter((k) => mi + k <= 3), (k) => a.fyp[mi + k])) };
+  });
+  // cohort 12 tháng: ai gia nhập trong 12 tháng gần nhất (còn làm việc tới ngày chốt)
+  const rows12 = [];
+  for (let k = 12; k >= 0; k--) {
+    const m = addMonths(M[3], -k), xs = list.filter((a) => ym7(a.j) === m);
+    if (!xs.length) continue;
+    rows12.push({ m, n: xs.length, ever: xs.filter((a) => N(a.cc12) > 0 || [0, 1, 2, 3].some((i) => isActive(a, i))).length,
+      act3: xs.filter((a) => act3(a, 2) > 0).length, cur: xs.filter((a) => isActive(a, 3)).length, am: sum(xs, (a) => a.am12) / xs.length,
+      fyp: sum(xs, (a) => a.fyp12) / xs.length, mp: xs.filter((a) => a.tier).length, um: xs.filter((a) => a.um).length,
+      fast: xs.filter((a) => DS.manproNew.get(a.c)?.fast === 'Y').length, rehire: xs.filter((a) => a.rehire === 'Y').length });
+  }
+  // đường kích hoạt: tỷ lệ có HĐ theo tháng thâm niên (gộp 4 tháng quan sát)
+  const curve = Array.from({ length: 13 }, () => ({ n: 0, a: 0 }));
+  const matrix = rows12.map((r) => ({ m: r.m, cells: Array(13).fill(null) }));
+  for (const a of list) {
+    const j = ym7(a.j); if (!/^\d{4}-\d{2}$/.test(j)) continue;
+    for (let i = 0; i < 4; i++) {
+      const t = monthDiff(j, M[i]); if (t < 0 || t > 12) continue;
+      const c = curve[t]; c.n++; if (isActive(a, i)) c.a++;
+      const row = matrix.find((x) => x.m === j); if (row) { row.cells[t] = row.cells[t] || { n: 0, a: 0 }; row.cells[t].n++; if (isActive(a, i)) row.cells[t].a++; }
+    }
+  }
+  return { recent, rows12, curve, matrix };
+}
+
+// ---------- 2. pipeline MDRT ----------
+function insMdrt(list) {
+  const M = DS.months, mq = DS.ins?.mq || {}, y = yearNow(), MV = MDRT[0].v;
+  const asOf = String(DS.meta.asOf), dim = new Date(y, +asOf.slice(5, 7), 0).getDate();
+  const nowPace = ((+asOf.slice(5, 7) - 1) + +asOf.slice(8, 10) / dim) / 12;
+  // điểm mốc: hết T3 (Q1), T6 (Q2), T7*, T8* (ước theo FYP thực cấp tháng), T9 (Q3), hiện tại
+  const w = (a, i) => Math.max(0, N(a.fyp[i]));
+  const val = (a, k) => { const q = mq[a.c]; if (!q) return 0;
+    if (k === 'q1') return N(q[0]); if (k === 'q2') return N(q[1]); if (k === 'q3') return N(q[2]); if (k === 'now') return N(q[3]);
+    const d = N(q[2]) - N(q[1]), tot = w(a, 0) + w(a, 1) + w(a, 2);
+    const share = tot > 0 ? (k === 'm7' ? w(a, 0) : w(a, 0) + w(a, 1)) / tot : k === 'm7' ? 1 / 3 : 2 / 3;
+    return N(q[1]) + d * share; };
+  const pts = [['q1', `${mLabel(`${y}-03`)}`, 3 / 12], ['q2', mLabel(`${y}-06`), 6 / 12], ['m7', mLabel(`${y}-07`) + '*', 7 / 12], ['m8', mLabel(`${y}-08`) + '*', 8 / 12], ['q3', mLabel(`${y}-09`), 9 / 12], ['now', `Đến ${dmy(asOf).slice(0, 5)}`, nowPace]]
+    .filter(([k]) => k === 'now' || (k === 'm7' ? M.includes(`${y}-07`) : k === 'm8' ? M.includes(`${y}-08`) : true));
+  const BK = [[1, 9, 'Đạt MDRT+', 'b-green'], [0.7, 1, '70–99%', 'b-amber'], [0.5, 0.7, '50–69%', ''], [0.3, 0.5, '30–49%', ''], [0.1, 0.3, '10–29%', '']];
+  const has = list.filter((a) => mq[a.c]);
+  const cols = pts.map(([k, lb, pace]) => { const rs = has.map((a) => val(a, k) / MV);
+    return { k, lb, pace, b: BK.map(([lo, hi]) => rs.filter((r) => r >= lo && r < hi).length), onPace: rs.filter((r) => r >= pace && r < 1).length,
+      cot: has.filter((a) => val(a, k) >= MDRT[1].v).length, sumFyp: sum(has, (a) => val(a, k)) }; });
+  // ai đạt theo tháng (báo cáo MDRT: tháng đạt danh hiệu tạm tính)
+  const codes = new Set(list.map((a) => a.c)), byMonth = {};
+  for (const [c, x] of DS.mdrt) if (codes.has(c) && x.cur && x.month) { const m = `${String(x.month).slice(0, 4)}-${String(x.month).slice(4, 6)}`; byMonth[m] = (byMonth[m] || 0) + 1; }
+  const months = Array.from({ length: +asOf.slice(5, 7) }, (_, i) => `${y}-${String(i + 1).padStart(2, '0')}`);
+  let cum = 0; const ach = months.map((m) => ({ m, n: byMonth[m] || 0, cum: (cum += byMonth[m] || 0) }));
+  // dịch chuyển T9 → hiện tại
+  const bIdx = (r) => BK.findIndex(([lo, hi]) => r >= lo && r < hi);
+  const ups = has.filter((a) => { const b0 = bIdx(val(a, 'q3') / MV), b1 = bIdx(val(a, 'now') / MV); return b1 >= 0 && (b0 < 0 || b1 < b0); }).length;
+  const near = has.map((a) => ({ a, f: val(a, 'now'), r: val(a, 'now') / MV })).filter((x) => x.r >= 0.5 && x.r < 1).sort((p, q) => q.r - p.r);
+  const left = 12 - (+asOf.slice(5, 7) - 1) - +asOf.slice(8, 10) / dim;
+  return { pts, cols, BK, ach, ups, near, left, nowPace, MV, has: has.length };
+}
+
+// ---------- 3. MBA Pro ----------
+function insMba(list) {
+  const ums = list.filter((a) => a.um), rs = ums.map((a) => { const mb = DS.mba.get(a.c) || {}, p = mbaProg(a);
+    const c = [N(mb.n1a) >= MBA.n1a[0] || N(mb.n1b) >= MBA.n1b[0], N(mb.fyc) >= MBA.fyc[0], N(mb.newUm) >= MBA.newUm, mb.p13 == null || N(mb.p13) >= MBA.p13];
+    return { a, mb, r: p.r, c, ok: c.filter(Boolean).length, cur: mb.cur || null }; });
+  const BK = [[1, 9, 'Đủ 4/4 mức Bạc'], [0.75, 1, '75–99%'], [0.5, 0.75, '50–74%'], [0.25, 0.5, '25–49%'], [0, 0.25, '< 25%']];
+  const miss = ['Tuyển mới có SX (3 ĐL 3CC hoặc 8 ĐL 1CC)', 'FYC 250 tr (luật 50)', '1 UM+ mới', `P13 ≥ ${MBA.p13}%`].map((lb, i) => ({ lb, n: rs.filter((r) => !r.c[i]).length, only: rs.filter((r) => r.ok === 3 && !r.c[i]).length }));
+  const byT = ['UM', 'SUM', 'DM+'].map((t) => { const xs = rs.filter((r) => (t === 'DM+' ? tRank(r.a.t) >= 3 : String(r.a.t).toUpperCase() === t)); return { t, n: xs.length, ok4: xs.filter((r) => r.ok === 4).length, ok3: xs.filter((r) => r.ok === 3).length, held: xs.filter((r) => r.cur).length }; });
+  return { n: ums.length, rs, BK, b: BK.map(([lo, hi]) => rs.filter((r) => r.r >= lo && r.r < hi).length), miss, byT, held: rs.filter((r) => r.cur).length, levels: MBA.levels.map((l) => rs.filter((r) => r.cur === l).length) };
+}
+
+// ---------- 4. UM mới ----------
+const NU_G = [['gtf', 'Bổ nhiệm GTF'], ['new', 'Mới gia nhập lên (≤ 12 tháng)'], ['mid', 'Thâm niên 1–3 năm'], ['old', 'Lâu năm (> 3 năm)']];
+function nuGroup(a) {
+  if (a.gtf_date || DS.gtf.has(a.c)) return 'gtf';
+  const t = monthDiff(ym7(a.j), ym7(a.td)); return t <= 12 ? 'new' : t <= 36 ? 'mid' : 'old';
+}
+function insNewUm(list) {
+  const y = String(yearNow()), M = DS.months;
+  const nus = list.filter((a) => a.um && String(a.t).toUpperCase() === 'UM' && String(a.td || '').startsWith(y) && (ym7(a.j) < ym7(a.td) || a.gtf_date || DS.gtf.has(a.c)))
+    .map((a) => ({ a, g: nuGroup(a), tm: monthDiff(ym7(a.j), ym7(a.td)), pm: ym7(a.td), pdv: pdvGroup(a, 2) }));
+  const groups = NU_G.map(([k, lb]) => { const xs = nus.filter((x) => x.g === k);
+    return { k, lb, n: xs.length, rehire: xs.filter((x) => x.a.rehire === 'Y').length, team: xs.filter((x) => x.a.kids.length).length, kids: xs.length ? sum(xs, (x) => x.a.kids.filter((z) => !z.um).length) / xs.length : null,
+      d1: xs.filter((x) => N(x.a.d1[2]) > 0).length, d3: xs.filter((x) => N(x.a.d1[2]) >= 3).length, self: xs.filter((x) => act3(x.a, 2) > 0).length,
+      fyp3: xs.length ? sum(xs, (x) => N(x.a.fyp[0]) + N(x.a.fyp[1]) + N(x.a.fyp[2])) / xs.length : null, nra: xs.filter((x) => N(x.a.nra6) > 0).length, pdv: xs.filter((x) => x.pdv.ok).length, tm: xs.length ? median(xs.map((x) => x.tm)) : null }; });
+  const months = Array.from({ length: +String(DS.meta.asOf).slice(5, 7) }, (_, i) => `${y}-${String(i + 1).padStart(2, '0')}`);
+  const byM = months.map((m) => ({ m, g: NU_G.map(([k]) => nus.filter((x) => x.pm === m && x.g === k).length) }));
+  return { nus, groups, byM, M };
+}
+
+// ---------- 5. demographic & thăng / giáng cấp ----------
+function insDemo(list) {
+  const M = DS.months, y = String(yearNow()), py = String(yearNow() - 1);
+  const fyp3 = (a) => N(a.fyp[0]) + N(a.fyp[1]) + N(a.fyp[2]), totF = sum(list, fyp3);
+  const ten = TEN_B.map(([, , lb], i) => { const xs = list.filter((a) => tenBucket(a) === i), fa = xs.filter((a) => !a.um);
+    return { lb, n: xs.length, fa: fa.length, um: xs.length - fa.length, act: xs.filter((a) => act3(a, 2) > 0).length, even: xs.filter((a) => act3(a, 2) >= 2).length, fyp: sum(xs, fyp3), mp: xs.filter((a) => a.tier).length }; });
+  const titles = Object.keys(TRANK).map((t) => { const xs = list.filter((a) => String(a.t).toUpperCase() === t); return { t, n: xs.length, ten: xs.length ? median(xs.map((a) => tenureAt(a, M[3]))) : null, act: xs.filter((a) => act3(a, 2) > 0).length, fyp: sum(xs, fyp3) }; }).filter((r) => r.n);
+  // biến động chức danh theo ngày hiệu lực chức danh (trong năm)
+  const mv = (yr) => { const xs = list.filter((a) => String(a.td || '').startsWith(yr) && ym7(a.td) > ym7(a.j));
+    return { upUm: xs.filter((a) => String(a.t).toUpperCase() === 'UM' && !(a.gtf_date || DS.gtf.has(a.c))), gtf: list.filter((a) => String(a.gtf_date || '').startsWith(yr)),
+      inUm: xs.filter((a) => tRank(a.t) >= 2), toFa: xs.filter((a) => tRank(a.t) === 0) }; };
+  const cur = mv(y), prev = mv(py);
+  const months = Array.from({ length: +String(DS.meta.asOf).slice(5, 7) }, (_, i) => `${y}-${String(i + 1).padStart(2, '0')}`);
+  const byM = months.map((m) => ({ m, upUm: cur.upUm.filter((a) => ym7(a.td) === m).length, gtf: cur.gtf.filter((a) => ym7(a.gtf_date) === m).length, inUm: cur.inUm.filter((a) => ym7(a.td) === m).length, toFa: cur.toFa.filter((a) => ym7(a.td) === m).length }));
+  // so với ảnh chụp tháng trước (chính xác chiều lên / xuống)
+  const snaps = DS.ins?.snaps || {}, sk = Object.keys(snaps).sort(), last = sk.at(-1);
+  let snap = null;
+  if (last) {
+    const s = snaps[last], areas = new Set(list.map((a) => a.a)), now = new Map(list.map((a) => [a.c, a])), up = [], down = [], gone = [];
+    for (const [c, v] of Object.entries(s)) { const [t0, a0] = Array.isArray(v) ? v : [v, null]; const a = now.get(c);
+      if (!a) { if (a0 && areas.has(a0) && !DS.by.get(c)) gone.push({ c, t0, a0 }); continue; }
+      const d = tRank(a.t) - tRank(t0); if (d > 0) up.push({ a, t0 }); else if (d < 0) down.push({ a, t0 }); }
+    const joined = list.filter((a) => !(a.c in s) && ym7(a.j) > last);
+    snap = { m: last, up, down, gone, joined };
+  }
+  return { ten, titles, totF, cur, prev, byM, snap, n: list.length, um: list.filter((a) => a.um).length, rehire: list.filter((a) => a.rehire === 'Y').length, tiers: ['S', 'G', 'P'].map((t) => list.filter((a) => a.tier === t).length) };
+}
+
+// ---------- 6. 3mAA ----------
+function insAA(list) {
+  const M = DS.months, hm = [...(DS.histMonths || [])].filter((m) => m < M[0]).sort();
+  const months = [...hm, ...M];
+  const rows = months.map((m) => { const i = M.indexOf(m), aa = monthValue(m, 'active', list);
+    const hc = i >= 0 ? list.filter((a) => ym7(a.j) <= m).length : (() => { const rs = histRows(m); return rs.length ? sum(rs, (r) => r.hc) : null; })();
+    return { m, aa, hc, rep: i < 0, partial: i === 3 }; });
+  rows.forEach((r, k) => { const w = rows.slice(Math.max(0, k - 2), k + 1).filter((x) => !x.partial && x.aa !== null); r.aa3 = r.partial ? null : w.length === 3 ? sum(w, (x) => x.aa) / 3 : null; r.rate = r.hc ? r.aa / r.hc : null; });
+  const g = groupStats(list, 2);
+  const byTen = TEN_B.map(([, , lb], i) => { const xs = list.filter((a) => tenBucket(a) === i); return { lb, n: xs.length, aa3: sum(xs, (a) => act3(a, 2)) / 3 }; });
+  return { rows, g, byTen };
+}
+
+// ---------- biểu đồ cột + đường dùng chung ----------
+function insChart(rows, { bar, line, fmtB = f0, fmtL = f0, lbB, lbL, h = 220 }) {
+  const n = rows.length, W = Math.max(640, n * 46), pad = { l: 44, r: 12, t: 26, b: 26 }, step = (W - pad.l - pad.r) / n, H = h - pad.t - pad.b;
+  const ok = (v) => v !== null && v !== undefined && isFinite(v);
+  const mx = Math.max(1, ...rows.flatMap((r) => [r[bar], line ? r[line] : null]).filter(ok)) * 1.12;
+  const y = (v) => pad.t + H * (1 - N(v) / mx), cx = (i) => pad.l + step * i + step / 2, bw = Math.min(30, step * 0.6);
+  const lp = line ? rows.map((r, i) => (ok(r[line]) ? [cx(i), y(r[line])] : null)).filter(Boolean) : [];
+  return `<div class="chart-scroll"><svg class="chart ins-chart" viewBox="0 0 ${W} ${h}" style="width:100%;height:auto;min-width:${Math.min(W, 560)}px" role="img">
+    ${[0, 0.5, 1].map((t) => `<line class="grid" x1="${pad.l}" x2="${W - pad.r}" y1="${pad.t + H * (1 - t)}" y2="${pad.t + H * (1 - t)}"/><text class="ax" x="${pad.l - 6}" y="${pad.t + H * (1 - t) + 4}" text-anchor="end">${fmtB(mx * t)}</text>`).join('')}
+    ${rows.map((r, i) => (ok(r[bar]) ? `<rect class="${r.partial ? 'bar part' : r.rep ? 'bar rep' : 'bar'}" x="${cx(i) - bw / 2}" y="${y(r[bar])}" width="${bw}" height="${pad.t + H - y(r[bar])}" rx="3"><title>${mLabel(r.m)} · ${lbB}: ${fmtB(r[bar])}${line && ok(r[line]) ? ` · ${lbL}: ${fmtL(r[line])}` : ''}</title></rect>` : '')).join('')}
+    ${lp.length > 1 ? `<path class="ln-aa" d="${lp.map((p, k) => `${k ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}"/>` : ''}
+    ${line ? rows.map((r, i) => (ok(r[line]) ? `<circle class="dt-aa" cx="${cx(i)}" cy="${y(r[line])}" r="3"/>` : '')).join('') : ''}
+    ${rows.map((r, i) => `<text class="xl" x="${cx(i)}" y="${h - 8}" text-anchor="middle">${esc(r.lb || mLabel(r.m))}</text>`).join('')}
+    <text class="ax-t" x="${pad.l}" y="14">${esc(lbB)}${line ? ` · đường: ${esc(lbL)}` : ''}</text></svg></div>`;
+}
+
+const INS_TABS = [['sum', 'Insight chính'], ['cohort', 'Cohort M0 → M1 → Fast-track'], ['mdrt', 'Pipeline MDRT'], ['mba', 'MBA Pro'], ['newum', 'UM mới'], ['demo', 'Demographic · thăng / giáng cấp'], ['aa', '3mAA']];
+function pageInsight(c) {
+  if (!DS) return;
+  const list = scopeList(), tab = S.insTab || 'sum', M = DS.months;
+  const k = (lb, v, sub, attr = '') => `<div class="kpi" ${attr}><div class="lb">${lb}</div><div class="v num">${v}</div><div class="s">${sub}</div></div>`;
+  const tbl = (head, body, max = 560) => `<div class="tbl-wrap" style="max-height:${max}px"><table class="tbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const sec = (title, sub, inner) => `<h3 class="ins-h">${title}</h3>${sub ? `<p class="note" style="margin:0 0 8px">${sub}</p>` : ''}${inner}`;
+  let body = '';
+  if (tab === 'sum') body = insSummary(list);
+  else if (tab === 'cohort') {
+    const C = insCohort(list), r4 = C.recent, tot = (f) => sum(r4, f);
+    const totN = tot((r) => r.n), m01 = sum(r4.slice(0, 3), (r) => r.n);
+    body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      ${k(`Tân binh ${mLabel(M[0])}–${mLabel(M[3])}`, f0(totN), `đang làm việc · ${f0(tot((r) => r.ever))} đã có HĐ (${pct(totN ? tot((r) => r.ever) / totN : null)})`)}
+      ${k('Có HĐ ngay tháng M0', pct(totN ? tot((r) => r.at[0]) / totN : null), `${f0(tot((r) => r.at[0]))} ĐL`)}
+      ${k('Có HĐ ở M1', pct(m01 ? sum(r4.slice(0, 3), (r) => r.at[1]) / m01 : null), `trên ${f0(m01)} ĐL đã tới M1`)}
+      ${k('Đủ 3 HĐ + 40 tr trong M0–M2', f0(tot((r) => r.both)), `${f0(tot((r) => r.cc3))} đủ 3 HĐ · ${f0(tot((r) => r.f40))} đủ 40 tr`)}
+      ${k('Đạt Silver fast-track', f0(tot((r) => r.fast)), `${f0(tot((r) => r.pot))} đang tiềm năng`)}
+    </div>
+    ${sec('Phễu theo tháng gia nhập (4 tháng gần nhất)', `M0 = tháng gia nhập · có HĐ = FYP thực cấp > 0 trong tháng · ${mLabel(M[3])} tính tới ${dmy(DS.meta.asOf)} · fast-track theo memo 0001M02/2026 (3 HĐ, 40 tr FYP, SBW, ĐNCC).`,
+      tbl(`<th>Gia nhập</th><th class="r">Số ĐL</th><th class="r">Có HĐ M0</th><th class="r">M1</th><th class="r">M2</th><th class="r">M3</th><th class="r">Đã có HĐ</th><th class="r">3 HĐ</th><th class="r">40 tr</th><th class="r">3 HĐ + 40 tr</th><th class="r">Fast-track</th><th class="r">FYP / ĐL</th>`,
+        r4.map((r) => `<tr><td><b>${mLabel(r.m)}</b></td><td class="r num">${f0(r.n)}</td>${r.at.map((v) => (v === null ? '<td class="r muted">chưa tới</td>' : `<td class="r num">${f0(v)} ${rateBadge(r.n ? v / r.n : null, 0.4, 0.2)}</td>`)).join('')}
+          <td class="r num">${f0(r.ever)} ${rateBadge(r.n ? r.ever / r.n : null)}</td><td class="r num">${f0(r.cc3)}</td><td class="r num">${f0(r.f40)}</td><td class="r num"><b>${f0(r.both)}</b></td><td class="r num">${f0(r.fast)}${r.pot ? ` <span class="muted small">+${r.pot} tiềm năng</span>` : ''}</td><td class="r num">${r.n ? money(r.fyp / r.n) : '–'}</td></tr>`).join(''), 360))}
+    ${sec('Đường kích hoạt theo tháng thâm niên', 'Tỷ lệ ĐL có HĐ ở từng tháng thâm niên M0…M12, gộp các tháng quan sát T-3…T. Mỗi dòng là 1 cohort gia nhập; ô trống = không có dữ liệu tháng đó.',
+      tbl(`<th>Cohort</th>${Array.from({ length: 13 }, (_, t) => `<th class="r">M${t}</th>`).join('')}`,
+        C.matrix.map((r) => `<tr><td><b>${mLabel(r.m)}</b></td>${r.cells.map((x) => heat(x && x.n ? x.a / x.n : null)).join('')}</tr>`).join('')
+        + `<tr class="tot"><td><b>Gộp</b></td>${C.curve.map((x) => heat(x.n ? x.a / x.n : null)).join('')}</tr>`, 460))}
+    ${sec('Cohort 12 tháng: còn lại bao nhiêu người làm ra HĐ', 'Chỉ tính ĐL còn làm việc tới ngày chốt · "từng có HĐ" theo CC 12 tháng · ManPro = đang có danh hiệu ManPro theo BC70.',
+      tbl(`<th>Gia nhập</th><th class="r">Còn làm</th><th class="r">Từng có HĐ</th><th class="r">Chưa có HĐ nào</th><th class="r">Có HĐ T-3…T-1</th><th class="r">Có HĐ ${mLabel(M[3])}</th><th class="r">Số tháng có HĐ (TB)</th><th class="r">FYP 12T / ĐL</th><th class="r">ManPro</th><th class="r">Fast-track</th><th class="r">Đã lên UM</th><th class="r">Tái tuyển</th>`,
+        C.rows12.map((r) => `<tr><td><b>${mLabel(r.m)}</b></td><td class="r num">${f0(r.n)}</td><td class="r num">${f0(r.ever)} ${rateBadge(r.ever / r.n)}</td><td class="r num">${f0(r.n - r.ever)}</td><td class="r num">${f0(r.act3)} ${rateBadge(r.act3 / r.n, 0.4, 0.2)}</td><td class="r num">${f0(r.cur)}</td><td class="r num">${f1(r.am)}</td><td class="r num">${money(r.fyp)}</td><td class="r num">${f0(r.mp)}</td><td class="r num">${f0(r.fast)}</td><td class="r num">${f0(r.um)}</td><td class="r num">${f0(r.rehire)}</td></tr>`).join(''), 520))}`;
+  } else if (tab === 'mdrt') {
+    const X = insMdrt(list), last = X.cols.at(-1);
+    body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      ${k('Đang đạt MDRT+ (tạm tính)', f0(last.b[0]), `COT trở lên ${f0(last.cot)} · nhịp năm ${pct(X.nowPace)}`)}
+      ${k('70–99% mốc MDRT', f0(last.b[1]), `cần thêm ${money(sum(X.near.filter((x) => x.r >= 0.7), (x) => X.MV - x.f))} MDRT-FYP`)}
+      ${k('Trên nhịp (chưa đạt)', f0(last.onPace), `MDRT-FYP ≥ ${pct(X.nowPace)} mốc`)}
+      ${k(`Lên bậc từ ${mLabel(`${yearNow()}-09`)}`, f0(X.ups), 'ĐL chuyển lên nhóm cao hơn trong tháng này')}
+      ${k('Còn lại trong năm', `${f1(X.left)} tháng`, `${f0(X.has)} ĐL có MDRT-FYP`)}
+    </div>
+    ${sec('Pipeline MDRT theo tháng', `Số ĐL theo % mốc MDRT ${money(X.MV)} (MDRT-FYP lũy kế từ đầu năm, BC70: tới Q1/Q2/Q3/hiện tại). * T07, T08 ước tính: chia phần tăng của Q3 theo FYP thực cấp từng tháng. Từ tháng sau, mỗi lần tải BC70 sẽ lưu số thật của tháng.`,
+      tbl(`<th>Nhóm</th>${X.cols.map((x) => `<th class="r">${esc(x.lb)}</th>`).join('')}`,
+        X.BK.map(([, , lb, cls], i) => `<tr><td>${cls ? `<span class="badge ${cls}">${lb}</span>` : lb}</td>${X.cols.map((x) => `<td class="r num">${f0(x.b[i])}</td>`).join('')}</tr>`).join('')
+        + `<tr><td>Trên nhịp năm (chưa đạt)</td>${X.cols.map((x) => `<td class="r num">${f0(x.onPace)} <span class="muted small">≥${pct(x.pace)}</span></td>`).join('')}</tr>`
+        + `<tr class="tot"><td><b>Tổng ≥ 50%</b></td>${X.cols.map((x) => `<td class="r num"><b>${f0(x.b[0] + x.b[1] + x.b[2])}</b></td>`).join('')}</tr>`, 400))}
+    <div class="grid g2" style="margin-top:12px">
+      <div>${sec('Số ĐL đạt MDRT tạm tính theo tháng đạt', 'Theo báo cáo MDRT (tháng đạt danh hiệu tạm tính MDRT năm sau).', insChart(X.ach, { bar: 'n', line: 'cum', lbB: 'đạt trong tháng', lbL: 'lũy kế', h: 200 }))}</div>
+      <div>${sec(`Gần mốc: ${f0(X.near.length)} ĐL ở 50–99%`, 'Sắp theo % mốc · cần / tháng = phần còn thiếu chia số tháng còn lại.',
+        tbl('<th>Đại lý</th><th>KV</th><th class="r">% mốc</th><th class="r">Còn thiếu</th><th class="r">Cần / tháng</th>',
+          X.near.slice(0, 60).map((x) => `<tr class="click" data-open="${esc(x.a.c)}"><td><b>${esc(x.a.n)}</b> <span class="muted small">${esc(x.a.t)}</span></td><td>${esc(x.a.a)}</td><td class="r">${meter(x.r)}<span class="small">${pct(x.r)}</span></td><td class="r num">${money(X.MV - x.f)}</td><td class="r num">${money((X.MV - x.f) / Math.max(0.5, X.left))}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">Không có.</td></tr>', 300))}</div>
+    </div>`;
+  } else if (tab === 'mba') {
+    const X = insMba(list);
+    body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      ${k('UM+ trong phạm vi', f0(X.n), `${f0(X.held)} có danh hiệu MBA Pro tạm tính`)}
+      ${MBA.levels.map((l, i) => k(l + ' tạm tính', f0(X.levels[i]), '')).join('')}
+      ${k('Đủ 4/4 điều kiện Bạc', f0(X.b[0]), `${f0(X.rs.filter((r) => r.ok === 3).length)} chỉ thiếu 1`)}
+    </div>
+    <div class="grid g2">
+      <div>${sec('Tiến độ mức Bạc (trung bình 4 điều kiện)', `Memo 0050M01/2026 · mức Bạc: ${MBA.n1a[0]} ĐL tuyển mới 3CC & 40 tr hoặc ${MBA.n1b[0]} ĐL 1CC & 16 tr · FYC ${money(MBA.fyc[0])} · 1 UM+ mới · P13 ≥ ${MBA.p13}%.`,
+        `<div class="tb-bars wide">${X.BK.map(([, , lb], i) => `<div class="tb-row"><span>${lb}</span><span class="tb-bar ${i === 0 ? 'ok' : i <= 1 ? 'mid' : 'low'}"><i style="width:${X.n ? (X.b[i] / X.n) * 100 : 0}%"></i></span><b class="num">${f0(X.b[i])}</b></div>`).join('')}</div>`)}</div>
+      <div>${sec('Điều kiện đang nghẽn', 'Số UM+ chưa đạt từng điều kiện · "chỉ thiếu" = đủ 3 điều kiện còn lại.',
+        tbl('<th>Điều kiện</th><th class="r">Chưa đạt</th><th class="r">Chỉ thiếu điều kiện này</th>', X.miss.map((m) => `<tr><td>${m.lb}</td><td class="r num">${f0(m.n)} <span class="muted small">${pct(X.n ? m.n / X.n : null)}</span></td><td class="r num"><b>${f0(m.only)}</b></td></tr>`).join(''), 300))}</div>
+    </div>
+    ${sec('Theo chức danh', '', tbl('<th>Chức danh</th><th class="r">UM+</th><th class="r">Có danh hiệu tạm tính</th><th class="r">Đủ 4/4</th><th class="r">Thiếu 1</th>', X.byT.map((r) => `<tr><td><b>${r.t}</b></td><td class="r num">${f0(r.n)}</td><td class="r num">${f0(r.held)}</td><td class="r num">${f0(r.ok4)}</td><td class="r num">${f0(r.ok3)}</td></tr>`).join(''), 240))}
+    ${sec('UM+ chỉ thiếu 1 điều kiện', '', tbl('<th>UM+</th><th>KV</th><th>Thiếu</th><th class="r">Tuyển 3CC · 1CC</th><th class="r">FYC</th><th class="r">UM+ mới</th><th class="r">P13</th>',
+      X.rs.filter((r) => r.ok === 3).sort((p, q) => q.r - p.r).map((r) => `<tr class="click" data-open="${esc(r.a.c)}"><td><b>${esc(r.a.n)}</b> <span class="muted small">${esc(r.a.t)}</span></td><td>${esc(r.a.a)}</td><td><span class="badge b-amber">${['Tuyển mới SX', 'FYC', 'UM+ mới', 'P13'][r.c.indexOf(false)]}</span></td><td class="r num">${f0(r.mb.n1a)} · ${f0(r.mb.n1b)}</td><td class="r num">${money(r.mb.fyc)}</td><td class="r num">${f0(r.mb.newUm)}</td><td class="r num">${r.mb.p13 == null ? '–' : f1(r.mb.p13) + '%'}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Không có.</td></tr>', 420))}`;
+  } else if (tab === 'newum') {
+    const X = insNewUm(list), G = X.groups, n = X.nus.length;
+    body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      ${k(`UM mới ${yearNow()}`, f0(n), 'đang giữ chức danh UM, hiệu lực trong năm (gồm GTF)')}
+      ${G.map((g) => k(g.lb, f0(g.n), `${pct(n ? g.n / n : null)} · ${f0(g.rehire)} tái tuyển (quay lại)`)).join('')}
+    </div>
+    ${sec('Chất lượng UM mới theo nguồn', `"Mới gia nhập lên" = thăng UM trong 12 tháng đầu · "Lâu năm" = làm FA > 3 năm mới lên · tái tuyển = cờ Tái tuyển trên BC70 (đã từng nghỉ rồi quay lại) · nhóm có HĐ tính ${mLabel(M[2])} · 0025M09 = đủ điều kiện PDV nhóm ${mLabel(M[2])}.`,
+      tbl('<th>Nguồn</th><th class="r">Số UM</th><th class="r">Trung vị tháng lên</th><th class="r">Đã có ĐL trực tiếp</th><th class="r">FA trực tiếp TB</th><th class="r">≥1 ĐL trực tiếp có HĐ</th><th class="r">≥3 ĐL có HĐ</th><th class="r">Tự có HĐ 3T</th><th class="r">FYP cá nhân 3T / UM</th><th class="r">Tuyển 6T có HĐ</th><th class="r">Đạt 0025M09</th>',
+        G.map((g) => `<tr><td><b>${g.lb}</b>${g.rehire ? ` <span class="badge">${g.rehire} tái tuyển</span>` : ''}</td><td class="r num">${f0(g.n)}</td><td class="r num">${g.k === 'gtf' ? '–' : f0(g.tm)}</td><td class="r num">${f0(g.team)} ${rateBadge(g.n ? g.team / g.n : null, 0.7, 0.4)}</td><td class="r num">${f1(g.kids)}</td><td class="r num">${f0(g.d1)} ${rateBadge(g.n ? g.d1 / g.n : null, 0.5, 0.25)}</td><td class="r num">${f0(g.d3)}</td><td class="r num">${f0(g.self)}</td><td class="r num">${g.fyp3 === null ? '–' : money(g.fyp3)}</td><td class="r num">${f0(g.nra)}</td><td class="r num">${f0(g.pdv)}</td></tr>`).join(''), 300))}
+    ${sec('UM mới theo tháng lên chức danh', '', tbl(`<th>Tháng</th>${NU_G.map(([, lb]) => `<th class="r">${lb}</th>`).join('')}<th class="r">Tổng</th>`,
+      X.byM.map((r) => `<tr><td><b>${mLabel(r.m)}</b></td>${r.g.map((v) => `<td class="r num">${v || '<span class="muted">–</span>'}</td>`).join('')}<td class="r num"><b>${f0(sum(r.g))}</b></td></tr>`).join(''), 400))}
+    ${sec('Danh sách UM mới', '', tbl('<th>UM</th><th>KV</th><th>Nguồn</th><th class="r">Gia nhập</th><th class="r">Lên UM</th><th class="r">FA trực tiếp</th><th class="r">ĐL có HĐ ' + mLabel(M[2]) + '</th><th class="r">FYP nhóm ' + mLabel(M[2]) + '</th><th>Tái tuyển</th>',
+      X.nus.sort((p, q) => String(q.a.td).localeCompare(String(p.a.td))).map((x) => `<tr class="click" data-open="${esc(x.a.c)}"><td><b>${esc(x.a.n)}</b> <span class="muted small">${esc(x.a.c)}</span></td><td>${esc(x.a.a)}</td><td><span class="badge ${x.g === 'new' ? 'b-green' : x.g === 'old' ? 'b-amber' : x.g === 'gtf' ? 'b-blue' : ''}">${NU_G.find(([kk]) => kk === x.g)[1]}</span></td><td class="r num">${dmy(x.a.j)}</td><td class="r num">${dmy(x.a.td)}</td><td class="r num">${f0(x.a.kids.filter((z) => !z.um).length)}</td><td class="r num">${f0(x.a.d1[2])}</td><td class="r num">${money(x.pdv.total)}</td><td>${x.a.rehire === 'Y' ? '<span class="badge">Y</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="9" class="muted">Không có.</td></tr>', 520))}`;
+  } else if (tab === 'demo') {
+    const X = insDemo(list), y = yearNow();
+    const nm2 = (a) => `<a href="#" data-open="${esc(a.c)}">${esc(a.n)}</a>`;
+    body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      ${k('Nguồn lực (không gồm SA)', f0(X.n), `FA ${f0(X.n - X.um)} · UM+ ${f0(X.um)} (${pct(X.n ? X.um / X.n : null)})`)}
+      ${k('Dưới 12 tháng', f0(sum(X.ten.slice(0, 3), (r) => r.n)), `${pct(X.n ? sum(X.ten.slice(0, 3), (r) => r.n) / X.n : null)} nguồn lực · ${pct(X.totF ? sum(X.ten.slice(0, 3), (r) => r.fyp) / X.totF : null)} FYP 3T`)}
+      ${k('Trên 5 năm', f0(sum(X.ten.slice(5), (r) => r.n)), `${pct(X.n ? sum(X.ten.slice(5), (r) => r.n) / X.n : null)} nguồn lực · ${pct(X.totF ? sum(X.ten.slice(5), (r) => r.fyp) / X.totF : null)} FYP 3T`)}
+      ${k(`Lên UM ${y}`, f0(X.cur.upUm.length + X.cur.gtf.length), `từ FA ${f0(X.cur.upUm.length)} · GTF ${f0(X.cur.gtf.length)} · ${y - 1}: ${f0(X.prev.upUm.length + X.prev.gtf.length)}`)}
+      ${k(`Về FA ${y}`, f0(X.cur.toFa.length), `${y - 1}: ${f0(X.prev.toFa.length)} · đang là FA, chức danh hiệu lực sau ngày gia nhập`)}
+      ${k('ManPro · tái tuyển', `${f0(sum(X.tiers))} · ${f0(X.rehire)}`, `Silver ${f0(X.tiers[0])} · Gold ${f0(X.tiers[1])} · Platinum ${f0(X.tiers[2])}`)}
+    </div>
+    ${sec('Thâm niên', `Thâm niên tính tới ${mLabel(M[3])} · có HĐ = ít nhất 1 tháng có FYP trong ${mLabel(M[0])}–${mLabel(M[2])} · đều = ≥ 2/3 tháng.`,
+      tbl('<th>Thâm niên</th><th class="r">Số ĐL</th><th class="r">Tỷ trọng</th><th class="r">FA</th><th class="r">UM+</th><th class="r">Có HĐ 3T</th><th class="r">Hoạt động đều</th><th class="r">ManPro</th><th class="r">FYP 3T</th><th class="r">Tỷ trọng FYP</th><th class="r">FYP / ĐL</th>',
+        X.ten.map((r) => `<tr><td><b>${r.lb}</b></td><td class="r num">${f0(r.n)}</td><td class="r"><span class="ins-bar"><i style="width:${X.n ? (r.n / X.n) * 100 : 0}%"></i></span><span class="small num">${pct(X.n ? r.n / X.n : null)}</span></td><td class="r num">${f0(r.fa)}</td><td class="r num">${f0(r.um)}</td><td class="r num">${f0(r.act)} ${rateBadge(r.n ? r.act / r.n : null, 0.4, 0.2)}</td><td class="r num">${f0(r.even)}</td><td class="r num">${f0(r.mp)}</td><td class="r num">${money(r.fyp)}</td><td class="r num">${pct(X.totF ? r.fyp / X.totF : null)}</td><td class="r num">${r.n ? money(r.fyp / r.n) : '–'}</td></tr>`).join(''), 360))}
+    <div class="grid g2" style="margin-top:4px">
+      <div>${sec('Chức danh', '', tbl('<th>Chức danh</th><th class="r">Số người</th><th class="r">Thâm niên trung vị</th><th class="r">Có HĐ 3T</th><th class="r">FYP 3T</th>',
+        X.titles.map((r) => `<tr><td><b>${r.t}</b></td><td class="r num">${f0(r.n)}</td><td class="r num">${r.ten === null ? '–' : r.ten >= 12 ? f1(r.ten / 12) + ' năm' : f0(r.ten) + ' tháng'}</td><td class="r num">${f0(r.act)} ${rateBadge(r.n ? r.act / r.n : null, 0.4, 0.2)}</td><td class="r num">${money(r.fyp)}</td></tr>`).join(''), 360))}</div>
+      <div>${sec(`Biến động chức danh ${y} theo tháng`, 'Theo ngày hiệu lực chức danh hiện tại. "Đổi cấp trong UM+" = SUM trở lên có chức danh hiệu lực trong tháng (lên hoặc xuống). "Về FA" = đang là FA nhưng chức danh hiệu lực sau ngày gia nhập (giáng cấp, có thể gồm chuyển từ SA).',
+        tbl('<th>Tháng</th><th class="r">FA → UM</th><th class="r">GTF</th><th class="r">Đổi cấp trong UM+</th><th class="r">Về FA</th>',
+          X.byM.map((r) => `<tr><td><b>${mLabel(r.m)}</b></td><td class="r num">${f0(r.upUm)}</td><td class="r num">${f0(r.gtf)}</td><td class="r num">${f0(r.inUm)}</td><td class="r num">${r.toFa ? `<span class="err">${f0(r.toFa)}</span>` : '0'}</td></tr>`).join('')
+          + `<tr class="tot"><td><b>${y}</b></td><td class="r num"><b>${f0(X.cur.upUm.length)}</b></td><td class="r num"><b>${f0(X.cur.gtf.length)}</b></td><td class="r num"><b>${f0(X.cur.inUm.length)}</b></td><td class="r num"><b>${f0(X.cur.toFa.length)}</b></td></tr>
+          <tr><td class="muted">${y - 1}</td><td class="r num muted">${f0(X.prev.upUm.length)}</td><td class="r num muted">${f0(X.prev.gtf.length)}</td><td class="r num muted">${f0(X.prev.inUm.length)}</td><td class="r num muted">${f0(X.prev.toFa.length)}</td></tr>`, 420))}</div>
+    </div>
+    ${X.snap ? sec(`So với ${mLabel(X.snap.m)}: thăng ${X.snap.up.length} · giáng ${X.snap.down.length} · rời đi ${X.snap.gone.length} · gia nhập ${X.snap.joined.length}`, `So chức danh ở báo cáo ${mLabel(X.snap.m)} với BC70 ngày ${dmy(DS.meta.asOf)} – chính xác chiều lên / xuống. Rời đi = có trong báo cáo tháng trước (cùng khu vực) nhưng không còn trong BC70.`,
+      `<div class="grid g2"><div>${tbl('<th>Thăng cấp</th><th>KV</th><th>Từ → nay</th>', X.snap.up.map((x) => `<tr><td>${nm2(x.a)}</td><td>${esc(x.a.a)}</td><td><span class="badge b-green">${esc(x.t0)} → ${esc(x.a.t)}</span></td></tr>`).join('') || '<tr><td colspan="3" class="muted">Không có.</td></tr>', 300)}</div>
+      <div>${tbl('<th>Giáng cấp</th><th>KV</th><th>Từ → nay</th>', X.snap.down.map((x) => `<tr><td>${nm2(x.a)}</td><td>${esc(x.a.a)}</td><td><span class="badge b-red">${esc(x.t0)} → ${esc(x.a.t)}</span></td></tr>`).join('') || '<tr><td colspan="3" class="muted">Không có.</td></tr>', 300)}</div></div>`) : '<p class="note">Chưa có báo cáo tháng trước để so thăng / giáng cấp chính xác. Mỗi lần tải báo cáo KD ĐL hoặc BC70 của tháng mới, dashboard tự lưu ảnh chụp chức danh để so.</p>'}`;
+  } else if (tab === 'aa') {
+    const X = insAA(list), R = X.rows.filter((r) => r.aa !== null), lastFull = R.filter((r) => !r.partial).at(-1);
+    const yo = lastFull ? R.find((r) => r.m === addMonths(lastFull.m, -12)) : null, q = lastFull ? R.find((r) => r.m === addMonths(lastFull.m, -3)) : null;
+    body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      ${k(`3mAA ${lastFull ? mLabel(lastFull.m) : ''}`, f0(lastFull?.aa3), `TB ĐL có HĐ của 3 tháng gần nhất`)}
+      ${k('So 3 tháng trước', q && q.aa3 ? `${lastFull.aa3 >= q.aa3 ? '+' : ''}${pct(lastFull.aa3 / q.aa3 - 1)}` : '–', q ? `${mLabel(q.m)}: ${f0(q.aa3)}` : 'chưa có số')}
+      ${k('So cùng kỳ', yo && yo.aa3 ? `${lastFull.aa3 >= yo.aa3 ? '+' : ''}${pct(lastFull.aa3 / yo.aa3 - 1)}` : '–', yo ? `${mLabel(yo.m)}: ${f0(yo.aa3)}` : 'chưa có số năm trước')}
+      ${k('Hoạt động đều (≥ 2/3 tháng)', f0(X.g.even), `1/3 tháng: ${f0(X.g.once)} · không HĐ: ${f0(X.g.zero)}`)}
+      ${k('Tỷ lệ 1mAA / nguồn lực', pct(lastFull?.rate, 1), lastFull ? mLabel(lastFull.m) : '')}
+    </div>
+    ${sec('1mAA và 3mAA theo tháng', `Cột = 1mAA (ĐL có HĐ trong tháng), đường = 3mAA. Cột nhạt = tháng lấy từ báo cáo KD theo tầng (định nghĩa: ĐL có nộp HĐ có phí), cột đậm = BC70 (FYP thực cấp > 0), ${mLabel(M[3])} tính tới ${dmy(DS.meta.asOf)}.`,
+      insChart(R, { bar: 'aa', line: 'aa3', lbB: '1mAA', lbL: '3mAA', h: 240 }))}
+    ${sec('Theo tháng', '', tbl('<th>Tháng</th><th class="r">Nguồn lực</th><th class="r">1mAA</th><th class="r">Tỷ lệ</th><th class="r">3mAA</th><th class="r">3mAA cùng kỳ</th><th>Nguồn</th>',
+      R.slice().reverse().map((r) => { const p = R.find((x) => x.m === addMonths(r.m, -12)); return `<tr><td><b>${mLabel(r.m)}</b></td><td class="r num">${f0(r.hc)}</td><td class="r num">${f0(r.aa)}</td><td class="r num">${pct(r.rate, 1)}</td><td class="r num"><b>${f0(r.aa3)}</b></td><td class="r num">${p ? f0(p.aa3) : '–'}${p && p.aa3 && r.aa3 ? ` <span class="small ${r.aa3 >= p.aa3 ? 'ok' : 'err'}">${r.aa3 >= p.aa3 ? '+' : ''}${pct(r.aa3 / p.aa3 - 1)}</span>` : ''}</td><td class="small muted">${r.partial ? 'BC70 · đến nay' : r.rep ? 'báo cáo tháng' : 'BC70'}</td></tr>`; }).join(''), 420))}
+    ${sec('3mAA theo thâm niên', `TB số ĐL có HĐ / tháng trong ${mLabel(M[0])}–${mLabel(M[2])}.`, tbl('<th>Thâm niên</th><th class="r">Số ĐL</th><th class="r">3mAA</th><th class="r">3mAA / ĐL</th><th class="r">Tỷ trọng 3mAA</th>',
+      X.byTen.map((r) => `<tr><td><b>${r.lb}</b></td><td class="r num">${f0(r.n)}</td><td class="r num">${f1(r.aa3)}</td><td class="r">${rateBadge(r.n ? r.aa3 / r.n : null, 0.35, 0.2)}</td><td class="r num">${pct(sum(X.byTen, (x) => x.aa3) ? r.aa3 / sum(X.byTen, (x) => x.aa3) : null)}</td></tr>`).join(''), 360))}`;
+  }
+  c.innerHTML = `<section class="panel"><div class="panel-b"><div class="tabs">${INS_TABS.map(([kk, l]) => `<button class="${tab === kk ? 'on' : ''}" data-ins="${kk}">${l}</button>`).join('')}</div>${body}</div></section>`;
+  $$('[data-ins]', c).forEach((b) => b.onclick = (e) => { e.preventDefault(); S.insTab = b.dataset.ins; pageInsight(c); });
+  $$('[data-open]', c).forEach((tr) => tr.onclick = (e) => { e.preventDefault(); openPerson(tr.dataset.open); });
+}
+
+// insight tự động: mỗi thẻ 1 phát hiện + con số + đi tới tab chi tiết
+function insSummary(list) {
+  const M = DS.months, y = yearNow();
+  const C = insCohort(list), X = insMdrt(list), B = insMba(list), U = insNewUm(list), D = insDemo(list), A = insAA(list);
+  const r4 = C.recent, nAll = sum(r4, (r) => r.n), m01 = sum(r4.slice(0, 3), (r) => r.n), m012 = sum(r4.slice(0, 2), (r) => r.n);
+  const c0 = C.curve, rate = (t) => (c0[t].n ? c0[t].a / c0[t].n : null);
+  const late = c0.slice(4).reduce((t, x) => ({ n: t.n + x.n, a: t.a + x.a }), { n: 0, a: 0 });
+  const cards = [];
+  const add = (tone, tab, title, big, text) => cards.push({ tone, tab, title, big, text });
+  add(rate(0) !== null && rate(0) < 0.3 ? 'warn' : 'ok', 'cohort', 'Kích hoạt tân binh', pct(nAll ? sum(r4, (r) => r.ever) / nAll : null),
+    `${f0(nAll)} tân binh ${mLabel(M[0])}–${mLabel(M[3])}: ${pct(rate(0))} có HĐ ngay M0, ${pct(m01 ? sum(r4.slice(0, 3), (r) => r.at[1]) / m01 : null)} có HĐ ở M1, ${pct(m012 ? sum(r4.slice(0, 2), (r) => r.at[2]) / m012 : null)} ở M2. Từ M4 trở đi tỷ lệ có HĐ mỗi tháng chỉ còn ${pct(late.n ? late.a / late.n : null)}.`);
+  add(sum(r4, (r) => r.both) < 5 ? 'warn' : 'ok', 'cohort', 'Phễu fast-track', `${f0(sum(r4, (r) => r.both))} / ${f0(nAll)}`,
+    `ĐL đủ 3 HĐ + 40 tr trong M0–M2. ${f0(sum(r4, (r) => r.cc3))} đủ 3 HĐ, ${f0(sum(r4, (r) => r.f40))} đủ 40 tr; ${f0(sum(r4, (r) => r.fast))} đã đạt Silver fast-track, ${f0(sum(r4, (r) => r.pot))} đang tiềm năng.`);
+  const never = sum(C.rows12, (r) => r.n - r.ever), n12 = sum(C.rows12, (r) => r.n);
+  add(n12 && never / n12 > 0.4 ? 'warn' : 'ok', 'cohort', 'Tân binh 12 tháng chưa có HĐ nào', f0(never), `${pct(n12 ? never / n12 : null)} trong ${f0(n12)} ĐL gia nhập 12 tháng qua (còn làm việc) chưa từng có HĐ thực cấp.`);
+  const last = X.cols.at(-1), q3 = X.cols.find((x) => x.k === 'q3');
+  add('ok', 'mdrt', `Pipeline MDRT ${y + 1}`, f0(last.b[0]), `đang đạt MDRT+ (${q3 ? `${f0(q3.b[0])} ở ${mLabel(`${y}-09`)}` : ''}). ${f0(last.b[1])} người ở 70–99% cần thêm ${money(sum(X.near.filter((x) => x.r >= 0.7), (x) => X.MV - x.f))}; ${f0(X.ups)} người đã lên bậc trong tháng này.`);
+  const topMiss = B.miss.slice().sort((p, q) => q.only - p.only)[0];
+  add('ok', 'mba', 'MBA Pro', `${f0(B.b[0])} / ${f0(B.n)}`, `UM+ đủ 4/4 điều kiện mức Bạc; ${f0(B.rs.filter((r) => r.ok === 3).length)} chỉ thiếu 1 – nghẽn nhiều nhất: ${topMiss ? `${topMiss.lb} (${f0(topMiss.only)})` : '–'}.`);
+  const nu = U.nus.length, gNew = U.groups.find((g) => g.k === 'new'), gOld = U.groups.find((g) => g.k === 'old'), noTeam = U.nus.filter((x) => !N(x.a.d1[2])).length;
+  add(nu && noTeam / nu > 0.5 ? 'warn' : 'ok', 'newum', `UM mới ${y}`, f0(nu), `${f0(gNew.n)} mới gia nhập lên (≤ 12 tháng), ${f0(gOld.n)} lâu năm (> 3 năm), ${f0(sum(U.groups, (g) => g.rehire))} tái tuyển quay lại. ${pct(nu ? noTeam / nu : null)} chưa có ĐL trực tiếp nào có HĐ ${mLabel(M[2])}.`);
+  const yN = sum(D.ten.slice(0, 3), (r) => r.n), yF = sum(D.ten.slice(0, 3), (r) => r.fyp), oN = sum(D.ten.slice(5), (r) => r.n), oF = sum(D.ten.slice(5), (r) => r.fyp);
+  add('ok', 'demo', 'Cơ cấu thâm niên', pct(D.n ? yN / D.n : null), `nguồn lực dưới 12 tháng, làm ra ${pct(D.totF ? yF / D.totF : null)} FYP 3 tháng; nhóm trên 5 năm chiếm ${pct(D.n ? oN / D.n : null)} người nhưng ${pct(D.totF ? oF / D.totF : null)} FYP.`);
+  add(D.cur.toFa.length > D.cur.upUm.length / 2 ? 'warn' : 'ok', 'demo', `Thăng / giáng cấp ${y}`, `+${f0(D.cur.upUm.length + D.cur.gtf.length)} / −${f0(D.cur.toFa.length)}`,
+    `lên UM (FA→UM ${f0(D.cur.upUm.length)}, GTF ${f0(D.cur.gtf.length)}) so với về FA ${f0(D.cur.toFa.length)}.${D.snap ? ` So với ${mLabel(D.snap.m)}: ${D.snap.up.length} thăng, ${D.snap.down.length} giáng.` : ''}`);
+  const R = A.rows.filter((r) => r.aa3 !== null), lf = R.at(-1), yo = lf ? A.rows.find((r) => r.m === addMonths(lf.m, -12)) : null;
+  add(yo && yo.aa3 && lf.aa3 < yo.aa3 ? 'warn' : 'ok', 'aa', '3mAA', f0(lf?.aa3), `${lf ? mLabel(lf.m) : ''}${yo && yo.aa3 ? ` · cùng kỳ ${f0(yo.aa3)} (${lf.aa3 >= yo.aa3 ? '+' : ''}${pct(lf.aa3 / yo.aa3 - 1)})` : ''}. Hoạt động đều ${f0(A.g.even)} ĐL, 1/3 tháng ${f0(A.g.once)}, không HĐ ${f0(A.g.zero)}.`);
+  return `<p class="note" style="margin:0 0 10px">Phạm vi: <b>${esc(scopeLabel())}</b> · dữ liệu tới ${dmy(DS.meta.asOf)} · bấm thẻ để xem chi tiết.</p>
+    <div class="ins-grid">${cards.map((x) => `<div class="ins-card ${x.tone}" data-ins="${x.tab}" role="button" tabindex="0"><div class="ins-t">${x.title}<span class="go">Chi tiết ›</span></div><div class="ins-big num">${x.big}</div><p>${x.text}</p></div>`).join('')}</div>`;
 }
 
 // =====================================================================
