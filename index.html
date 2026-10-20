@@ -162,6 +162,12 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .ins-card .ins-big{font-size:26px;font-weight:700;line-height:1.1}.ins-card.warn .ins-big{color:#b54708}
 .ins-card p{margin:0;font-size:12.5px;line-height:1.45;color:#344054}
 .ins-h{margin:18px 0 6px;font-size:15px}
+/* Thu nhập & chi phí */
+.inc-ctrl{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;padding:10px 12px;border:1px solid var(--line-2);border-radius:12px;background:#fafcfb;margin-bottom:6px;font-size:13px}
+.inc-ctrl label{display:flex;align-items:center;gap:8px;font-weight:600}.inc-ctrl input[type=number]{width:64px;padding:4px 6px;border:1px solid var(--line);border-radius:8px}.inc-ctrl input[type=range]{width:160px;accent-color:var(--green)}.inc-ctrl select{padding:4px 6px;border:1px solid var(--line);border-radius:8px}
+.inc-tbl td.inc-hl,.inc-tbl th.inc-hl{background:#e8f6ee}.inc-tbl tr.grp td{background:#f4f8f5;font-size:12.5px}.inc-tbl td small{font-size:11px}
+.inc-ins{border:1px solid var(--line-2);border-left:4px solid var(--green);border-radius:12px;padding:10px 14px;background:#fff;font-size:13px}.inc-ins ul{margin:6px 0 0;padding-left:18px;display:grid;gap:5px}
+.inc-cell{display:inline-block;min-width:28px;padding:1px 6px;border-radius:6px;background:rgba(0,167,88,var(--a));font-weight:600}
 .ins-chart .ln-aa{fill:none;stroke:#1570ef;stroke-width:2.2}.ins-chart .dt-aa{fill:#1570ef}.ins-chart .bar.rep{fill:#b2ddff}
 .ins-bar{display:inline-block;width:70px;height:6px;border-radius:4px;background:#eef2f6;vertical-align:middle;margin-right:6px;overflow:hidden}.ins-bar i{display:block;height:100%;background:var(--green)}
 .tbl td.hm{font-variant-numeric:tabular-nums;font-size:12px}.tbl td.hm-na{background:#fafafa}
@@ -1326,6 +1332,7 @@ const ICON = {
   plan: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M22 12h-3"/>',
   library: '<path d="M4 19V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h6M8 11h6"/>',
   insight: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"/>',
+  income: '<path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/>',
   data: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
 };
 const PAGES = [
@@ -1333,6 +1340,7 @@ const PAGES = [
   { id: 'health', sec: 'Điều hành', name: 'Sức khỏe đội ngũ', sub: 'RH → báo cáo trực tiếp → … → khu vực → UM+ → FA · bấm thẻ để đi xuống cấp dưới' },
   { id: 'titles', sec: 'Điều hành', name: 'Danh hiệu & tiến độ', sub: 'MDRT 2027 · MBA Pro 2027 · Manulife Pro · thăng cấp UM' },
   { id: 'insight', sec: 'Điều hành', name: 'Insight đội ngũ', sub: 'Cohort M0 → M1 → fast-track · pipeline MDRT · MBA Pro · UM mới · thâm niên, thăng / giáng cấp · 3mAA' },
+  { id: 'income', sec: 'Điều hành', name: 'Thu nhập & chi phí', sub: 'Kịch bản thu nhập FA · UM+ · PSM+ theo chính sách 2026 · mô phỏng Manulife chi bao nhiêu % FYP khi đạt / vượt target' },
   { id: 'plan', sec: 'Điều hành', name: 'Kế hoạch & thực hiện', sub: 'Target năm · target tháng theo phân khúc · cần bao nhiêu 1mAA / HĐ' },
   { id: 'library', sec: 'Tra cứu', name: 'Thư viện chính sách', sub: 'Memo, chương trình thi đua, chính sách thu nhập' },
   { id: 'history', sec: 'Dữ liệu', name: 'KQKD các kỳ trước', sub: 'Nhập số tháng cũ để so YoY và nối xu hướng' },
@@ -1372,7 +1380,7 @@ $('#menu-btn').onclick = () => {
 };
 
 function topControls() {
-  if (!DS || !['overview', 'health', 'titles', 'insight', 'plan', 'history'].includes(S.page)) return '';
+  if (!DS || !['overview', 'health', 'titles', 'insight', 'income', 'plan', 'history'].includes(S.page)) return '';
   const rhSel = `<select class="select" id="sel-rh" aria-label="Đầu RH" style="font-weight:700">${[['all', 'ALL · toàn bộ'], ...rhList().map((g) => [g.id, g.name])].map(([id, n]) => `<option value="${id}" ${S.rh === id ? 'selected' : ''}>${esc(id === 'all' ? n : 'RH · ' + n)} (${id === 'all' ? DS.areasAll.length : DS.areasAll.filter((a) => a.rh === id).length} KV)</option>`).join('')}</select>`;
   if (['plan', 'history'].includes(S.page)) return rhSel;
   const M = DS.months;
@@ -1392,7 +1400,7 @@ function render() {
   const bs = $('#sel-branch'); if (bs) bs.onchange = (e) => setBranch(e.target.value);
   const as = $('#sel-area'); if (as) as.onchange = (e) => { S.area = e.target.value; S.open.clear(); S.hPath = []; render(); };
   const c = $('#content'); c.onclick = null; c.onkeydown = null;
-  try { ({ overview: pageOverview, health: pageHealth, titles: pageTitles, insight: pageInsight, history: pageHistory, plan: pagePlan, library: pageLibrary, data: pageData })[S.page](c); }
+  try { ({ overview: pageOverview, health: pageHealth, titles: pageTitles, insight: pageInsight, income: pageIncome, history: pageHistory, plan: pagePlan, library: pageLibrary, data: pageData })[S.page](c); }
   catch (e) { console.error(e); c.innerHTML = `<div class="banner warn">Lỗi hiển thị trang: ${esc(e.message)}</div>`; }
 }
 
@@ -2874,6 +2882,320 @@ function insSummary(list) {
   add(yo && yo.aa3 && lf.aa3 < yo.aa3 ? 'warn' : 'ok', 'aa', '3mAA', f0(lf?.aa3), `${lf ? mLabel(lf.m) : ''}${yo && yo.aa3 ? ` · cùng kỳ ${f0(yo.aa3)} (${lf.aa3 >= yo.aa3 ? '+' : ''}${pct(lf.aa3 / yo.aa3 - 1)})` : ''}. Hoạt động đều ${f0(A.g.even)} ĐL, 1/3 tháng ${f0(A.g.once)}, không HĐ ${f0(A.g.zero)}.`);
   return `<p class="note" style="margin:0 0 10px">Phạm vi: <b>${esc(scopeLabel())}</b> · dữ liệu tới ${dmy(DS.meta.asOf)} · bấm thẻ để xem chi tiết.</p>
     <div class="ins-grid">${cards.map((x) => `<div class="ins-card ${x.tone}" data-ins="${x.tab}" role="button" tabindex="0"><div class="ins-t">${x.title}<span class="go">Chi tiết ›</span></div><div class="ins-big num">${x.big}</div><p>${x.text}</p></div>`).join('')}</div>`;
+}
+
+// =====================================================================
+//  THU NHẬP & CHI PHÍ – kịch bản thu nhập theo cấp & mô phỏng Manulife chi bao nhiêu % FYP
+//  Chính sách: 0046M01/2026 (Đại lý) · 0047M01/2026 (UM+) · 0048BM01/2026 (PSM+ & HKD). Đơn vị: nghìn đồng (VND 000)
+// =====================================================================
+const INC = {
+  faM: [[100000, 0.5, 'old'], [80000, 0.35], [60000, 0.3], [45000, 0.25], [30000, 0.2], [15000, 0.15], [10000, 0.1], [5000, 0.05, 'new']], // FYC 3 tháng → % thưởng năng suất tháng
+  faQ: [[120000, 0.1], [100000, 0.08], [80000, 0.06], [60000, 0.05], [45000, 0.04], [30000, 0.03], [15000, 0.02, 'new']], // FYC quý → % thưởng quý
+  mpx: { S: [[30000, 3000], [15000, 1500]], G: [[60000, 7000], [45000, 5000], [30000, 3000], [15000, 1500]], P: [[100000, 16000], [80000, 12000], [60000, 10000], [45000, 8000], [30000, 4000], [15000, 2000]] },
+  umL1: [[48000, 0.2], [24000, 0.16], [7000, 0.14], [0, 0.1]], // FYC cấp 1 trong tháng → %
+  umAct: { mba: [[6, 1.25], [4, 1], [2, 0.75], [1, 0.3]], std: [[6, 0.6], [4, 0.5], [2, 0.4], [1, 0.3]] },
+  umLt: { 'MBA Pro Bạch Kim': 1.25, 'MBA Pro Vàng': 1, 'MBA Pro Bạc': 0.8 },
+  psmBase: { PSM: 35000, SM: 35000, PSSM: 45000, SSM: 45000, DRD: 60000, RD: 60000, SRD: 80000, AVP: 110000, SAVP: 125000, VP: 150000 },
+  psmQ: [[1.2, 0.05], [1.1, 0.035], [1.0, 0.025], [0.9, 0.01]],
+};
+const tierRate = (tbl, v) => { for (const [lo, r] of tbl) if (v >= lo) return r; return 0; };
+const k13a = (p) => (p === null || p === undefined || p === '' ? 1 : +p >= 70 ? 1 : +p >= 65 ? 0.9 : +p >= 60 ? 0.7 : +p >= 50 ? 0.5 : +p / 200); // hệ số TLDTHD cá nhân (từ 04/2026)
+const k13t = (p) => (p === null || p === undefined || p === '' ? 1 : +p >= 80 ? 1.1 : +p >= 75 ? 1.05 : +p >= 70 ? 1 : +p >= 65 ? 0.9 : +p >= 60 ? 0.7 : +p >= 50 ? 0.5 : +p / 200); // hệ số TLDTHD nhóm / khu vực
+// thu nhập 1 đại lý trong 1 tháng (giả định duy trì cùng nhịp 3 tháng): hoa hồng + thưởng tháng + thưởng quý (quy tháng) + MPro xuất sắc + ĐL mới + KKPTKDHT
+function faCalc({ fyc = 0, fyp = 0, cc = 0, ten = 24, tier = null, k = 1, newM = null, kk = false, q3 = null, exc = null }) {
+  const Q = q3 === null ? 3 * fyc : q3, ok = cc >= 1 && fyc > 0;
+  const mRate = ok ? tierRate(INC.faM.filter(([, , g]) => !(g === 'old' && ten <= 6) && !(g === 'new' && ten > 6)), Q) : 0;
+  const excl = tier === 'G' || tier === 'P' || (exc !== false && mRate > 0); // xuất sắc: đạt thưởng tháng cả 3 tháng của quý, hoặc MPro Vàng / Bạch Kim
+  const qRate = ok ? tierRate(INC.faQ.filter(([, , g]) => !(g === 'new' && ten > 6)), Q) * (excl ? 2 : 1) : 0;
+  const mp = tier && INC.mpx[tier] ? tierRate(INC.mpx[tier], fyp) : 0;
+  const o = { comm: fyc, month: mRate * fyc * k, quarter: qRate * fyc * k, mpro: mp * k, newAg: newM !== null && newM <= 2 && cc >= 1 && fyp >= 10000 ? 1500 * k : 0, kk: kk && cc >= 1 && fyc >= 4000 ? Math.min(3000, 0.2 * fyc) * k : 0, mRate, qRate };
+  o.bonus = o.month + o.quarter + o.mpro + o.newAg + o.kk; o.total = o.comm + o.bonus;
+  return o;
+}
+// phí dịch vụ UM+ / tháng: năng suất nhóm (cấp 1–4), hoạt động nhóm, phát triển ĐL mới MPro, phát triển nhóm mới
+function umCalc({ l = [0, 0, 0, 0], prod = 0, kidsBonus = 0, kidsNew = 0, mba = false, kd = 1, newTeam = 0 }) {
+  const ur = tierRate(INC.umL1, l[0]);
+  const o = { ur, prodFee: ur * (l[0] + l[1] / 2 + l[2] / 4 + l[3] / 8), actRate: tierRate(mba ? INC.umAct.mba : INC.umAct.std, prod) };
+  o.act = o.actRate * kidsBonus * kd; o.newMp = (mba ? 1 : 0.5) * kidsNew * kd; o.newTeam = newTeam;
+  o.total = o.prodFee + o.act + o.newMp + o.newTeam;
+  return o;
+}
+const psmBaseFee = (title, comp) => { const b = INC.psmBase[String(title || '').toUpperCase()] || 0; return comp >= 0.3 ? b * Math.min(1.5, comp * 1.3) : 0; };
+
+// ---------- mô phỏng toàn phạm vi (RH / nhánh / khu vực) theo từng đại lý ----------
+// opts: { ach (tỷ lệ hoàn thành target), mix (phần tăng đến từ năng suất), r (FYC/FYP), ym (tháng target), indirect: 'halve' | 'flat', scale (ép hệ số, bỏ qua target) }
+function incBase() {
+  const M = DS.months, ib = 2, list = scopeList(), areas = [...new Set(list.map((a) => a.a))];
+  const ym = M[3];
+  const saBy = Object.fromEntries(areas.map((ar) => [ar, DS.offFyp && DS.offIdx.has(ib) ? N(DS.offFyp.sa?.[ar]?.[ib]) : 0]));
+  // target khu vực tháng đang chạy (triệu đồng → nghìn đồng); khu vực thiếu target: theo tỷ lệ target / FYP tháng trước của các khu vực có target
+  const baseA = Object.fromEntries(areas.map((ar) => [ar, sum(list.filter((a) => a.a === ar), (a) => a.fyp[ib]) + saBy[ar]]));
+  const tgA = Object.fromEntries(areas.map((ar) => [ar, tgVal('a:' + ar, ym, 'fyp')]));
+  const known = areas.filter((ar) => tgA[ar] !== null), ratio = sum(known, (ar) => baseA[ar]) ? sum(known, (ar) => tgA[ar] * 1000) / sum(known, (ar) => baseA[ar]) : 1;
+  const tFyp = Object.fromEntries(areas.map((ar) => [ar, tgA[ar] !== null ? tgA[ar] * 1000 : baseA[ar] * ratio]));
+  const tAa = Object.fromEntries(areas.map((ar) => [ar, tgVal('a:' + ar, ym, 'aa')]));
+  const scopeTgt = S.area === 'all' && !S.branch ? scopeTarget(ym, 'fyp') : null;
+  return { list, areas, ib, ym, saBy, baseA, tFyp, tAa, T: scopeTgt || sum(areas, (ar) => tFyp[ar]), B: sum(areas, (ar) => baseA[ar]), known: known.length };
+}
+function incSimulate(opts = {}) {
+  const X = opts.base || incBase(), { list, ib, ym } = X, r = opts.r ?? 0.23, mix = opts.mix ?? 0.5;
+  const B = X.B, D = opts.scale !== undefined ? B * opts.scale : X.T * (opts.ach ?? 1);
+  const act = list.filter((a) => N(a.fyp[ib]) > 0), ccTot = sum(act, (a) => a.cc[ib]), caseSz = ccTot ? sum(act, (a) => a.fyp[ib]) / ccTot : 30000;
+  let f = D / Math.max(1, B), adds = new Map();
+  if (D > B && opts.scale === undefined) {
+    const extra = D - B; f = 1 + (extra * mix) / B;
+    let ea = extra * (1 - mix);
+    const med = median(act.map((a) => N(a.fyp[ib]))) || caseSz;
+    const pool = list.filter((a) => !(N(a.fyp[ib]) > 0)).sort((p, q) => N(q.fyp6) - N(p.fyp6) || N(q.fyp12) - N(p.fyp12) || N(q.am12) - N(p.am12));
+    const kN = Math.min(pool.length, Math.round(ea / (med * f)));
+    if (kN > 0) { const each = ea / kN; pool.slice(0, kN).forEach((a) => adds.set(a.c, each)); ea = 0; }
+    if (ea > 0) f += ea / B; // hết ĐL để kích hoạt → dồn vào năng suất
+  }
+  // từng đại lý
+  const R = new Map();
+  for (const a of list) {
+    const b = N(a.fyp[ib]), fyp = adds.has(a.c) ? adds.get(a.c) : b * f;
+    const cc = fyp > 0 ? (adds.has(a.c) ? Math.max(1, Math.round(fyp / caseSz)) : Math.max(1, Math.round(N(a.cc[ib]) * f))) : 0;
+    const ten = tenureAt(a, ym) ?? 24;
+    // FYC 3 tháng để xét bậc thưởng: 2 tháng trước (thực tế, cùng hệ số) + tháng mô phỏng; ĐL được kích hoạt chưa có 2 tháng trước
+    const prev = adds.has(a.c) ? 0 : (N(a.fyp[ib - 1]) + N(a.fyp[ib - 2])) * f * r, steady = !adds.has(a.c) && N(a.fyp[ib - 1]) > 0 && N(a.fyp[ib - 2]) > 0;
+    R.set(a.c, { a, fyp, fyc: fyp * r, cc, ten, q3: prev + fyp * r, steady, newM: ten >= 0 && ten <= 2 ? ten : null, added: adds.has(a.c) });
+  }
+  for (const x of R.values()) {
+    const kidJoin = x.a.kids.some((k) => { const y = R.get(k.c); return y && ym7(k.j) === ym && y.cc >= 1 && y.fyc >= 4000; });
+    Object.assign(x, { inc: faCalc({ fyc: x.fyc, fyp: x.fyp, cc: x.cc, ten: x.ten, tier: x.a.tier, k: k13a(x.a.p13), newM: x.newM, kk: kidJoin, q3: x.q3, exc: x.steady ? null : false }) });
+  }
+  // UM+
+  const lvl = (u) => { const out = [0, 0, 0, 0]; let cur = u.kids; for (let d = 0; d < 4 && cur.length; d++) { out[d] = sum(cur, (k) => R.get(k.c)?.fyc); cur = cur.flatMap((k) => k.kids); } return out; };
+  const isMba = (u) => !!(u.mba || DS.mba.get(u.c)?.cur);
+  const newUmOf = (k) => k.um && String(k.t).toUpperCase() === 'UM' && k.td && !(k.gtf_date || DS.gtf.has(k.c)) && monthDiff(ym7(k.j), ym7(k.td)) <= 12 && monthDiff(ym7(k.td), ym) < 12;
+  const U = new Map();
+  for (const u of list.filter((a) => a.um)) {
+    const l = lvl(u), kids = u.kids.map((k) => R.get(k.c)).filter(Boolean);
+    U.set(u.c, { u, l, kids, prod: kids.filter((y) => y.fyc >= 4000 && y.cc >= 1).length, kidsBonus: sum(kids, (y) => y.inc.month + y.inc.quarter), kidsNew: sum(kids, (y) => y.inc.newAg), mba: isMba(u) });
+  }
+  for (const x of U.values()) {
+    const nt = sum(x.u.kids.filter(newUmOf), (k) => { const y = U.get(k.c); return y ? Math.min(30000, 2.1 * tierRate(INC.umL1, y.l[0]) * y.l[0]) : 0; });
+    x.fee = umCalc({ l: x.l, prod: x.prod, kidsBonus: x.kidsBonus, kidsNew: x.kidsNew, mba: x.mba, kd: k13t(x.u.p13d), newTeam: nt });
+    const lt = INC.umLt[x.u.mba || DS.mba.get(x.u.c)?.cur] || 0; x.fee.lt = x.prod >= 2 ? lt * (x.fee.act + x.fee.newMp) : 0; // hợp tác dài hạn (trả sau 3 năm)
+  }
+  // khu vực
+  const A = new Map();
+  for (const ar of X.areas) {
+    const xs = [...R.values()].filter((x) => x.a.a === ar), sa = X.saBy[ar] * f;
+    const fyp = sum(xs, (x) => x.fyp) + sa, fyc = fyp * r, aa4 = xs.filter((x) => x.fyc >= 4000 && x.cc >= 1).length;
+    const pw = xs.filter((x) => x.a.p13 !== null && x.a.p13 !== undefined && x.fyc > 0), p13 = sum(pw, (x) => x.fyc) ? sum(pw, (x) => N(x.a.p13) * x.fyc) / sum(pw, (x) => x.fyc) : null;
+    const comp = X.tFyp[ar] ? fyp / X.tFyp[ar] : null, baseAa = DS.areas.find((z) => z.code === ar)?.list.filter((a) => N(a.fyc[ib]) >= 4000 && N(a.cc[ib]) >= 1).length || 0;
+    const aaT = X.tAa[ar] !== null ? X.tAa[ar] : baseAa / Math.max(0.01, X.baseA[ar] / Math.max(1, X.tFyp[ar])); // thiếu target 1mAA: quy theo tỷ lệ target FYP
+    const aaComp = aaT ? aa4 / aaT : 0, k = k13t(p13);
+    const prodFee = (comp !== null && comp >= 1.15 ? 0.08 : 0.06) * fyc * k, qFee = tierRate(INC.psmQ, aaComp) * fyc * k;
+    A.set(ar, { ar, fyp, fyc, aa4, aaT, aaComp, comp, tgt: X.tFyp[ar], p13, k, prodFee, qFee, psm: DS.areas.find((z) => z.code === ar)?.psmCode || null });
+  }
+  // PSM+: đường quản lý từ khu vực lên tới đầu RH
+  const E = DS.psmTree, top = S.rh !== 'all' ? norm(rhName(S.rh)) : null, P = new Map();
+  const node = (c) => { if (!P.has(c)) { const t = E.get(c) || { c, n: c, t: null }; P.set(c, { c, n: t.n, t: t.t, areas: new Set(), direct: new Set(), prod: 0, q: 0, prodD: 0, qD: 0, depth: 0 }); } return P.get(c); };
+  for (const x of A.values()) {
+    if (!x.psm) continue;
+    const path = []; const seen = new Set(); let c = x.psm;
+    while (c && !seen.has(c)) { seen.add(c); path.push(c); const t = E.get(c); if (!t || (top && norm(t.n) === top)) break; c = t.p; }
+    path.forEach((pc, d) => {
+      const n = node(pc); n.areas.add(x.ar); n.depth = Math.max(n.depth, path.length - 1 - d);
+      const w = d === 0 ? 1 : opts.indirect === 'flat' ? 0.5 : Math.pow(0.5, d);
+      if (d === 0) { n.direct.add(x.ar); n.prodD += x.prodFee; n.qD += x.qFee; }
+      n.prod += x.prodFee * w; n.q += x.qFee * w;
+    });
+  }
+  for (const n of P.values()) {
+    const ars = [...n.areas], fyp = sum(ars, (ar) => A.get(ar).fyp), nt = tgVal('n:' + n.c, ym, 'fyp'), tgt = nt !== null ? nt * 1000 : sum(ars, (ar) => A.get(ar).tgt);
+    n.fyp = fyp; n.tgt = tgt; n.comp = tgt ? fyp / tgt : null; n.base = psmBaseFee(n.t, n.comp ?? 0); n.baseMax = INC.psmBase[String(n.t || '').toUpperCase()] || 0;
+    const ltOk = n.comp !== null && n.comp >= 0.85; n.lt = ltOk ? Math.min(n.baseMax, 0.75 * (n.prodD + n.qD) + 0.25 * (n.prod + n.q - n.prodD - n.qD)) : 0; // hợp tác dài hạn quy tháng, tối đa 12 × phí cơ bản / năm
+    n.total = n.base + n.prod + n.q;
+  }
+  // tổng hợp
+  const RV = [...R.values()], UV = [...U.values()], PV = [...P.values()], AV = [...A.values()];
+  const fyp = sum(AV, (x) => x.fyp), saFyc = sum(X.areas, (ar) => X.saBy[ar] * f) * r;
+  const L = {
+    comm: sum(RV, (x) => x.inc.comm) + saFyc, faMonth: sum(RV, (x) => x.inc.month), faQuarter: sum(RV, (x) => x.inc.quarter), faMpro: sum(RV, (x) => x.inc.mpro), faNew: sum(RV, (x) => x.inc.newAg), faKk: sum(RV, (x) => x.inc.kk),
+    umProd: sum(UV, (x) => x.fee.prodFee), umAct: sum(UV, (x) => x.fee.act), umNewMp: sum(UV, (x) => x.fee.newMp), umNewTeam: sum(UV, (x) => x.fee.newTeam),
+    psmBase: sum(PV, (n) => n.base), psmProd: sum(PV, (n) => n.prod), psmQ: sum(PV, (n) => n.q), umLt: sum(UV, (x) => x.fee.lt), psmLt: sum(PV, (n) => n.lt),
+  };
+  L.now = L.comm + L.faMonth + L.faQuarter + L.faMpro + L.faNew + L.faKk + L.umProd + L.umAct + L.umNewMp + L.umNewTeam + L.psmBase + L.psmProd + L.psmQ;
+  L.later = L.umLt + L.psmLt; L.all = L.now + L.later;
+  return { X, f, D, fyp, fyc: fyp * r, ach: X.T ? fyp / X.T : null, added: adds.size, R, U, P, A, L, r, mix,
+    aa4: sum(AV, (x) => x.aa4), producers: RV.filter((x) => x.fyp > 0).length };
+}
+const INC_ROWS = [
+  ['FA & UM+ (bán cá nhân)', [['comm', 'Hoa hồng năm đầu (FYC)', 'Theo sản phẩm · FYC/FYP mặc định'], ['faMonth', 'Thưởng năng suất tháng', '5–50% FYC theo FYC 3 tháng, cần ≥1 HĐ'], ['faQuarter', 'Thưởng năng suất quý (quy tháng)', '2–10% FYC quý, ×2 nếu xuất sắc'], ['faMpro', 'Thưởng năng suất xuất sắc Manulife Pro', 'theo FYP tháng & danh hiệu'], ['faNew', 'Thưởng Đại lý mới', '1,5 tr khi M0–M2 có 1 HĐ & 10 tr FYP'], ['faKk', 'Thưởng KKPTKDHT', '20% FYC (tối đa 3 tr) khi tuyển mới có SX']]],
+  ['UM+ (quản lý nhóm)', [['umProd', 'PDV năng suất nhóm', '10–20% FYC cấp 1, ½ mỗi cấp 2–4'], ['umAct', 'PDV hoạt động nhóm', '30–125% thưởng tháng + quý của cấp 1'], ['umNewMp', 'PDV phát triển ĐL mới Manulife Pro', '50–100% thưởng ĐL mới của cấp 1'], ['umNewTeam', 'PDV phát triển nhóm mới', '210% PDV năng suất của UM mới (≤ 30 tr)']]],
+  ['PSM+ (quản lý khu vực → RH)', [['psmBase', 'PDV cơ bản', 'Mức theo chức danh × % hoàn thành × 130% (≤ 150%)'], ['psmProd', 'PDV năng suất tháng', '6% FYC khu vực (8% nếu ≥ 115%), gián tiếp 50%'], ['psmQ', 'PDV hoạt động quý (quy tháng)', '1–5% FYC theo % hoàn thành 1mAA_4mFYC']]],
+];
+
+// ---------- kịch bản theo cấp ----------
+function incLevels(c) {
+  const r = S.incR ?? 0.23, base = incBase(), sim = incSimulate({ base, scale: 1, r }), M = DS.months, ib = 2;
+  const pct1 = (v, d = 1) => pct(v, d), fy = (fyc) => fyc / r;
+  const k = (lb, v, sub) => `<div class="kpi"><div class="lb">${lb}</div><div class="v num">${v}</div><div class="s">${sub}</div></div>`;
+  const tbl = (head, body, max = 560) => `<div class="tbl-wrap" style="max-height:${max}px"><table class="tbl inc-tbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const L = sim.L, F = sim.fyp;
+  // 1) hiện trạng chi phí tháng gần nhất theo chính sách
+  const layer = (keys) => sum(keys, (kk) => L[kk]);
+  const cur = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+    ${k(`FYP thực cấp ${mLabel(M[ib])}`, money(F), `FYC ≈ ${money(sim.fyc)} (FYC/FYP ${pct1(r)}) · ${f0(sim.producers)} ĐL có FYP`)}
+    ${k('Chi cho FA & UM+ bán cá nhân', pct1(layer(INC_ROWS[0][1].map((x) => x[0])) / F), money(layer(INC_ROWS[0][1].map((x) => x[0]))) + ' · hoa hồng + thưởng')}
+    ${k('Chi cho UM+ quản lý nhóm', pct1(layer(INC_ROWS[1][1].map((x) => x[0])) / F), money(layer(INC_ROWS[1][1].map((x) => x[0]))))}
+    ${k('Chi cho PSM+ (khu vực → RH)', pct1(layer(INC_ROWS[2][1].map((x) => x[0])) / F), money(layer(INC_ROWS[2][1].map((x) => x[0]))))}
+    ${k('Tổng chi ngay', pct1(L.now / F), `${money(L.now)} · + trả sau (hợp tác dài hạn) ${pct1(L.later / F)}`)}
+  </div>`;
+  // 2) FA
+  const prodFa = [...sim.R.values()].filter((x) => x.cc >= 1 && x.fyc > 0 && x.ten > 6);
+  const fycs = prodFa.map((x) => x.fyc).sort((p, q) => p - q), pq = (p) => fycs.length ? fycs[Math.min(fycs.length - 1, Math.floor(p * fycs.length))] : 0;
+  const cs = sim.fyp / Math.max(1, sum([...sim.R.values()], (x) => x.cc));
+  const faSc = [['Tối thiểu có thưởng', 10000 / 3], ['Trung vị hiện tại', pq(0.5)], ['Chuẩn', 10000], ['Tốt', 20000], ['Tối ưu', 100000 / 3], ['Top 10% hiện tại', pq(0.9)]];
+  const faCols = faSc.map(([lb, fyc]) => ({ lb, fyc, fyp: fy(fyc), cc: Math.max(1, Math.round(fy(fyc) / cs)), o: faCalc({ fyc, fyp: fy(fyc), cc: 1, ten: 24 }) }));
+  const tierOf = (Q) => INC.faM.filter(([, , g]) => g !== 'new').find(([lo]) => Q >= lo);
+  const faDist = INC.faM.filter(([, , g]) => g !== 'new').map(([lo, rr]) => ({ lo, rr, n: prodFa.filter((x) => tierOf(3 * x.fyc)?.[0] === lo).length })).concat([{ lo: 0, rr: 0, n: prodFa.filter((x) => !tierOf(3 * x.fyc)).length }]);
+  const near = (lo) => prodFa.filter((x) => { const Q = 3 * x.fyc, t = tierOf(Q), nx = [...INC.faM].filter(([l2, , g]) => g !== 'new' && l2 > (t ? t[0] : 0)).at(-1); return nx && nx[0] === lo && Q >= nx[0] * 0.7; });
+  const faRows = [['FYP / tháng', (x) => money(x.fyp)], ['FYC / tháng (FYC 3 tháng)', (x) => `${money(x.fyc)} <span class="muted small">(${money(3 * x.fyc)})</span>`], ['Số HĐ ước tính', (x) => f0(x.cc)],
+    ['Hoa hồng', (x) => money(x.o.comm)], ['Thưởng năng suất tháng', (x) => `${money(x.o.month)} <span class="muted small">${pct(x.o.mRate)}</span>`], ['Thưởng quý (quy tháng)', (x) => `${money(x.o.quarter)} <span class="muted small">${pct(x.o.qRate)}</span>`],
+    ['<b>Thu nhập / tháng</b>', (x) => `<b>${money(x.o.total)}</b>`], ['Thưởng trên hoa hồng', (x) => pct(x.o.bonus / x.o.comm)], ['Thu nhập / FYP', (x) => pct1(x.o.total / x.fyp)]];
+  const scTable = (cols, rows, hl) => tbl(`<th></th>${cols.map((x, i) => `<th class="r${hl.includes(i) ? ' inc-hl' : ''}">${esc(x.lb)}</th>`).join('')}`, rows.map(([lb, fn]) => `<tr><td>${lb}</td>${cols.map((x, i) => `<td class="r num${hl.includes(i) ? ' inc-hl' : ''}">${fn(x)}</td>`).join('')}</tr>`).join(''), 520);
+  const faHtml = `<h3 class="ins-h">FA thâm niên > 6 tháng</h3>
+    <p class="note" style="margin:0 0 8px">Thưởng năng suất tháng tính theo FYC 3 tháng gần nhất (cần ≥ 1 HĐ trong tháng): 10 tr → 10%, 15 tr → 15%, 30 tr → 20%, 45 tr → 25%, 60 tr → 30%, 80 tr → 35%, <b>100 tr → 50%</b>. Thưởng quý 3–10% FYC quý, gấp đôi nếu đạt thưởng tháng cả 3 tháng. Kịch bản giả định duy trì cùng nhịp 3 tháng, TLDTHD ≥ 70%.</p>
+    ${scTable(faCols, faRows, [2, 4])}
+    <div class="grid g2" style="margin-top:10px"><div>${tbl('<th>Bậc FYC 3 tháng</th><th class="r">% thưởng tháng</th><th class="r">Số FA</th><th class="r">Sát bậc này (≥ 70%)</th>',
+      faDist.map((d) => `<tr><td>${d.lo ? `≥ ${money(d.lo)}` : 'Dưới 10 tr (không thưởng)'}</td><td class="r num">${pct(d.rr)}</td><td class="r num">${f0(d.n)}</td><td class="r num">${d.lo ? f0(near(d.lo).length) : '–'}</td></tr>`).join(''), 360)}</div>
+      <div class="inc-ins"><b>Đọc thế nào</b><ul>
+        <li><b>Chuẩn = 10 tr FYC/tháng</b> (~${money(fy(10000))} FYP, 30 tr FYC/3 tháng): bậc 20% + quý 3%×2, thu nhập ≈ ${pct(faCols[2].o.total / faCols[2].fyc)} FYC.</li>
+        <li><b>Tối ưu = 33,4 tr FYC/tháng</b> (100 tr/3 tháng): thưởng nhảy từ 35% lên 50% – mỗi đồng FYC mang về ${nf2.format(faCols[4].o.total / faCols[4].fyc)} đồng thu nhập.</li>
+        <li>Hiện có <b>${f0(faDist.at(-1).n)}</b> FA có HĐ nhưng FYC 3 tháng < 10 tr nên chưa có thưởng tháng; <b>${f0(near(10000).length)}</b> người đang ở 7–10 tr, chỉ cần 1 HĐ nhỏ là vào bậc 10%.</li>
+        <li>Trung vị FA có HĐ: ${money(pq(0.5))} FYC/tháng – thấp hơn mức chuẩn ${pct(1 - pq(0.5) / 10000)}.</li></ul></div></div>`;
+  // 3) FA mới & Manulife Pro
+  const nw = [['M0–M2: 1 HĐ, 10 tr FYP', 10000 * r, 10000, 1, 1], ['M0–M2: 2 HĐ, 20 tr FYP', 20000 * r, 20000, 2, 1], ['M0–M2: 3 HĐ, 40 tr FYP (xuất sắc)', 40000 * r / 2, 20000, 2, 1]];
+  const newCols = nw.map(([lb, fyc, fyp, cc]) => { const o = faCalc({ fyc, fyp, cc, ten: 1, newM: 1 }); return { lb, fyp, fyc, o, exc: /xuất sắc/.test(lb) }; });
+  const mpCols = [['Bạc · 15 tr FYP', 'S', 15000], ['Bạc · 30 tr FYP', 'S', 30000], ['Vàng · 45 tr', 'G', 45000], ['Vàng · 60 tr', 'G', 60000], ['Bạch Kim · 80 tr', 'P', 80000], ['Bạch Kim · 100 tr', 'P', 100000]]
+    .map(([lb, t, fyp]) => ({ lb, fyp, fyc: fyp * r, o: faCalc({ fyc: fyp * r, fyp, cc: Math.max(1, Math.round(fyp / cs)), ten: 24, tier: t }) }));
+  const mpCnt = (t) => [...sim.R.values()].filter((x) => x.a.tier === t), mpAct = (t) => mpCnt(t).filter((x) => x.inc.mpro > 0).length;
+  const nmHtml = `<div><div><h3 class="ins-h">FA mới (M0–M2)</h3><p class="note" style="margin:0 0 8px">Thưởng ĐL mới 1,5 tr/tháng (M0+M1 và M2) khi có 1 HĐ & 10 tr FYP + ĐNCC 4 buổi + SBW; thêm 5 tr một lần nếu 3 HĐ & 40 tr FYP trong 2 tháng đầu. Bậc thưởng tháng bắt đầu từ 5 tr FYC/3 tháng.</p>
+      ${tbl('<th></th>' + newCols.map((x) => `<th class="r">${esc(x.lb)}</th>`).join(''), [['FYC / tháng', (x) => money(x.fyc)], ['Hoa hồng', (x) => money(x.o.comm)], ['Thưởng tháng + quý', (x) => money(x.o.month + x.o.quarter)], ['Thưởng ĐL mới', (x) => money(x.o.newAg + (x.exc ? 5000 / 2 : 0))], ['<b>Thu nhập / tháng</b>', (x) => `<b>${money(x.o.total + (x.exc ? 2500 : 0))}</b>`]].map(([lb, fn]) => `<tr><td>${lb}</td>${newCols.map((x) => `<td class="r num">${fn(x)}</td>`).join('')}</tr>`).join(''), 300)}</div>
+    <div><h3 class="ins-h">Manulife Pro</h3><p class="note" style="margin:0 0 8px">Thưởng năng suất xuất sắc tháng theo FYP tháng (cộng thêm vào thưởng tháng/quý). Đang có: Bạc ${f0(mpCnt('S').length)} (${f0(mpAct('S'))} đạt mốc FYP tháng ${mLabel(M[ib])}) · Vàng ${f0(mpCnt('G').length)} (${f0(mpAct('G'))}) · Bạch Kim ${f0(mpCnt('P').length)} (${f0(mpAct('P'))}).</p>
+      ${tbl('<th></th>' + mpCols.map((x) => `<th class="r">${esc(x.lb)}</th>`).join(''), [['FYC', (x) => money(x.fyc)], ['Thưởng tháng + quý', (x) => money(x.o.month + x.o.quarter)], ['Thưởng MPro xuất sắc', (x) => money(x.o.mpro)], ['<b>Thu nhập / tháng</b>', (x) => `<b>${money(x.o.total)}</b>`], ['Thu nhập / FYP', (x) => pct1(x.o.total / x.fyp)]].map(([lb, fn]) => `<tr><td>${lb}</td>${mpCols.map((x) => `<td class="r num">${fn(x)}</td>`).join('')}</tr>`).join(''), 300)}</div></div>`;
+  // 4) UM+
+  const UV = [...sim.U.values()], withL = UV.filter((x) => x.l[0] > 0);
+  const medU = (fn, xs = withL) => median(xs.map(fn)) || 0;
+  const umSc = (lb, l1, prod, mba, own, l2 = 0) => { const per = prod ? l1 / prod : 0, kb = prod * (faCalc({ fyc: per, fyp: fy(per), cc: 1, ten: 24 }).month + faCalc({ fyc: per, fyp: fy(per), cc: 1, ten: 24 }).quarter), fee = umCalc({ l: [l1, l2, 0, 0], prod, kidsBonus: kb, mba }), me = faCalc({ fyc: own, fyp: fy(own), cc: own ? 1 : 0, ten: 24 });
+    return { lb, l1, l2, prod, mba, own, fee, me, total: fee.total + me.total, teamFyp: fy(l1 + own) }; };
+  const umCols = [umSc('Hiện tại (trung vị UM+ có nhóm)', medU((x) => x.l[0]), Math.round(medU((x) => x.prod)), false, medU((x) => sim.R.get(x.u.c)?.fyc || 0), medU((x) => x.l[1])),
+    umSc('Tối thiểu (7 tr FYC cấp 1)', 7000, 1, false, 5000), umSc('Chuẩn (0025M09)', 24000, 4, false, 10000), umSc('Tốt', 36000, 5, false, 10000), umSc('Tối ưu (MBA Pro)', 48000, 6, true, 15000)];
+  const umRows = [['FYC cấp 1 / tháng', (x) => money(x.l1)], ['ĐL cấp 1 có SX (1 HĐ & 4 tr FYC)', (x) => f0(x.prod)], ['FYP nhóm (gồm UM+)', (x) => money(x.teamFyp)], ['% năng suất nhóm', (x) => pct(x.fee.ur)],
+    ['PDV năng suất nhóm', (x) => money(x.fee.prodFee)], ['PDV hoạt động nhóm', (x) => `${money(x.fee.act)} <span class="muted small">${pct(x.fee.actRate)}</span>`], ['Thu nhập bán cá nhân', (x) => money(x.me.total)], ['<b>Tổng thu nhập UM+ / tháng</b>', (x) => `<b>${money(x.total)}</b>`], ['Phí quản lý / FYP nhóm cấp 1', (x) => (x.l1 ? pct1(x.fee.total / fy(x.l1)) : '–')]];
+  const bandsL = [[48000, '≥ 48 tr (20%)'], [24000, '24–48 tr (16%)'], [7000, '7–24 tr (14%)'], [0.01, '< 7 tr (10%)'], [-1, 'Chưa có FYC cấp 1']], bandsP = [[6, '≥ 6'], [4, '4–5'], [2, '2–3'], [1, '1'], [0, '0']];
+  const inBand = (v, bs, i) => v >= bs[i][0] && (i === 0 || v < bs[i - 1][0]);
+  const umMx = tbl(`<th>FYC cấp 1 \\ ĐL có SX</th>${bandsP.map(([, lb]) => `<th class="r">${lb}</th>`).join('')}<th class="r">Tổng</th>`, bandsL.map(([, lb], i) => { const row = UV.filter((x) => (i === 4 ? x.l[0] <= 0 : inBand(x.l[0], bandsL, i) && x.l[0] > 0)); return `<tr><td><b>${lb}</b></td>${bandsP.map((_, j) => { const n = row.filter((x) => inBand(x.prod, bandsP, j)).length; return `<td class="r num">${n ? `<span class="inc-cell" style="--a:${Math.min(1, n / Math.max(1, UV.length) * 6).toFixed(2)}">${f0(n)}</span>` : '<span class="muted">–</span>'}</td>`; }).join('')}<td class="r num"><b>${f0(row.length)}</b></td></tr>`; }).join(''), 320);
+  const umHtml = `<h3 class="ins-h">UM+ (quản lý nhóm)</h3><p class="note" style="margin:0 0 8px">PDV năng suất nhóm = 10/14/16/20% FYC cấp 1 (mốc 7 / 24 / 48 tr), cấp 2–4 bằng ½ tỷ lệ cấp trên. PDV hoạt động nhóm = 30–60% (MBA Pro 30–125%) tổng thưởng tháng + quý của cấp 1, theo số ĐL cấp 1 có SX (1, 2–3, 4–5, ≥ 6). Cần ĐNCC ≥ 4 buổi/tháng. Kịch bản: FYC chia đều cho các ĐL có SX.</p>
+    ${scTable(umCols, umRows, [2, 4])}
+    <div class="grid g2" style="margin-top:10px"><div><b class="small">UM+ hiện tại theo FYC cấp 1 × số ĐL cấp 1 có SX (${mLabel(M[ib])}, ${f0(UV.length)} UM+)</b>${umMx}</div>
+    <div class="inc-ins"><b>Đọc thế nào</b><ul>
+      <li><b>Chuẩn UM+ = 24 tr FYC cấp 1 với ≥ 4 ĐL có SX</b>: lên bậc 16% và hoạt động 50% – khớp điều kiện memo 0025M09 (≥ 100 tr FYP nhóm, ≥ 3 ĐL có HĐ) nên có thêm 10 tr/tháng.</li>
+      <li><b>Tối ưu = 48 tr cấp 1 với ≥ 6 ĐL có SX + MBA Pro</b>: % hoạt động nhóm nhảy 60% → 125%, phí quản lý ≈ ${pct1(umCols[4].fee.total / fy(umCols[4].l1))} FYP nhóm.</li>
+      <li>${f0(UV.filter((x) => x.l[0] > 0 && x.l[0] < 7000).length + UV.filter((x) => x.l[0] <= 0).length)} / ${f0(UV.length)} UM+ đang dưới 7 tr FYC cấp 1 (bậc 10%) – nhóm đông nhất; đẩy 1 bậc (lên 7 tr) là +40% tỷ lệ phí.</li>
+      <li>${f0(UV.filter((x) => x.prod >= 4).length)} UM+ có ≥ 4 ĐL cấp 1 có SX; ${f0(UV.filter((x) => x.prod === 2 || x.prod === 3).length)} UM+ đang ở 2–3, chỉ thiếu 1–2 ĐL để lên 50%.</li></ul></div></div>`;
+  // 5) PSM khu vực
+  const AV = [...sim.A.values()].filter((x) => x.tgt), tgts = AV.map((x) => x.tgt).sort((p, q) => p - q), medT = tgts.length ? tgts[Math.floor(tgts.length / 2)] : 1000000;
+  const smSc = [0.5, 0.8, 1, 1.15, 1.3, 1.5].map((cp) => { const fyp = medT * cp, fyc = fyp * r, base = psmBaseFee('SM', cp), prod = (cp >= 1.15 ? 0.08 : 0.06) * fyc, q = tierRate(INC.psmQ, cp) * fyc; return { lb: pct(cp), cp, fyp, fyc, base, prod, q, total: base + prod + q }; });
+  const smRows = [['FYP khu vực', (x) => money(x.fyp)], ['PDV cơ bản (35 tr × % × 130%)', (x) => money(x.base)], ['PDV năng suất tháng', (x) => `${money(x.prod)} <span class="muted small">${x.cp >= 1.15 ? '8%' : '6%'}</span>`], ['PDV hoạt động quý (quy tháng)', (x) => money(x.q)], ['<b>Thu nhập SM / tháng</b>', (x) => `<b>${money(x.total)}</b>`], ['Thu nhập / FYP khu vực', (x) => pct1(x.total / x.fyp)], ['Thêm khi tăng lên mức này', (x, i) => '']];
+  const compAct = [...sim.A.values()].map((x) => { const t = tgVal('a:' + x.ar, M[ib], 'fyp'); return t ? x.fyp / (t * 1000) : null; }).filter((v) => v !== null);
+  const cb = [[1.15, '≥ 115%'], [1, '100–115%'], [0.8, '80–100%'], [0.3, '30–80%'], [0, '< 30%']];
+  const smHtml = `<h3 class="ins-h">PSM+ quản lý trực tiếp khu vực (SM/PSM)</h3><p class="note" style="margin:0 0 8px">Kịch bản cho 1 khu vực có target bằng trung vị target khu vực ${mLabel(base.ym)} (${money(medT)}); 1mAA_4mFYC giả định hoàn thành cùng tỷ lệ FYP; TLDTHD ≥ 70%.</p>
+    ${tbl(`<th>% hoàn thành</th>${smSc.map((x) => `<th class="r${x.cp === 1.15 ? ' inc-hl' : ''}">${x.lb}</th>`).join('')}`, smRows.slice(0, 6).map(([lb, fn]) => `<tr><td>${lb}</td>${smSc.map((x) => `<td class="r num${x.cp === 1.15 ? ' inc-hl' : ''}">${fn(x)}</td>`).join('')}</tr>`).join(''), 320)}
+    <div class="grid g2" style="margin-top:10px"><div>${tbl('<th>Khu vực theo % target ' + mLabel(M[ib]) + '</th><th class="r">Số khu vực</th>', cb.map(([lo, lb], i) => `<tr><td>${lb}</td><td class="r num">${f0(compAct.filter((v) => v >= lo && (i === 0 || v < cb[i - 1][0])).length)}</td></tr>`).join('') || '<tr><td colspan="2" class="muted">Chưa có target khu vực.</td></tr>', 260)}</div>
+    <div class="inc-ins"><b>Đọc thế nào</b><ul><li><b>Chuẩn = 100%</b>: PDV cơ bản 130% (45,5 tr với SM) + năng suất 6% + quý 2,5%.</li>
+      <li><b>Tối ưu = 115–120%</b>: phí cơ bản chạm trần 150% ở 115,4%, năng suất nhảy 6% → 8%, quý 3,5–5%. Trên 120% chỉ còn phần năng suất tăng theo FYC.</li>
+      <li>Dưới 30% target không có PDV cơ bản; dưới 90% 1mAA_4mFYC không có PDV quý.</li></ul></div></div>`;
+  // 6) PSM+ cấp cao (RD → RH) – theo cấu trúc thật ở 100% target
+  const s100 = incSimulate({ base, ach: 1, r, mix: S.incMix ?? 0.5, indirect: S.incInd || 'halve' });
+  const ord = Object.keys(INC.psmBase);
+  const byT = ord.map((t) => { const ns = [...s100.P.values()].filter((n) => String(n.t || '').toUpperCase() === t); return { t, ns, avg: ns.length ? sum(ns, (n) => n.total) / ns.length : null, max: ns.length ? Math.max(...ns.map((n) => n.total)) : null }; }).filter((x) => x.ns.length);
+  const srHtml = `<h3 class="ins-h">PSM+ cấp cao ở 100% target ${mLabel(base.ym)} (theo cấu trúc nhánh thật)</h3>
+    ${tbl('<th>Chức danh</th><th class="r">Số người</th><th class="r">PDV cơ bản tối đa</th><th class="r">Thu nhập TB / tháng</th><th class="r">Cao nhất</th>', byT.map((x) => `<tr><td><b>${x.t}</b></td><td class="r num">${f0(x.ns.length)}</td><td class="r num">${money(INC.psmBase[x.t] * 1.5)}</td><td class="r num">${money(x.avg)}</td><td class="r num">${money(x.max)}</td></tr>`).join(''), 320)}
+    <p class="note">Cấp gián tiếp nhận 50% phí năng suất & hoạt động của cấp báo cáo trực tiếp (giảm ½ mỗi tầng). Chi tiết từng người ở tab Mô phỏng chi phí RH.</p>`;
+  const ctrl = `<div class="inc-ctrl"><label>FYC / FYP <input type="number" id="inc-r" min="10" max="40" step="0.5" value="${(r * 100).toFixed(1)}">%</label><span class="muted small">FYC thực cấp / FYP thực cấp ${mLabel(M[ib])} của RH Chinh ≈ 23,1%; FYC/FYP thay đổi theo cơ cấu sản phẩm.</span></div>`;
+  c.innerHTML = `${ctrl}${cur}${faHtml}${nmHtml}${umHtml}${smHtml}${srHtml}
+    <p class="note" style="margin-top:14px">Nguồn: 0046M01/2026, 0047M01/2026, 0048BM01/2026 trong Thư viện chính sách · số liệu ${mLabel(M[ib])} (FYP thực cấp, chức danh, cây báo cáo, TLDTHD từ BC70). Chưa tính: thưởng M-Star, KDXS năm, Zenith/MDRT, thi đua tháng, memo 0024M09/0025M09 và hỗ trợ ngoài biểu phí. Số là ước tính theo chính sách, không thay cho bảng thu nhập chính thức.</p>`;
+  const inp = $('#inc-r', c); if (inp) inp.onchange = () => { S.incR = Math.max(0.1, Math.min(0.4, +inp.value / 100 || 0.23)); incLevels(c); };
+}
+
+// ---------- mô phỏng chi phí RH đủ nhánh ----------
+function incSimTab(c) {
+  const r = S.incR ?? 0.23, mix = S.incMix ?? 0.5, ind = S.incInd || 'halve', ach = S.incAch ?? 1, base = incBase(), M = DS.months;
+  const run = (a) => incSimulate({ base, ach: a, r, mix, indirect: ind });
+  const s = run(ach), s100 = ach === 1 ? s : run(1), grid = [0.5, 0.7, 0.85, 1, 1.15, 1.3, 1.5, 2], sims = grid.map((a) => (a === 1 ? s100 : a === ach ? s : run(a)));
+  const curve = Array.from({ length: 16 }, (_, i) => 0.5 + i * 0.1).map((a) => { const x = Math.abs(a - 1) < 1e-9 ? s100 : run(a); return { a, now: x.L.now / x.fyp, all: x.L.all / x.fyp, fyp: x.fyp, cost: x.L.now }; });
+  const L = s.L, F = s.fyp;
+  const k = (lb, v, sub) => `<div class="kpi"><div class="lb">${lb}</div><div class="v num">${v}</div><div class="s">${sub}</div></div>`;
+  const tbl = (head, body, max = 560) => `<div class="tbl-wrap" style="max-height:${max}px"><table class="tbl inc-tbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const marg = (x) => { const d = x.fyp - s100.fyp; return Math.abs(d) > 1 ? (x.L.now - s100.L.now) / d : null; };
+  const ctrl = `<div class="inc-ctrl">
+    <label>% hoàn thành target <input type="range" id="inc-ach" min="50" max="200" step="5" value="${Math.round(ach * 100)}"><b class="num" id="inc-ach-v">${pct(ach)}</b></label>
+    <label>Phần tăng đến từ năng suất <input type="range" id="inc-mix" min="0" max="100" step="10" value="${Math.round(mix * 100)}"><b class="num">${pct(mix)}</b><span class="muted small">còn lại: kích hoạt thêm ĐL</span></label>
+    <label>FYC / FYP <input type="number" id="inc-r" min="10" max="40" step="0.5" value="${(r * 100).toFixed(1)}">%</label>
+    <label>PSM+ gián tiếp <select id="inc-ind"><option value="halve" ${ind === 'halve' ? 'selected' : ''}>50% cấp dưới, giảm ½ mỗi tầng</option><option value="flat" ${ind === 'flat' ? 'selected' : ''}>50% cho mọi tầng gián tiếp</option></select></label></div>`;
+  const kp = `<div class="kpis" style="margin:12px 0;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+    ${k(`Target ${mLabel(base.ym)} · ${esc(scopeLabel())}`, money(base.T), `${f0(base.areas.length)} khu vực · ${f0(base.known)} có target · nền ${mLabel(M[base.ib])}: ${money(base.B)}`)}
+    ${k(`FYP ở ${pct(ach)} target`, money(F), `${f0(s.producers)} ĐL có SX${s.added ? ` (+${f0(s.added)} kích hoạt)` : ''} · 1mAA_4mFYC ${f0(s.aa4)}`)}
+    ${k('Manulife chi ngay', pct(L.now / F, 1), money(L.now) + ' / tháng')}
+    ${k('Gồm cả trả sau', pct(L.all / F, 1), `hợp tác dài hạn UM+ & PSM+ ${money(L.later)}`)}
+    ${k('Chi phí biên phần vượt 100%', ach > 1 ? pct(marg(s), 1) : '–', ach > 1 ? `mỗi 1 tỷ FYP thêm tốn ${money(marg(s) * 1e6)}` : 'kéo thanh trượt lên trên 100%')}
+  </div>`;
+  const rowsHtml = INC_ROWS.map(([g, rows]) => `<tr class="grp"><td colspan="${3 + grid.length}"><b>${g}</b></td></tr>` + rows.map(([key, lb, note]) => `<tr><td>${lb}<br><small class="muted">${note}</small></td><td class="r num">${money(L[key])}</td><td class="r num">${pct(L[key] / F, 1)}</td>${sims.map((x) => `<td class="r num${x === s ? ' inc-hl' : ''}">${pct(x.L[key] / x.fyp, 1)}</td>`).join('')}</tr>`).join('')).join('')
+    + `<tr class="tot"><td><b>Tổng chi ngay</b></td><td class="r num"><b>${money(L.now)}</b></td><td class="r num"><b>${pct(L.now / F, 1)}</b></td>${sims.map((x) => `<td class="r num${x === s ? ' inc-hl' : ''}"><b>${pct(x.L.now / x.fyp, 1)}</b></td>`).join('')}</tr>
+      <tr><td>Hợp tác dài hạn UM+ (trả sau 3 năm)</td><td class="r num">${money(L.umLt)}</td><td class="r num">${pct(L.umLt / F, 1)}</td>${sims.map((x) => `<td class="r num">${pct(x.L.umLt / x.fyp, 1)}</td>`).join('')}</tr>
+      <tr><td>Hợp tác dài hạn PSM+ (trả sau 3 năm)</td><td class="r num">${money(L.psmLt)}</td><td class="r num">${pct(L.psmLt / F, 1)}</td>${sims.map((x) => `<td class="r num">${pct(x.L.psmLt / x.fyp, 1)}</td>`).join('')}</tr>
+      <tr class="tot"><td><b>Tổng gồm trả sau</b></td><td class="r num"><b>${money(L.all)}</b></td><td class="r num"><b>${pct(L.all / F, 1)}</b></td>${sims.map((x) => `<td class="r num${x === s ? ' inc-hl' : ''}"><b>${pct(x.L.all / x.fyp, 1)}</b></td>`).join('')}</tr>
+      <tr><td>FYP</td><td class="r num">${money(F)}</td><td></td>${sims.map((x) => `<td class="r num">${money(x.fyp)}</td>`).join('')}</tr>
+      <tr><td>Chi phí biên so với 100% <small class="muted">(chi thêm ÷ FYP thêm)</small></td><td></td><td></td>${sims.map((x) => `<td class="r num">${marg(x) === null ? '–' : pct(marg(x), 1)}</td>`).join('')}</tr>`;
+  const table = tbl(`<th>Khoản chi</th><th class="r">Số tiền ở ${pct(ach)}</th><th class="r">% FYP</th>${grid.map((a) => `<th class="r">${pct(a)}</th>`).join('')}`, rowsHtml, 1600);
+  // biểu đồ % chi phí theo % hoàn thành
+  const W = 760, H = 230, pad = { l: 44, r: 14, t: 18, b: 30 }, xs = (a) => pad.l + ((a - 0.5) / 1.5) * (W - pad.l - pad.r), mx = Math.max(...curve.map((p) => p.all)) * 1.1, mn = Math.min(...curve.map((p) => p.now)) * 0.85, ys = (v) => pad.t + (H - pad.t - pad.b) * (1 - (v - mn) / (mx - mn));
+  const line = (k2) => curve.map((p, i) => `${i ? 'L' : 'M'}${xs(p.a).toFixed(1)},${ys(p[k2]).toFixed(1)}`).join(' ');
+  const chart = `<div class="chart-scroll"><svg class="chart ins-chart" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:520px" role="img">
+    ${[0, 0.5, 1].map((t) => { const v = mn + (mx - mn) * t; return `<line class="grid" x1="${pad.l}" x2="${W - pad.r}" y1="${ys(v)}" y2="${ys(v)}"/><text class="ax" x="${pad.l - 6}" y="${ys(v) + 4}" text-anchor="end">${pct(v)}</text>`; }).join('')}
+    <line x1="${xs(1)}" x2="${xs(1)}" y1="${pad.t}" y2="${H - pad.b}" stroke="#98a2b3" stroke-dasharray="3 3"/><line x1="${xs(ach)}" x2="${xs(ach)}" y1="${pad.t}" y2="${H - pad.b}" stroke="#00A758" stroke-width="2"/>
+    <path d="${line('all')}" fill="none" stroke="#98a2b3" stroke-width="2" stroke-dasharray="5 4"/><path d="${line('now')}" fill="none" stroke="#00A758" stroke-width="2.6"/>
+    ${curve.map((p) => `<circle cx="${xs(p.a)}" cy="${ys(p.now)}" r="3" fill="#00A758"><title>${pct(p.a)} target · FYP ${money(p.fyp)} · chi ngay ${pct(p.now, 1)} (${money(p.cost)}) · gồm trả sau ${pct(p.all, 1)}</title></circle>`).join('')}
+    ${[0.5, 1, 1.5, 2].map((a) => `<text class="xl" x="${xs(a)}" y="${H - 8}" text-anchor="middle">${pct(a)}</text>`).join('')}
+    <text class="ax-t" x="${pad.l}" y="12">% FYP Manulife chi · đường liền: chi ngay · nét đứt: gồm trả sau</text></svg></div>`;
+  // từng PSM+
+  // xếp theo cây: từ đầu RH xuống từng tầng (DFS), cấp trên trước, cùng cấp theo FYP
+  const PA = [...s.P.values()], kidsOf = (c) => PA.filter((n) => n.c !== c && (DS.psmTree.get(n.c)?.p || null) === c).sort((p, q) => q.fyp - p.fyp);
+  const roots = PA.filter((n) => !s.P.has(DS.psmTree.get(n.c)?.p)).sort((p, q) => q.fyp - p.fyp), PV = [], seenP = new Set();
+  const walkP = (n, d) => { if (seenP.has(n.c)) return; seenP.add(n.c); n.lv = d; PV.push(n); kidsOf(n.c).forEach((k) => walkP(k, d + 1)); };
+  roots.forEach((n) => walkP(n, 0)); PA.forEach((n) => walkP(n, 0));
+  const psmT = tbl('<th>PSM+</th><th>Chức danh</th><th class="r">Khu vực (trực tiếp)</th><th class="r">FYP / target</th><th class="r">PDV cơ bản</th><th class="r">PDV năng suất</th><th class="r">PDV quý</th><th class="r">Tổng / tháng</th><th class="r">% FYP nhánh</th>',
+    PV.map((n) => `<tr><td style="padding-left:${8 + n.lv * 16}px"><b>${esc(n.n)}</b></td><td>${esc(n.t || '–')}</td><td class="r num">${f0(n.areas.size)} (${f0(n.direct.size)})</td><td class="r num">${money(n.fyp)} <span class="badge ${n.comp >= 1.15 ? 'b-green' : n.comp >= 1 ? 'b-green' : n.comp >= 0.8 ? 'b-amber' : 'b-red'}">${pct(n.comp)}</span></td><td class="r num">${money(n.base)}</td><td class="r num">${money(n.prod)}</td><td class="r num">${money(n.q)}</td><td class="r num"><b>${money(n.total)}</b></td><td class="r num">${pct(n.fyp ? n.total / n.fyp : null, 1)}</td></tr>`).join('') || '<tr><td colspan="9" class="muted">Không có PSM+ trong phạm vi.</td></tr>', 520);
+  // nhận định
+  const lo = curve.find((p) => Math.abs(p.a - 0.8) < 1e-9), hi = curve.find((p) => Math.abs(p.a - 1.5) < 1e-9), at100 = curve.find((p) => Math.abs(p.a - 1) < 1e-9);
+  const minP = curve.reduce((m, p) => (p.now < m.now ? p : m), curve[0]);
+  const ins = `<div class="inc-ins" style="margin:12px 0"><b>Nhận định</b><ul>
+    <li>Ở <b>100% target</b> (${money(s100.fyp)}), Manulife chi ngay khoảng <b>${pct(at100.now, 1)}</b> FYP (${money(s100.L.now)}/tháng), gồm cả trả sau ≈ ${pct(at100.all, 1)}.</li>
+    <li>Ở 80% chi ${pct(lo.now, 1)}, ở 150% chi ${pct(hi.now, 1)}: ${hi.now > at100.now ? 'tỷ lệ chi tăng khi vượt vì đại lý & UM+ lên bậc thưởng cao hơn' : 'tỷ lệ chi giảm khi vượt vì PDV cơ bản PSM+ chạm trần 150% và phần cố định được chia trên FYP lớn hơn'}; tỷ lệ thấp nhất ở ${pct(minP.a)} (${pct(minP.now, 1)}).</li>
+    <li>Hoa hồng FYC là phần lớn nhất (${pct(L.comm / L.now)} tổng chi ngay); phần quản lý (UM+ & PSM+) chiếm ${pct((L.umProd + L.umAct + L.umNewMp + L.umNewTeam + L.psmBase + L.psmProd + L.psmQ) / L.now)}.</li>
+    <li>${mix < 1 ? `Phần tăng do kích hoạt thêm ĐL: dùng ĐL đang không có FYP, ưu tiên người có FYP 6–12 tháng cao nhất, mỗi người bằng FYP trung vị.` : 'Toàn bộ phần tăng đến từ năng suất của ĐL đang có SX.'}</li></ul></div>`;
+  c.innerHTML = `${ctrl}${kp}${chart}${ins}${table}<h3 class="ins-h">Thu nhập từng PSM+ trong nhánh ở ${pct(ach)} target</h3>${psmT}
+    <p class="note" style="margin-top:12px">Cách mô phỏng: lấy FYP thực cấp từng đại lý ${mLabel(M[base.ib])}, phóng to / thu nhỏ đến mức % target ${mLabel(base.ym)} đang chọn (một phần do năng suất, một phần do kích hoạt thêm ĐL), FYC = FYP × ${pct(r, 1)}, giữ nguyên cây báo cáo UM+ và cây PSM+ tới đầu RH, rồi tính từng khoản theo 0046M01, 0047M01, 0048BM01 với giả định duy trì cùng nhịp 3 tháng (thưởng tháng, quý), TLDTHD thật của từng người / nhóm / khu vực, đủ ĐNCC & đào tạo. PDV quý tính theo 1mAA_4mFYC so target 1mAA khu vực. Chưa gồm: SA (chỉ hoa hồng), M-Star, KDXS năm, thi đua, memo 0024/0025M09, ngân sách CS/COP, chi phí văn phòng. Kết quả là ước tính để ra quyết định, không phải bảng thu nhập chính thức.</p>`;
+  const rer = () => incSimTab(c);
+  const a = $('#inc-ach', c); if (a) { a.oninput = () => { $('#inc-ach-v', c).textContent = pct(+a.value / 100); }; a.onchange = () => { S.incAch = +a.value / 100; rer(); }; }
+  const m = $('#inc-mix', c); if (m) m.onchange = () => { S.incMix = +m.value / 100; rer(); };
+  const ri = $('#inc-r', c); if (ri) ri.onchange = () => { S.incR = Math.max(0.1, Math.min(0.4, +ri.value / 100 || 0.23)); rer(); };
+  const id = $('#inc-ind', c); if (id) id.onchange = () => { S.incInd = id.value; rer(); };
+}
+try { window.__inc = { incBase: () => incBase(), incSimulate: (o) => incSimulate(o) }; } catch {} // để kiểm tra số liệu
+function pageIncome(c) {
+  if (!DS) return;
+  const tab = S.incTab || 'levels';
+  c.innerHTML = `<section class="panel"><div class="panel-b"><div class="tabs">${[['levels', 'Kịch bản thu nhập theo cấp'], ['sim', 'Mô phỏng chi phí RH đủ nhánh']].map(([kk, l]) => `<button class="${tab === kk ? 'on' : ''}" data-inct="${kk}">${l}</button>`).join('')}</div><div id="inc-body"></div></div></section>`;
+  $$('[data-inct]', c).forEach((b) => b.onclick = () => { S.incTab = b.dataset.inct; pageIncome(c); });
+  const body = $('#inc-body', c);
+  try { (tab === 'sim' ? incSimTab : incLevels)(body); } catch (e) { body.innerHTML = `<div class="banner warn">Không tính được: ${esc(e.message)}</div>`; console.error(e); }
 }
 
 // =====================================================================
