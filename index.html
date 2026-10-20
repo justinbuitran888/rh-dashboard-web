@@ -167,6 +167,15 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .inc-ctrl label{display:flex;align-items:center;gap:8px;font-weight:600}.inc-ctrl input[type=number]{width:64px;padding:4px 6px;border:1px solid var(--line);border-radius:8px}.inc-ctrl input[type=range]{width:160px;accent-color:var(--green)}.inc-ctrl select{padding:4px 6px;border:1px solid var(--line);border-radius:8px}
 .inc-tbl td.inc-hl,.inc-tbl th.inc-hl{background:#e8f6ee}.inc-tbl tr.grp td{background:#f4f8f5;font-size:12.5px}.inc-tbl td small{font-size:11px}
 .inc-ins{border:1px solid var(--line-2);border-left:4px solid var(--green);border-radius:12px;padding:10px 14px;background:#fff;font-size:13px}.inc-ins ul{margin:6px 0 0;padding-left:18px;display:grid;gap:5px}
+.pl-top{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch;margin-bottom:6px}.pl-arrow{display:grid;place-items:center;font-size:22px;color:var(--muted)}
+.pl-box{border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;background:#fafafa}.pl-box.tgt{background:#ecfaf2;border-color:#9fdcbc}
+.pl-k{font-size:12px;color:var(--muted)}.pl-v{font-size:24px;font-weight:700;margin:2px 0 6px}.pl-v small{font-size:13px;color:#067647;font-weight:700}
+.pl-chips{display:flex;flex-wrap:wrap;gap:4px}.pl-chip{font-size:11.5px;padding:2px 8px;border-radius:999px;background:#fff;border:1px solid var(--line-2)}.pl-chip.ok{border-color:#9fdcbc;color:#067647}.pl-chip.bad{border-color:#fda29b;color:#b42318}
+.pl-h{margin:14px 0 6px;font-size:13.5px}.pl-act{display:grid;grid-template-columns:26px 1fr auto;gap:8px;padding:8px 10px;border:1px solid var(--line-2);border-radius:10px;margin-bottom:6px;background:#fff;align-items:start}
+.pl-n{width:24px;height:24px;border-radius:50%;background:#00A758;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}.pl-w{font-size:13.5px;line-height:1.4}.pl-who{font-size:11px;font-weight:700;color:#06874E;text-transform:uppercase;margin-right:6px;letter-spacing:.03em}
+.pl-y{font-size:12.5px;color:#475467;margin-top:2px}.pl-g{font-weight:700;color:#067647;white-space:nowrap;text-align:right;font-size:14px}.pl-g small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+.pl-tbl td small{color:#067647;font-weight:600}.pl-det{margin-top:10px}.pl-det summary{cursor:pointer;font-size:12.5px;color:#475467;margin-bottom:6px}
+@media (max-width:640px){.pl-top{grid-template-columns:1fr}.pl-arrow{display:none}}
 .chk .chk-g{margin-top:8px}.chk .chk-g>b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 4px}
 .chk-i{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:start;padding:8px 10px;border:1px solid var(--line-2);border-radius:10px;margin-bottom:6px;background:#fff}
 .chk-s{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:#f2f4f7;color:#475467}
@@ -3291,17 +3300,108 @@ function incChecklist(a) {
   return { items, rr, f3, ten };
 }
 const rkMp = (t) => (/bạch kim|platinum/i.test(t || '') ? 3 : /vàng|gold/i.test(t || '') ? 2 : /bạc|silver/i.test(t || '') ? 1 : 0);
-function incChecklistHtml(a) {
-  let X; try { X = incChecklist(a); } catch (e) { console.error(e); return ''; }
-  const ST = { ok: ['✓', 'ok', 'Đang đạt'], near: ['◐', 'near', 'Sát mốc'], todo: ['○', 'todo', 'Cần làm'], warn: ['!', 'warn', 'Chú ý'] };
-  const open = X.items.filter((x) => x.st !== 'ok'), now = open.filter((x) => x.grp === 'Tháng này' || x.grp.startsWith('UM+')), gainSum = sum(now.filter((x) => !x.alt), (x) => x.gain) + Math.max(0, ...now.filter((x) => x.alt).map((x) => N(x.gain))); // các bậc thưởng tháng là phương án thay thế → lấy mức cao nhất
-  const groups = [...new Set(X.items.map((x) => x.grp))];
-  const ordG = ['Tháng này', 'UM+ · tháng này', 'Tháng sau', ...groups.filter((g) => g.startsWith('Quý')), 'Đến 31/12'].filter((g) => groups.includes(g));
-  return `<div class="sec chk"><h4>Checklist tối đa thu nhập <span class="badge b-green">${f0(open.length)} việc</span>${gainSum > 0 ? `<span class="badge b-amber">tháng này có thể thêm ~${money(gainSum)}</span>` : ''}</h4>
-    <p class="note" style="margin:-4px 0 8px">Theo 0046M01 (thưởng ĐL), 0047M01 (PDV UM+), 0024M09, 0025M09, M-Star, MDRT, Manulife Pro · FYC/FYP của người này ≈ ${pct(X.rr)} · thu nhập thêm là ước tính trước thuế, đã nhân hệ số P13.</p>
-    ${ordG.map((g) => `<div class="chk-g"><b>${esc(g)}</b>${X.items.filter((x) => x.grp === g).map((x) => `<div class="chk-i ${ST[x.st][1]}"><span class="chk-s" title="${ST[x.st][2]}">${ST[x.st][0]}</span><div class="chk-b"><div class="chk-t">${esc(x.title)}</div><div class="chk-m"><span>Hiện tại: ${x.now}</span><span>Cần: <b>${x.need}</b></span><span>Hạn: ${esc(x.when)}</span></div>${x.note ? `<div class="chk-n">${x.note}</div>` : ''}</div><div class="chk-v num">${x.gain > 0 ? '+' + money(x.gain) : ''}</div></div>`).join('')}</div>`).join('')}
-  </div>`;
+// ---------- kế hoạch thu nhập: hiện tại → hướng tới · việc trong tháng · 3 tháng ----------
+function incPlan(a) {
+  const X = incChecklist(a), M = DS.months, ym = M[3], y = +ym.slice(0, 4), mo = +ym.slice(5, 7), asOf = String(DS.meta.asOf);
+  const ten = X.ten, rr = X.rr, k = k13a(a.p13), md = DS.mdrt.get(a.c), mb = DS.mba.get(a.c);
+  const dim = new Date(y, mo, 0).getDate(), daysLeft = asOf.slice(0, 7) === ym ? Math.max(0, dim - +asOf.slice(8, 10)) : dim;
+  const cs = Math.max(8000, N(a.cc12) ? N(a.fyp12) / N(a.cc12) : 30000); // FYP bình quân 1 HĐ của người này
+  const c1 = N(a.fyc[1]), c2 = N(a.fyc[2]), fN = N(a.fyc[3]), pN = N(a.fyp[3]), cN = N(a.cc[3]);
+  const tiers = INC.faM.filter(([, , g]) => !(g === 'old' && ten <= 6) && !(g === 'new' && ten > 6)).sort((p, q) => p[0] - q[0]);
+  const rateAt = (Q) => { let r = 0; for (const [lo, r2] of tiers) if (Q >= lo) r = r2; return r; };
+  const months = [0, 1, 2].map((i) => addMonths(ym, i)).filter((m) => +m.slice(0, 4) === y);
+  // mức FYC 3 tháng hướng tới: bậc cao nhất mà nhịp mỗi tháng ≤ 1,3 × FYC bình quân 6 tháng (ít nhất 1 HĐ)
+  const avgM = Math.max(N(a.fyp6) * rr / 6, (c1 + c2) / 2, cs * rr);
+  const curQ = c1 + c2 + fN, curLo = tiers.filter(([lo]) => curQ >= lo).at(-1)?.[0] || 0;
+  const reach = tiers.filter(([lo]) => lo / 3 <= avgM * 1.3).at(-1);
+  let L = Math.max(curLo, reach ? reach[0] : 0) || tiers[0][0], Lr = rateAt(L), Lnext = tiers.find(([lo]) => lo > L);
+  // HĐ cần cho KDXS năm (MPro Vàng / Bạch Kim)
+  let kdNeedCc = 0, kdNeedF = 0, kdGain = 0;
+  if (md && (a.tier === 'G' || a.tier === 'P')) { const g1 = a.tier === 'P', rc = g1 ? 24 : ten > 12 ? 15 : 10, rf = g1 ? 600000 : ten > 12 ? 360000 : 240000;
+    kdNeedCc = Math.max(0, rc - N(md.cc)); kdNeedF = Math.max(0, rf - N(md.fyp)); kdGain = kdNeedCc || kdNeedF ? Math.min(100000, (g1 ? 0.15 : 0.1) * N(md.fyc)) * (a.p13 == null || N(a.p13) >= 70 ? 1 : 0) : 0; }
+  // kế hoạch cá nhân từng tháng
+  // trần FYC 1 tháng khả thi: 1,5 × bình quân 6 tháng hoặc 60% tháng cao nhất gần đây (ít nhất 1 HĐ)
+  const cap = Math.max(1.5 * N(a.fyp6) * rr / 6, 0.6 * Math.max(c1, c2, fN), cs * rr);
+  const plan = []; let w1 = c1, w2 = c2;
+  months.forEach((m, i) => {
+    const sofar = i === 0 ? fN : 0, minF = Math.max(4000, cs * rr);
+    const pick = [...tiers].reverse().find(([lo]) => Math.max(lo - w1 - w2, minF) <= Math.max(cap, sofar)) || tiers[0];
+    const need = Math.max(pick[0] - w1 - w2, minF);
+    const ccKd = kdNeedCc ? Math.ceil(kdNeedCc / months.length) : 0, fyc = Math.max(need, sofar), fyp = fyc / rr;
+    const cc = Math.max(1, Math.round(fyp / cs), ccKd, i === 0 ? cN : 0);
+    const o = faCalc({ fyc, fyp, cc, ten: ten + i, tier: a.tier, k, q3: w1 + w2 + fyc });
+    plan.push({ m, fyc, fyp, cc, add: { fyc: Math.max(0, fyc - sofar), fyp: Math.max(0, fyp - (i === 0 ? pN : 0)), cc: Math.max(0, cc - (i === 0 ? cN : 0)) }, o, rate: o.mRate });
+    w1 = w2; w2 = fyc;
+  });
+  L = c1 + c2 + plan[0].fyc; Lr = plan[0].rate; Lnext = tiers.find(([lo]) => lo > L);
+  const nowO = faCalc({ fyc: fN, fyp: pN, cc: cN, ten, tier: a.tier, k, q3: curQ });
+  // UM+: đội ngũ trực tiếp
+  let team = null;
+  if (a.um) {
+    const kids = a.kids, l1At = (i) => sum(kids, (z) => z.fyc[i]), prAt = (i) => kids.filter((z) => N(z.fyc[i]) >= 4000 && N(z.cc[i]) >= 1).length;
+    const l1avg = (l1At(0) + l1At(1) + l1At(2)) / 3, pavg = Math.round((prAt(0) + prAt(1) + prAt(2)) / 3), l1N = l1At(3), pN2 = prAt(3), mbaOn = !!(a.mba || mb?.cur);
+    const uT = [...INC.umL1].sort((p, q) => p[0] - q[0]), uCur = uT.filter(([lo]) => l1avg >= lo).at(-1), uNx = uT.find(([lo]) => lo > l1avg);
+    const l1T = uNx && uNx[0] <= Math.max(l1avg, 1) * 1.6 ? uNx[0] : Math.max(uCur?.[0] || 0, 7000);
+    const g0 = y === 2026 && mo >= 9 && mo <= 12;
+    let l1T2 = g0 ? Math.max(l1T, 23000) : l1T; const up = uT.find(([lo]) => lo > l1T2); if (up && l1T2 >= up[0] * 0.9) l1T2 = up[0];
+    const pT = Math.max(3, pavg + 1 >= 4 ? 4 : pavg + 1 >= 2 ? Math.max(3, pavg + 1) : 3);
+    const per = pT ? l1T2 / pT : 0, kb = pT * (faCalc({ fyc: per, fyp: per / 0.23, cc: 1, ten: 24 }).month + faCalc({ fyc: per, fyp: per / 0.23, cc: 1, ten: 24 }).quarter);
+    const feeT = umCalc({ l: [l1T2, 0, 0, 0], prod: pT, kidsBonus: kb, mba: mbaOn, kd: k13t(a.p13d) });
+    const g = y === 2026 && mo >= 9 && mo <= 12 ? pdvGroup(a, 3) : null;
+    const kbN = sum(kids, (z) => { const o = faCalc({ fyc: N(z.fyc[3]), fyp: N(z.fyp[3]), cc: N(z.cc[3]), ten: tenureAt(z, ym) ?? 24, q3: N(z.fyc[1]) + N(z.fyc[2]) + N(z.fyc[3]) }); return o.month + o.quarter; });
+    const feeN = umCalc({ l: [l1N, 0, 0, 0], prod: pN2, kidsBonus: kbN, mba: mbaOn, kd: k13t(a.p13d) });
+    const teamFypT = Math.max(g0 ? 100000 : 0, l1T2 / 0.23);
+    team = { l1avg, pavg, l1N, pN: pN2, l1T: l1T2, pT, feeT, feeN, g, gOkT: g !== null, teamFypT, mbaOn, kids: kids.length };
+  }
+  // thu nhập tháng này: hiện tại vs hướng tới
+  const curInc = nowO.total + (team ? team.feeN.total + (team.g?.ok ? 10000 : 0) : 0);
+  const tgtInc = plan[0].o.total + (team ? team.feeT.total + (team.gOkT ? 10000 : 0) : 0);
+  // việc trong tháng
+  const acts = [], P0 = plan[0], hd = (n) => `${f0(n)} HĐ`;
+  if (P0.add.cc > 0 || P0.add.fyp > 0) acts.push({ who: 'Cá nhân', what: `Bán thêm <b>${hd(Math.max(1, P0.add.cc))}</b>, tổng FYP <b>~${money(P0.add.fyp)}</b> (FYC ~${money(P0.add.fyc)})`, why: `FYC 3 tháng đạt ${money(L)} → thưởng năng suất tháng <b>${pct(Lr)}</b>${a.tier ? ` + thưởng ${TIER_NAME[a.tier]} xuất sắc ${money(P0.o.mpro)}` : ''}`, gain: Math.max(0, P0.o.total - nowO.total) });
+  if (Lnext) { const xN = Math.max(0, Lnext[0] - c1 - c2 - fN), oN = faCalc({ fyc: fN + xN, fyp: (fN + xN) / rr, cc: Math.max(1, cN), ten, tier: a.tier, k, q3: Lnext[0] }); acts.push({ who: 'Cá nhân · vượt', what: `Nếu chốt được <b>~${money(xN / rr)} FYP</b> (~${hd(Math.max(1, Math.round(xN / rr / cs)))}) trong tháng`, why: `lên bậc <b>${pct(Lnext[1])}</b> (FYC 3 tháng ≥ ${money(Lnext[0])})`, gain: Math.max(0, oN.total - P0.o.total) }); }
+  acts.push({ who: 'Tuyển dụng', what: 'Tuyển <b>1 ĐL mới</b> và kèm chốt HĐ đầu tiên ≥ 4 tr FYC (<b>~18 tr FYP</b>) ngay trong tháng', why: 'thưởng KKPTKDHT 20% FYC cá nhân tháng này' + (a.um ? ' · ĐL mới được thưởng 1,5 tr, UM+ nhận thêm 50–100% khoản này' : ''), gain: Math.min(3000, 0.2 * Math.max(P0.fyc, 4000)) * k });
+  if (team) {
+    if (team.l1T > team.l1N) acts.push({ who: 'Đội ngũ trực tiếp', what: `Đội ngũ trực tiếp đạt <b>${money(team.l1T)} FYC</b> (~${money(team.l1T / 0.23)} FYP), tối thiểu <b>${team.pT} ĐL có HĐ</b> ≥ 4 tr FYC`, why: `PDV năng suất nhóm ${pct(team.feeT.ur)}, PDV hoạt động nhóm ${pct(team.feeT.actRate)}${team.mbaOn ? ' (MBA Pro)' : ''} · hiện ${money(team.l1N)} FYC, ${team.pN} ĐL có HĐ`, gain: Math.max(0, team.feeT.total - team.feeN.total) });
+    if (team.g && !team.g.ok) acts.push({ who: 'Đội ngũ · 0025M09', what: `FYP nhóm trực tiếp thêm <b>~${money(Math.max(0, 100000 - team.g.total))}</b> (đạt 100 tr)${team.g.n1 < 3 ? `, thêm <b>${3 - team.g.n1} ĐL</b> có HĐ` : ''}${team.g.selfCc ? '' : ', bản thân có HĐ'}`, why: 'PDV thúc đẩy kinh doanh nhóm 0025M09 (cần P13 nhóm ≥ 75%, ĐNCC đủ)', gain: 10000 });
+    const dn = DS.dncc[a.c]; if (dn && N(dn.n) < 4) acts.push({ who: 'Điều kiện', what: `Tham gia thêm <b>${4 - N(dn.n)} buổi ĐNCC</b> (quét QR trên M-PA)`, why: 'thiếu ĐNCC thì không nhận PDV UM+ tháng này', gain: 0 });
+  }
+  if (a.p13 != null && N(a.p13) < 70) acts.push({ who: 'Điều kiện', what: `Thu phí tái tục các HĐ năm 2 để P13 lên ≥ 70% (đang ${f1(a.p13)}%)`, why: `mọi khoản thưởng đang nhân ${pct(k)}`, gain: 0 });
+  // đích cuối năm
+  const goals = [];
+  if (kdNeedCc || kdNeedF) goals.push({ what: `Thêm <b>${kdNeedCc ? hd(kdNeedCc) : ''}${kdNeedCc && kdNeedF ? ', ' : ''}${kdNeedF ? `${money(kdNeedF)} FYP` : ''}</b> trước 31/12 (~${hd(Math.ceil(kdNeedCc / months.length))}/tháng)`, why: `Thưởng KDXS năm ${a.tier === 'P' ? 'Bạch Kim (24 HĐ & 600 tr FYP)' : 'Vàng'}: ${a.tier === 'P' ? '15' : '10'}% FYC năm, chi 50/30/20% trong 3 năm`, gain: kdGain, when: '31/12' });
+  for (const x of X.items.filter((z) => z.grp === 'Đến 31/12' && z.st !== 'ok' && !/KDXS|^MBA Pro \(/.test(z.title))) goals.push({ what: x.need, why: x.title, gain: x.gain, when: x.when });
+  for (const x of X.items.filter((z) => z.grp.startsWith('Quý') && z.st !== 'ok')) goals.push({ what: x.need, why: x.title, gain: x.gain, when: x.when });
+  for (const x of X.items.filter((z) => z.grp === 'Tháng sau' && /Lên|rớt/.test(z.title))) goals.push({ what: x.need, why: x.title, gain: 0, when: x.when });
+  if (a.um && mb && !mb.cur) { const mN = Math.max(0, MBA.n1b[0] - N(mb.n1b)), aN = Math.max(0, MBA.n1a[0] - N(mb.n1a)), fy = Math.max(0, MBA.fyc[0] - N(mb.fyc)), nu = N(mb.newUm) >= 1;
+    goals.push({ what: [Math.min(mN, aN * 3) > 0 && `tuyển thêm <b>${mN} ĐL</b> có 1 HĐ & 16 tr FYP (hoặc ${aN} ĐL có 3 HĐ & 40 tr)`, fy > 0 && `<b>+${money(fy)} FYC</b> cấp trực tiếp + cá nhân (sau luật 50)`, !nu && 'phát triển <b>1 UM+ mới</b>'].filter(Boolean).join(' · ') || 'giữ P13 nhóm ≥ 70%', why: 'MBA Pro Bạc: PDV hoạt động nhóm lên 75–125%, PDV phát triển ĐL mới 100%, PDV hợp tác dài hạn 80%', gain: 0, when: '31/12' }); }
+  return { X, plan, nowO, curInc, tgtInc, acts, goals, team, L, Lr, daysLeft, months, cs, rr, curQ };
 }
+function incChecklistHtml(a) {
+  let Pn; try { Pn = incPlan(a); } catch (e) { console.error(e); return ''; }
+  const { X, plan, curInc, tgtInc, acts, goals, team, L, Lr, daysLeft, rr, curQ, nowO } = Pn, M = DS.months, ym = M[3];
+  const chip = (t, cls = '') => `<span class="pl-chip ${cls}">${t}</span>`;
+  const curChips = [chip(`Thưởng tháng ${pct(nowO.mRate)}${N(a.cc[3]) < 1 ? ' · chưa có HĐ tháng này' : ''}`, N(a.cc[3]) < 1 ? 'bad' : ''), chip(`FYC 3 tháng ${money(curQ)}`), a.tier && chip(`Manulife Pro ${TIER_NAME[a.tier]}`), team && chip(`PDV nhóm ${pct(team.feeN.ur)} · ${team.pN} ĐL có HĐ`), team?.g && chip(`0025M09 ${team.g.ok ? '✓' : '✗'}`, team.g.ok ? 'ok' : 'bad')].filter(Boolean).join('');
+  const tgtChips = [chip(`Thưởng tháng ${pct(Lr)}`, 'ok'), chip(`FYC 3 tháng ${money(L)}`, 'ok'), team && chip(`PDV nhóm ${pct(team.feeT.ur)} · ${team.pT} ĐL có HĐ`, 'ok'), team?.g && chip('0025M09 ✓', 'ok')].filter(Boolean).join('');
+  const actRows = acts.map((x, i) => `<div class="pl-act"><span class="pl-n">${i + 1}</span><div><div class="pl-w"><span class="pl-who">${esc(x.who)}</span>${x.what}</div><div class="pl-y">→ ${x.why}</div></div><div class="pl-g num">${x.gain > 0 ? '+' + money(x.gain) : ''}</div></div>`).join('');
+  const rows = [['Cá nhân: số HĐ', (p, i) => `${f0(p.cc)}${i === 0 && p.add.cc ? ` <small>(+${f0(p.add.cc)})</small>` : ''}`], ['Cá nhân: FYP', (p, i) => `${money(p.fyp)}${i === 0 && fypNow(a) > 0 ? ` <small>(+${money(p.add.fyp)})</small>` : ''}`], ['FYC 3 tháng → bậc thưởng', (p) => `${pct(p.rate)}`],
+    ...(team ? [['Đội ngũ trực tiếp: ĐL có HĐ', () => `≥ ${team.pT}`], ['Đội ngũ trực tiếp: FYC / FYP', () => `${money(team.l1T)} / ~${money(team.teamFypT)}`]] : []),
+    ['Tuyển mới có bán', () => '≥ 1'], ['<b>Thu nhập ước tính</b>', (p) => `<b>${money(p.o.total + (team ? team.feeT.total + (team.gOkT ? 10000 : 0) : 0))}</b>`]];
+  const planT = `<div class="tbl-wrap"><table class="tbl pl-tbl"><thead><tr><th></th>${plan.map((p, i) => `<th class="r">${mLabel(p.m)}${i === 0 ? ` <small>(còn ${daysLeft} ngày)</small>` : ''}</th>`).join('')}</tr></thead><tbody>${rows.map(([lb, fn]) => `<tr><td>${lb}</td>${plan.map((p, i) => `<td class="r num">${fn(p, i)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const goalRows = goals.map((g) => `<div class="pl-act"><span class="pl-n">◎</span><div><div class="pl-w">${g.what}</div><div class="pl-y">→ ${esc(g.why)}</div></div><div class="pl-g num">${g.gain > 0 ? '+' + money(g.gain) : ''}<small>${esc(g.when || '')}</small></div></div>`).join('');
+  const ST = { ok: ['✓', 'ok'], near: ['◐', 'near'], todo: ['○', 'todo'], warn: ['!', 'warn'] };
+  const detail = `<details class="pl-det"><summary>Chi tiết từng điều kiện (${X.items.length})</summary>${X.items.map((x) => `<div class="chk-i ${ST[x.st][1]}"><span class="chk-s">${ST[x.st][0]}</span><div class="chk-b"><div class="chk-t">${esc(x.title)}</div><div class="chk-m"><span>Hiện tại: ${x.now}</span><span>Cần: <b>${x.need}</b></span><span>Hạn: ${esc(x.when)}</span></div>${x.note ? `<div class="chk-n">${x.note}</div>` : ''}</div><div class="chk-v num">${x.gain > 0 ? '+' + money(x.gain) : ''}</div></div>`).join('')}</details>`;
+  return `<div class="sec pl"><h4>Kế hoạch tối đa thu nhập</h4>
+    <div class="pl-top"><div class="pl-box"><div class="pl-k">Hiện tại · ${mLabel(ym)} nếu dừng ở đây</div><div class="pl-v num">${money(curInc)}</div><div class="pl-chips">${curChips}</div></div>
+      <div class="pl-arrow">→</div>
+      <div class="pl-box tgt"><div class="pl-k">Hướng tới · cuối ${mLabel(ym)} nếu làm đủ việc dưới đây</div><div class="pl-v num">${money(tgtInc)} <small>+${money(Math.max(0, tgtInc - curInc))}</small></div><div class="pl-chips">${tgtChips}</div></div></div>
+    <h5 class="pl-h">Việc cần làm trong ${mLabel(ym)} · còn ${daysLeft} ngày</h5>${actRows}
+    <h5 class="pl-h">Nhịp 3 tháng để giữ bậc và về đích cuối năm</h5>${planT}
+    ${goalRows ? `<h5 class="pl-h">Đích đến cuối năm</h5>${goalRows}` : ''}
+    <p class="note" style="margin-top:6px">Ước tính trước thuế theo 0046M01 · 0047M01 · 0024M09 · 0025M09 · M-Star · KDXS · MBA Pro, đã nhân hệ số P13. Quy đổi FYC → FYP theo tỷ lệ của chính người này (${pct(rr)}), số HĐ theo phí bình quân 1 HĐ (${money(Pn.cs)}); FYP của ĐL mới & đội ngũ quy theo FYC/FYP 23%. "Thu nhập ước tính" gồm hoa hồng + thưởng tháng/quý/MPro${team ? ' + PDV UM+ (+ 0025M09)' : ''}; chưa gồm thưởng một lần cuối năm.</p>
+    ${detail}</div>`;
+}
+const fypNow = (a) => N(a.fyp[3]);
 
 // =====================================================================
 //  TRANG 4 · KQKD CÁC KỲ TRƯỚC (nhập tay / từ template)
