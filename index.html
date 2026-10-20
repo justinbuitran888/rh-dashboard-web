@@ -167,6 +167,12 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .inc-ctrl label{display:flex;align-items:center;gap:8px;font-weight:600}.inc-ctrl input[type=number]{width:64px;padding:4px 6px;border:1px solid var(--line);border-radius:8px}.inc-ctrl input[type=range]{width:160px;accent-color:var(--green)}.inc-ctrl select{padding:4px 6px;border:1px solid var(--line);border-radius:8px}
 .inc-tbl td.inc-hl,.inc-tbl th.inc-hl{background:#e8f6ee}.inc-tbl tr.grp td{background:#f4f8f5;font-size:12.5px}.inc-tbl td small{font-size:11px}
 .inc-ins{border:1px solid var(--line-2);border-left:4px solid var(--green);border-radius:12px;padding:10px 14px;background:#fff;font-size:13px}.inc-ins ul{margin:6px 0 0;padding-left:18px;display:grid;gap:5px}
+.chk .chk-g{margin-top:8px}.chk .chk-g>b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 4px}
+.chk-i{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:start;padding:8px 10px;border:1px solid var(--line-2);border-radius:10px;margin-bottom:6px;background:#fff}
+.chk-s{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:#f2f4f7;color:#475467}
+.chk-i.ok .chk-s{background:#dcfae6;color:#067647}.chk-i.near .chk-s{background:#fef0c7;color:#b54708}.chk-i.warn .chk-s{background:#fee4e2;color:#b42318}.chk-i.ok{opacity:.8}
+.chk-t{font-weight:600;font-size:13px;line-height:1.35}.chk-m{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:#475467;margin-top:2px}.chk-n{font-size:11.5px;color:var(--muted);margin-top:2px}
+.chk-v{font-weight:700;color:var(--green-d,#067647);font-size:13px;white-space:nowrap}
 .inc-cell{display:inline-block;min-width:28px;padding:1px 6px;border-radius:6px;background:rgba(0,167,88,var(--a));font-weight:600}
 .ins-chart .ln-aa{fill:none;stroke:#1570ef;stroke-width:2.2}.ins-chart .dt-aa{fill:#1570ef}.ins-chart .bar.rep{fill:#b2ddff}
 .ins-bar{display:inline-block;width:70px;height:6px;border-radius:4px;background:#eef2f6;vertical-align:middle;margin-right:6px;overflow:hidden}.ins-bar i{display:block;height:100%;background:var(--green)}
@@ -2404,6 +2410,7 @@ function openPerson(code) {
       <div class="mini"><div class="k">Tháng có HĐ / 12</div><div class="x num">${f0(a.am12)}</div></div>
     </div>
     ${creditsHtml(a)}
+    ${incChecklistHtml(a)}
     <div class="sec"><h4>Kết quả sản xuất</h4>${barChart(prodItems, { h: 170, fmt: (v) => money(v) })}
       <div class="tbl-wrap"><table class="tbl"><thead><tr><th></th>${M.map((y, i) => `<th class="r">${mLabel(y)}${i === 3 ? '*' : ''}</th>`).join('')}</tr></thead><tbody>
       <tr><td>FYP</td>${a.fyp.map((v) => `<td class="r num">${money(v)}</td>`).join('')}</tr>
@@ -3188,7 +3195,7 @@ function incSimTab(c) {
   const ri = $('#inc-r', c); if (ri) ri.onchange = () => { S.incR = Math.max(0.1, Math.min(0.4, +ri.value / 100 || 0.23)); rer(); };
   const id = $('#inc-ind', c); if (id) id.onchange = () => { S.incInd = id.value; rer(); };
 }
-try { window.__inc = { incBase: () => incBase(), incSimulate: (o) => incSimulate(o) }; } catch {} // để kiểm tra số liệu
+try { window.__inc = { incBase: () => incBase(), incSimulate: (o) => incSimulate(o) }; window.__open = (c) => openPerson(c); } catch {} // để kiểm tra số liệu
 function pageIncome(c) {
   if (!DS) return;
   const tab = S.incTab || 'levels';
@@ -3196,6 +3203,104 @@ function pageIncome(c) {
   $$('[data-inct]', c).forEach((b) => b.onclick = () => { S.incTab = b.dataset.inct; pageIncome(c); });
   const body = $('#inc-body', c);
   try { (tab === 'sim' ? incSimTab : incLevels)(body); } catch (e) { body.innerHTML = `<div class="banner warn">Không tính được: ${esc(e.message)}</div>`; console.error(e); }
+}
+
+// =====================================================================
+//  CHECKLIST TỐI ĐA THU NHẬP từng ĐL / UM+ (0046M01, 0047M01, 0024M09, 0025M09, M-Star, MDRT, Manulife Pro)
+// =====================================================================
+function incChecklist(a) {
+  const M = DS.months, ym = M[3], y = +ym.slice(0, 4), mo = +ym.slice(5, 7), asOf = String(DS.meta.asOf);
+  const ten = tenureAt(a, ym) ?? 24, k = k13a(a.p13), md = DS.mdrt.get(a.c), mp = DS.manpro.get(a.c);
+  const f3 = sum([1, 2, 3], (i) => a.fycB?.[i] ?? a.fyc[i]) || 0, fN = N(a.fyc[3]), ccN = N(a.cc[3]), fypN = N(a.fyp[3]);
+  const rr = (() => { const p = sum([0, 1, 2], (i) => a.fyp[i]), c = sum([0, 1, 2], (i) => a.fyc[i]); return p > 0 && c > 0 ? Math.min(0.45, Math.max(0.1, c / p)) : 0.23; })();
+  const cs = N(a.cc12) ? N(a.fyp12) / N(a.cc12) : 30000, hd = (fyp) => Math.max(1, Math.round(fyp / Math.max(5000, cs)));
+  const fyFromFyc = (v) => v / rr, items = [];
+  const add = (o) => items.push(o); // { st: ok|near|todo|warn, grp, title, now, need, gain, when, note }
+  const mName = mLabel(ym), nxt = addMonths(ym, 1), nName = mLabel(nxt);
+  // 1. thưởng năng suất tháng – tỷ lệ áp vào FYC của chính tháng này, bậc theo FYC 3 tháng gần nhất
+  const tiers = INC.faM.filter(([, , g]) => !(g === 'old' && ten <= 6) && !(g === 'new' && ten > 6)).sort((p, q) => p[0] - q[0]);
+  const rateAt = (Q) => tierRate([...tiers].reverse(), Q);
+  const curR = ccN >= 1 ? rateAt(f3) : 0, curB = curR * fN * k;
+  const opts = tiers.filter(([lo]) => lo > f3).slice(0, 3).map(([lo, r2]) => { const x = lo - f3; return { lo, r2, x, b: r2 * (fN + x) * k }; });
+  const prevR = rateAt(f3 - fN + 0); // nếu chưa bán thêm
+  if (ccN < 1) add({ st: 'warn', alt: 'm', grp: 'Tháng này', title: `Có ít nhất 1 HĐ thực cấp trong ${mName} để nhận thưởng năng suất tháng`, now: `FYC 3 tháng ${money(f3)} → bậc ${pct(rateAt(f3 + 1))} nếu có HĐ`, need: '1 HĐ', gain: rateAt(f3 + 4000) * 4000 * k, when: `cuối ${mName}`, note: `Thưởng = % bậc × FYC của chính ${mName}: với nền 3 tháng ${money(f3)}, mỗi 10 tr FYC bán thêm trong tháng được thưởng thêm ≈ ${money(rateAt(f3 + 10000) * 10000 * k)}.` });
+  else add({ st: 'ok', grp: 'Tháng này', title: `Thưởng năng suất tháng ${mName}`, now: `bậc ${pct(curR)} · FYC tháng ${money(fN)}`, need: '–', gain: 0, when: `cuối ${mName}`, note: `Đang nhận ≈ ${money(curB)}.` });
+  for (const o of opts) add({ st: 'near', alt: 'm', grp: 'Tháng này', title: `Lên bậc thưởng tháng ${pct(o.r2)} (FYC 3 tháng ≥ ${money(o.lo)})`, now: `FYC 3 tháng ${money(f3)}`, need: `+${money(o.x)} FYC ≈ ${money(fyFromFyc(o.x))} FYP (~${hd(fyFromFyc(o.x))} HĐ)`, gain: Math.max(0, o.b - curB), when: `cuối ${mName}`, note: `Thưởng tháng ≈ ${money(o.b)} (hiện ${money(curB)}) + hoa hồng ${money(o.x)}.` });
+  // tháng sau: tháng đầu của cửa sổ 3 tháng rơi ra
+  const drop = N(a.fycB?.[1] ?? a.fyc[1]), base2 = f3 - drop, keep = curR > 0 || ccN < 1 ? tiers.filter(([lo, r2]) => r2 <= Math.max(curR, rateAt(f3))).at(-1) : null;
+  if (drop > 0 && keep) add({ st: 'warn', grp: 'Tháng sau', title: `${nName}: giữ bậc ${pct(keep[1])} khi FYC ${mLabel(M[1])} (${money(drop)}) rơi khỏi cửa sổ 3 tháng`, now: `${mLabel(M[2])}+${mName}: ${money(base2)}`, need: `FYC ${nName} ≥ ${money(Math.max(0, keep[0] - base2))} ≈ ${money(fyFromFyc(Math.max(0, keep[0] - base2)))} FYP`, gain: keep[1] * Math.max(0, keep[0] - base2) * k, when: `cuối ${nName}`, note: 'Bậc thưởng tháng tính trên 3 tháng gần nhất: cần đều tay mỗi tháng để không tụt bậc.' });
+  // 2. thưởng năng suất quý
+  const q0 = addMonths(ym, -((mo - 1) % 3)), qMs = [q0, addMonths(q0, 1), addMonths(q0, 2)], qEnd = qMs[2];
+  const fQ = sum(qMs.filter((m) => M.includes(m)), (m) => a.fyc[M.indexOf(m)]), exc = a.tier === 'G' || a.tier === 'P';
+  const qT = INC.faQ.filter(([, , g]) => !(g === 'new' && ten > 6)).sort((p, q) => p[0] - q[0]), qR = (Q) => tierRate([...qT].reverse(), Q) * (exc ? 2 : 1);
+  const qN = qT.find(([lo]) => lo > fQ);
+  if (qN) add({ st: fQ >= qN[0] * 0.6 ? 'near' : 'todo', grp: `Quý ${Math.ceil(mo / 3)}`, title: `Thưởng năng suất quý: FYC quý ≥ ${money(qN[0])} → ${pct(qN[1] * (exc ? 2 : 1))} FYC quý${exc ? ' (×2 vì MPro Vàng/Bạch Kim)' : ''}`, now: `FYC quý đến nay ${money(fQ)} · bậc ${pct(qR(fQ))}`, need: `+${money(qN[0] - fQ)} FYC đến ${mLabel(qEnd)}`, gain: qR(qN[0]) * qN[0] * k - qR(fQ) * fQ * k, when: `hết ${mLabel(qEnd)}`, note: exc ? '' : 'Thưởng quý gấp đôi nếu đạt thưởng năng suất tháng cả 3 tháng trong quý.' });
+  // 3. Manulife Pro xuất sắc tháng
+  if (a.tier && INC.mpx[a.tier]) {
+    const tb = [...INC.mpx[a.tier]].sort((p, q) => p[0] - q[0]), cur = tierRate(INC.mpx[a.tier], fypN), nx = tb.find(([lo]) => lo > fypN);
+    add({ st: nx ? (cur ? 'near' : 'todo') : 'ok', grp: 'Tháng này', title: `Thưởng xuất sắc Manulife Pro ${TIER_NAME[a.tier]}${nx ? `: FYP ${mName} ≥ ${money(nx[0])} → ${money(nx[1])}` : ' – đã ở mốc cao nhất'}`, now: `FYP ${mName} ${money(fypN)} · đang ${money(cur * k)}`, need: nx ? `+${money(nx[0] - fypN)} FYP (~${hd(nx[0] - fypN)} HĐ)` : '–', gain: nx ? (nx[1] - cur) * k : 0, when: `cuối ${mName}`, note: 'Thưởng theo FYP từng tháng, nhận 1 mức cao nhất.' });
+  }
+  // 4. 0024M09 tăng tốc 09–12
+  if (y === 2026 && mo >= 9 && mo <= 12) {
+    const idx = M.map((m, i) => (m >= '2026-09' && m <= '2026-12' ? i : -1)).filter((i) => i >= 0), cum = sum(idx, (i) => a.fyp[i]), mcc = idx.filter((i) => N(a.cc[i]) > 0).length, mLeft = 12 - mo + 1;
+    const p13ok = a.p13 == null || N(a.p13) >= 75;
+    for (const [lv, gainTxt, g] of [[200000, '10% phí tái tục năm 2 của các HĐ', 0.1 * 0.8], [300000, '5% FYP + 15% phí tái tục năm 2', 0.05 + 0.15 * 0.8]]) {
+      if (cum >= lv && mcc >= 3) { add({ st: p13ok ? 'ok' : 'warn', grp: 'Đến 31/12', title: `0024M09: đạt mốc ${money(lv)} FYP (T09–T12)`, now: `${money(cum)} · ${mcc} tháng có HĐ`, need: p13ok ? 'giữ P13 ≥ 75%' : `P13 ${f1(a.p13)}% < 75%`, gain: 0, when: '31/12', note: gainTxt }); continue; }
+      if (cum < lv * 0.4 && lv === 300000 && cum < 200000) continue;
+      add({ st: cum >= lv * 0.7 ? 'near' : 'todo', grp: 'Đến 31/12', title: `0024M09 thưởng tăng tốc: FYP T09–T12 ≥ ${money(lv)} & ≥ 3 tháng có HĐ`, now: `${money(cum)} · ${mcc}/3 tháng có HĐ`, need: `+${money(Math.max(0, lv - cum))} FYP${mcc < 3 ? ` · thêm ${3 - mcc} tháng có HĐ` : ''}${p13ok ? '' : ` · P13 lên 75% (đang ${f1(a.p13)}%)`}`, gain: g * lv, when: `31/12 (còn ${mLeft} tháng)`, note: `${gainTxt} (ước ≈ ${pct(g)} FYP nếu duy trì 80%).` });
+    }
+  }
+  // 5. M-Star quý & năm
+  const ytd = md?.fyp != null ? N(md.fyp) : N(a.mdrtf), msQ = { 3: 160000, 6: 430000, 9: 750000, 12: 1073645.2 }[+qEnd.slice(5, 7)], msQAmt = { 3: [5000, 8000], 6: [8000, 12000], 9: [10000, 15000], 12: [0, 20000] }[+qEnd.slice(5, 7)];
+  const qOk = qMs.filter((m) => M.includes(m)).every((m) => N(a.cc[M.indexOf(m)]) >= 1 && N(a.fyc[M.indexOf(m)]) >= 4000);
+  if (msQ && ytd >= msQ * 0.5) add({ st: ytd >= msQ ? (qOk ? 'ok' : 'warn') : ytd >= msQ * 0.9 ? 'near' : 'todo', grp: `Quý ${Math.ceil(mo / 3)}`, title: `M-Star quý: FYP lũy kế năm ≥ ${money(msQ)} & mỗi tháng trong quý ≥ 1 HĐ + 4 tr FYC`, now: `lũy kế ${money(ytd)}${qOk ? '' : ' · có tháng trong quý chưa đủ 1 HĐ & 4 tr FYC'}`, need: ytd >= msQ ? 'giữ mỗi tháng 1 HĐ & 4 tr FYC' : `+${money(msQ - ytd)} FYP`, gain: (ytd >= msQ ? 0 : msQAmt[1]) * k, when: `hết ${mLabel(qEnd)}`, note: `Thưởng ${money(msQAmt[1])} (≥ 90%: ${msQAmt[0] ? money(msQAmt[0]) : '–'}).` });
+  const msY = [[3000000, 100000], [2000000, 75000], [1073645.2, 55000]], yCur = msY.find(([lo]) => ytd >= lo), yNx = [...msY].reverse().find(([lo]) => lo > ytd);
+  if (yNx && ytd >= yNx[0] * 0.4) add({ st: ytd >= yNx[0] * 0.8 ? 'near' : 'todo', grp: 'Đến 31/12', title: `M-Star năm: FYP năm ≥ ${money(yNx[0])} → ${money(yNx[1])}`, now: `lũy kế ${money(ytd)}${yCur ? ` · đang đạt mốc ${money(yCur[1])}` : ''}`, need: `+${money(yNx[0] - ytd)} FYP (~${money((yNx[0] - ytd) / Math.max(1, 12 - mo + 1))}/tháng)`, gain: (yNx[1] - (yCur ? yCur[1] : 0)) * k, when: '31/12', note: 'Trừ phần M-Star quý đã nhận; chi trả kỳ thu nhập tháng 2 năm sau.' });
+  else if (yCur) add({ st: 'ok', grp: 'Đến 31/12', title: `M-Star năm: đã đạt mốc ${money(yCur[0])}`, now: `lũy kế ${money(ytd)}`, need: 'giữ mỗi tháng 1 HĐ & 4 tr FYC trong quý', gain: 0, when: '31/12', note: `Thưởng năm ${money(yCur[1])} trừ phần quý đã nhận.` });
+  // 6. KDXS năm (Manulife Pro Vàng/Bạch Kim)
+  if (md && (a.tier === 'G' || a.tier === 'P')) {
+    const g1 = a.tier === 'P', reqCc = g1 ? 24 : ten > 12 ? 15 : 10, reqF = g1 ? 600000 : ten > 12 ? 360000 : 240000, rate = g1 ? 0.15 : 0.1;
+    const ccY = N(md.cc), fyY = N(md.fyp), fcY = N(md.fyc), ok = ccY >= reqCc && fyY >= reqF;
+    add({ st: ok ? (a.p13 == null || N(a.p13) >= 70 ? 'ok' : 'warn') : 'todo', grp: 'Đến 31/12', title: `Thưởng KDXS năm (${g1 ? 'Bạch Kim' : 'Vàng'}): ≥ ${reqCc} HĐ & ${money(reqF)} FYP năm, P13 ≥ 70% → ${pct(rate)} FYC năm`, now: `${f0(ccY)} HĐ · ${money(fyY)} FYP · FYC ${money(fcY)}`, need: ok ? 'giữ P13 ≥ 70%' : [ccY < reqCc && `+${reqCc - ccY} HĐ`, fyY < reqF && `+${money(reqF - fyY)} FYP`].filter(Boolean).join(' · '), gain: ok ? 0 : Math.min(100000, rate * fcY), when: '31/12', note: `Tối đa 100 tr, chi 50/30/20% trong 3 năm sau. Ước: ${money(Math.min(100000, rate * fcY))}.` });
+  }
+  // 7. MDRT
+  const mdF = N(a.mdrtf), mdNx = MDRT.find((l) => mdF < l.v);
+  if (mdNx && mdF >= mdNx.v * 0.5) add({ st: mdF >= mdNx.v * 0.8 ? 'near' : 'todo', grp: 'Đến 31/12', title: `Danh hiệu ${mdNx.k} ${y + 1}`, now: `MDRT-FYP ${money(mdF)} · ${pct(mdF / mdNx.v)}`, need: `+${money(mdNx.v - mdF)} (~${money((mdNx.v - mdF) / Math.max(1, 12 - mo + 1))}/tháng)`, gain: 0, when: '31/12', note: 'Danh hiệu, chuyến đi và điều kiện cho thưởng MPro Bạch Kim ≥ 120 tr.' });
+  // 8. Manulife Pro thăng / giữ hạng
+  if (mp && mp.next) { const miss = [N(mp.fypGap) > 0 && `+${money(mp.fypGap)} FYP 12T`, N(mp.ccGap) > 0 && `+${f0(mp.ccGap)} HĐ`, N(mp.monthGap) > 0 && `+${f0(mp.monthGap)} tháng có HĐ`, mp.train !== 'Y' && 'đào tạo'].filter(Boolean);
+    add({ st: miss.length ? (miss.length === 1 ? 'near' : 'todo') : 'ok', grp: 'Tháng sau', title: `Lên ${mp.next}`, now: mp.official || 'chưa có danh hiệu', need: miss.join(' · ') || 'đủ điều kiện', gain: 0, when: nName, note: 'Hạng cao hơn = thưởng xuất sắc tháng cao hơn, thưởng quý ×2 từ Vàng.' }); }
+  if (mp && mp.official && mp.estT1 !== undefined && (!mp.estT1 || rkMp(mp.estT1) < rkMp(mp.official))) add({ st: 'warn', grp: 'Tháng sau', title: `Nguy cơ rớt ${mp.official}`, now: `tạm tính T+1: ${mp.estT1 || 'không giữ'}`, need: [N(mp.fypGap) > 0 && `+${money(mp.fypGap)} FYP`, N(mp.ccGap) > 0 && `+${f0(mp.ccGap)} HĐ`].filter(Boolean).join(' · ') || 'xem báo cáo Manulife Pro', gain: 0, when: nName, note: '' });
+  // 9. KKPTKDHT
+  add({ st: a.kids.some((z) => ym7(z.j) === ym && N(z.cc[3]) >= 1 && N(z.fyc[3]) >= 4000) ? 'ok' : 'todo', grp: 'Tháng này', title: 'Thưởng KKPTKDHT: tuyển 1 ĐL mới trong tháng có 1 HĐ & 4 tr FYC, bản thân 1 HĐ & 4 tr FYC', now: `ĐL tuyển trong ${mName}: ${f0(DS.agents.filter((z) => z.rec === a.c && ym7(z.j) === ym).length)}`, need: '1 ĐL mới có SX', gain: Math.min(3000, 0.2 * Math.max(fN, 15000)) * k, when: `cuối ${mName}`, note: '20% FYC cá nhân trong tháng, tối đa 3 tr.' });
+  // 10. P13
+  if (a.p13 != null && N(a.p13) < 70) add({ st: 'warn', grp: 'Tháng này', title: `Nâng P13 lên ≥ 70% (đang ${f1(a.p13)}%)`, now: `hệ số thưởng ${pct(k)}`, need: 'thu phí tái tục các HĐ năm 2', gain: 0, when: 'cuối mỗi tháng', note: `Mọi khoản thưởng đang bị nhân ${pct(k)}.` });
+  // ---- UM+
+  if (a.um) {
+    const kids = a.kids, l1 = sum(kids, (z) => z.fyc[3]), ur = tierRate(INC.umL1, l1), prod = kids.filter((z) => N(z.fyc[3]) >= 4000 && N(z.cc[3]) >= 1).length, mba = !!(a.mba || DS.mba.get(a.c)?.cur);
+    const uNx = [...INC.umL1].reverse().find(([lo]) => lo > l1);
+    if (uNx) add({ st: l1 >= uNx[0] * 0.7 ? 'near' : 'todo', grp: 'UM+ · tháng này', title: `PDV năng suất nhóm: FYC cấp 1 ≥ ${money(uNx[0])} → ${pct(uNx[1])}`, now: `FYC cấp 1 ${mName} ${money(l1)} · ${pct(ur)}`, need: `+${money(uNx[0] - l1)} FYC cấp 1`, gain: uNx[1] * uNx[0] - ur * l1, when: `cuối ${mName}`, note: 'Tính trên FYC cấp báo cáo trực tiếp (không gồm bản thân); cấp 2–4 nhận ½ tỷ lệ cấp trên.' });
+    const pB = [1, 2, 4, 6], pNx = pB.find((b) => b > prod), actT = mba ? INC.umAct.mba : INC.umAct.std;
+    if (pNx) add({ st: pNx - prod <= 1 ? 'near' : 'todo', grp: 'UM+ · tháng này', title: `PDV hoạt động nhóm: ${pNx} ĐL cấp 1 có SX (1 HĐ & 4 tr FYC) → ${pct(tierRate(actT, pNx))} thưởng tháng + quý của cấp 1`, now: `${prod} ĐL có SX · ${pct(tierRate(actT, prod))}`, need: `+${pNx - prod} ĐL có SX`, gain: 0, when: `cuối ${mName}`, note: mba ? 'MBA Pro: 30/75/100/125%.' : 'Có MBA Pro: tỷ lệ lên 30/75/100/125%.' });
+    if (y === 2026 && mo >= 9 && mo <= 12) { const g = pdvGroup(a, 3), miss = [g.total < 100000 && `+${money(100000 - g.total)} FYP nhóm`, g.n1 < 3 && `+${3 - g.n1} ĐL trực tiếp có HĐ`, !g.selfCc && 'bản thân 1 HĐ'].filter(Boolean);
+      add({ st: g.ok ? 'ok' : miss.length === 1 ? 'near' : 'todo', grp: 'UM+ · tháng này', title: '0025M09: FYP nhóm trực tiếp ≥ 100 tr, ≥ 3 ĐL có HĐ, bản thân có HĐ → 10 tr/tháng', now: `FYP nhóm ${money(g.total)} · ${g.n1} ĐL có HĐ${g.selfCc ? ' · đã có HĐ' : ''}`, need: miss.join(' · ') || 'giữ đủ + P13 nhóm ≥ 75%', gain: g.ok ? 0 : 10000, when: `cuối ${mName}`, note: 'Hàng tháng đến 12/2026.' }); }
+    const dn = DS.dncc[a.c]; if (dn) add({ st: N(dn.n) >= 4 ? 'ok' : 'warn', grp: 'UM+ · tháng này', title: 'ĐNCC ≥ 4 buổi/tháng (điều kiện nhận mọi PDV UM+)', now: `${f0(dn.n)} buổi`, need: N(dn.n) >= 4 ? '–' : `+${4 - N(dn.n)} buổi`, gain: 0, when: 'trước 22h ngày áp chót tháng', note: '' });
+    const p = mbaProg(a); if (p.r < 1) add({ st: p.r >= 0.75 ? 'near' : 'todo', grp: 'Đến 31/12', title: 'MBA Pro (tăng % PDV hoạt động & phát triển ĐL mới, PDV hợp tác dài hạn)', now: `tiến độ mức Bạc ${pct(p.r)}`, need: 'xem mục MBA Pro bên dưới', gain: 0, when: '31/12', note: '' });
+  }
+  const ord = { warn: 0, near: 1, todo: 2, ok: 3 };
+  items.sort((p, q) => ord[p.st] - ord[q.st] || N(q.gain) - N(p.gain));
+  return { items, rr, f3, ten };
+}
+const rkMp = (t) => (/bạch kim|platinum/i.test(t || '') ? 3 : /vàng|gold/i.test(t || '') ? 2 : /bạc|silver/i.test(t || '') ? 1 : 0);
+function incChecklistHtml(a) {
+  let X; try { X = incChecklist(a); } catch (e) { console.error(e); return ''; }
+  const ST = { ok: ['✓', 'ok', 'Đang đạt'], near: ['◐', 'near', 'Sát mốc'], todo: ['○', 'todo', 'Cần làm'], warn: ['!', 'warn', 'Chú ý'] };
+  const open = X.items.filter((x) => x.st !== 'ok'), now = open.filter((x) => x.grp === 'Tháng này' || x.grp.startsWith('UM+')), gainSum = sum(now.filter((x) => !x.alt), (x) => x.gain) + Math.max(0, ...now.filter((x) => x.alt).map((x) => N(x.gain))); // các bậc thưởng tháng là phương án thay thế → lấy mức cao nhất
+  const groups = [...new Set(X.items.map((x) => x.grp))];
+  const ordG = ['Tháng này', 'UM+ · tháng này', 'Tháng sau', ...groups.filter((g) => g.startsWith('Quý')), 'Đến 31/12'].filter((g) => groups.includes(g));
+  return `<div class="sec chk"><h4>Checklist tối đa thu nhập <span class="badge b-green">${f0(open.length)} việc</span>${gainSum > 0 ? `<span class="badge b-amber">tháng này có thể thêm ~${money(gainSum)}</span>` : ''}</h4>
+    <p class="note" style="margin:-4px 0 8px">Theo 0046M01 (thưởng ĐL), 0047M01 (PDV UM+), 0024M09, 0025M09, M-Star, MDRT, Manulife Pro · FYC/FYP của người này ≈ ${pct(X.rr)} · thu nhập thêm là ước tính trước thuế, đã nhân hệ số P13.</p>
+    ${ordG.map((g) => `<div class="chk-g"><b>${esc(g)}</b>${X.items.filter((x) => x.grp === g).map((x) => `<div class="chk-i ${ST[x.st][1]}"><span class="chk-s" title="${ST[x.st][2]}">${ST[x.st][0]}</span><div class="chk-b"><div class="chk-t">${esc(x.title)}</div><div class="chk-m"><span>Hiện tại: ${x.now}</span><span>Cần: <b>${x.need}</b></span><span>Hạn: ${esc(x.when)}</span></div>${x.note ? `<div class="chk-n">${x.note}</div>` : ''}</div><div class="chk-v num">${x.gain > 0 ? '+' + money(x.gain) : ''}</div></div>`).join('')}</div>`).join('')}
+  </div>`;
 }
 
 // =====================================================================
