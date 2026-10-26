@@ -730,14 +730,42 @@ async function removeUpload(u) {
   const left = must(await db.from('data_uploads').select('id').eq('storage_path', u.storage_path).limit(1), 'Kiểm tra file gốc');
   if (!left.length && u.storage_path) await db.storage.from(BUCKET).remove([u.storage_path]);
 }
-async function downloadOriginal(u) {
-  const r = await sb().storage.from(BUCKET).createSignedUrl(u.storage_path, 120, { download: u.file_name });
-  if (r.error) throw new Error(r.error.message);
-  window.open(r.data.signedUrl, '_blank', 'noopener');
+// tải file gốc: tải về dạng blob rồi bấm link (không bị trình duyệt chặn popup)
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+async function fetchOriginal(u) {
+  const r = await sb().storage.from(BUCKET).download(u.storage_path);
+  if (r.error) throw new Error(r.error.message || 'không đọc được file');
+  return r.data;
+}
+async function downloadOriginal(u) { saveBlob(await fetchOriginal(u), u.file_name); }
+// nhiều file → 1 file .zip (mỗi file gốc 1 lần, file trùng tên được đánh số)
+async function downloadZip(list, onStep) {
+  const files = [...new Map(list.filter((u) => u.storage_path).map((u) => [u.storage_path, u])).values()];
+  if (!files.length) throw new Error('Không có file gốc nào để tải.');
+  if (files.length === 1) return downloadOriginal(files[0]);
+  if (!window.JSZip) throw new Error('Thiếu thư viện nén ZIP.');
+  const zip = new window.JSZip(), used = new Map(), fail = [];
+  for (let i = 0; i < files.length; i++) {
+    const u = files[i]; onStep?.(i + 1, files.length);
+    try {
+      const blob = await fetchOriginal(u), d = String(u.created_at || '').slice(0, 10);
+      let name = `${d} ${u.file_name}`; const n = used.get(name) || 0; used.set(name, n + 1);
+      if (n) name = name.replace(/(\.[^.]+)?$/, ` (${n + 1})$1`);
+      zip.file(name, blob);
+    } catch (e) { fail.push(`${u.file_name}: ${e.message}`); }
+  }
+  if (fail.length === files.length) throw new Error(fail.join(' · '));
+  const out = await zip.generateAsync({ type: 'blob' });
+  saveBlob(out, `kho-du-lieu-${new Date().toISOString().slice(0, 10)}.zip`);
+  return fail;
 }
 
 // ---------- giao diện ----------
-let host = null, pending = [], uploads = [], flash = '', busy = false, listErr = '';
+let host = null, pending = [], uploads = [], flash = '', busy = false, listErr = '', picked = new Set(), dlBusy = '';
 const typeOptions = (sel) => Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(v)}</option>`).join('');
 const tone = { ready: 'green', saving: 'amber', failed: 'red' }, stLabel = { ready: 'Đã lưu', saving: 'Đang lưu', failed: 'Lỗi' };
 const badge = (t, c) => `<span class="dh-badge dh-${c}">${esc(t)}</span>`;
@@ -778,11 +806,13 @@ function pendingCard(p, idx) {
 function listTable() {
   if (listErr) return `<p class="dh-error">${esc(listErr)}</p>`;
   if (!uploads.length) return '<p class="dh-muted">Chưa có dữ liệu nào được lưu.</p>';
-  return `<div class="dh-scroll"><table class="dh-table"><thead><tr><th>Ngày tải</th><th>File · sheet</th><th>Loại dữ liệu</th><th>Kỳ</th><th class="r">Dòng</th><th class="r">Cột</th><th>Trạng thái</th><th></th></tr></thead><tbody>
-  ${uploads.map((u) => `<tr><td>${esc(new Date(u.created_at).toLocaleString('vi-VN'))}</td><td><b>${esc(u.file_name)}</b><div class="dh-muted">${esc(u.sheet_name || '')}</div></td>
+  const sel = uploads.filter((u) => picked.has(String(u.id)));
+  const bar = `<div class="dh-bar" style="margin:0 0 10px"><button class="dh-btn dh-primary" id="dh-dl-sel" ${sel.length && !dlBusy ? '' : 'disabled'}>⬇ Tải ${sel.length ? sel.length + ' file đã chọn' : 'các file đã chọn'}</button><button class="dh-btn" id="dh-dl-all" ${dlBusy ? 'disabled' : ''}>⬇ Tải tất cả (${fmt0(new Set(uploads.filter((u) => u.storage_path).map((u) => u.storage_path)).size)} file, .zip)</button>${dlBusy ? `<span class="dh-muted" style="align-self:center">${esc(dlBusy)}</span>` : '<span class="dh-muted" style="align-self:center">Nhiều file được gom thành 1 file .zip; tên file có ngày tải lên ở đầu.</span>'}</div>`;
+  return `${bar}<div class="dh-scroll"><table class="dh-table"><thead><tr><th><input type="checkbox" id="dh-pick-all" ${sel.length && sel.length === uploads.length ? 'checked' : ''} aria-label="Chọn tất cả"></th><th>Ngày tải</th><th>File · sheet</th><th>Loại dữ liệu</th><th>Kỳ</th><th class="r">Dòng</th><th class="r">Cột</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+  ${uploads.map((u) => `<tr><td><input type="checkbox" data-dh-pick="${u.id}" ${picked.has(String(u.id)) ? 'checked' : ''} ${u.storage_path ? '' : 'disabled'}></td><td>${esc(new Date(u.created_at).toLocaleString('vi-VN'))}</td><td><b>${esc(u.file_name)}</b><div class="dh-muted">${esc(u.sheet_name || '')}</div></td>
     <td>${esc(u.report_label || TYPES[u.report_key] || u.report_key)}</td><td>${esc(u.months?.length > 1 ? `${u.months[0]} → ${u.months.at(-1)}` : u.period || '–')}</td>
     <td class="r">${fmt0(u.row_count)}</td><td class="r">${fmt0((u.columns || []).length)}</td><td>${badge(stLabel[u.status] || u.status, tone[u.status] || 'gray')}${u.note ? `<div class="dh-muted">${esc(u.note)}</div>` : ''}</td>
-    <td class="dh-actions">${u.storage_path ? `<button class="dh-btn dh-small" data-dh-dl="${u.id}">File gốc</button>` : ''}<button class="dh-btn dh-small dh-danger" data-dh-del="${u.id}">Xóa</button></td></tr>`).join('')}
+    <td class="dh-actions">${u.storage_path ? `<button class="dh-btn dh-small" data-dh-dl="${u.id}" title="Tải file gốc đã upload">⬇ Tải về</button>` : ''}<button class="dh-btn dh-small dh-danger" data-dh-del="${u.id}">Xóa</button></td></tr>`).join('')}
   </tbody></table></div>`;
 }
 function draw() {
@@ -872,8 +902,21 @@ function bind() {
   });
   host.querySelectorAll('[data-dh-dl]').forEach((b) => b.onclick = async () => {
     const u = uploads.find((x) => String(x.id) === b.dataset.dhDl);
-    try { await downloadOriginal(u); } catch (e) { flash = 'Không tải được file gốc: ' + e.message; draw(); }
+    b.disabled = true; b.textContent = 'Đang tải…';
+    try { await downloadOriginal(u); } catch (e) { flash = 'Không tải được file gốc: ' + e.message; draw(); return; }
+    b.disabled = false; b.textContent = '⬇ Tải về';
   });
+  host.querySelectorAll('[data-dh-pick]').forEach((c) => c.onchange = () => { if (c.checked) picked.add(c.dataset.dhPick); else picked.delete(c.dataset.dhPick); draw(); });
+  const pa = host.querySelector('#dh-pick-all'); if (pa) pa.onchange = () => { picked = pa.checked ? new Set(uploads.filter((u) => u.storage_path).map((u) => String(u.id))) : new Set(); draw(); };
+  const zipRun = async (list) => {
+    dlBusy = 'Đang chuẩn bị…'; draw();
+    try { const fail = await downloadZip(list, (i, n) => { dlBusy = `Đang tải ${i}/${n} file…`; const el = host.querySelector('#dh-dl-all + span, #dh-dl-all ~ span'); if (el) el.textContent = dlBusy; });
+      flash = fail?.length ? `Đã tải, ${fail.length} file lỗi: ${fail.join(' · ')}` : ''; }
+    catch (e) { flash = 'Không tải được: ' + e.message; }
+    dlBusy = ''; draw();
+  };
+  const ds = host.querySelector('#dh-dl-sel'); if (ds) ds.onclick = () => zipRun(uploads.filter((u) => picked.has(String(u.id))));
+  const da = host.querySelector('#dh-dl-all'); if (da) da.onclick = () => zipRun(uploads);
 }
 function injectStyles() {
   if (document.getElementById('dh-styles')) return;
