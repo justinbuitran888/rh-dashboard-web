@@ -472,7 +472,7 @@ const TYPES = {
   agents: 'Kinh doanh ĐL bình thường', serviceAgents: 'Kinh doanh ĐL phục vụ', business: 'Kinh doanh ĐL (chưa rõ nhóm)',
   dncc: 'Đội ngũ chuyên cần (ĐNCC)', newAgentCohort: 'Đại lý gia nhập (cohort)', mdrt: 'MDRT',
   manproNew: 'Manulife Pro dưới 3 tháng', manproLong: 'Manulife Pro từ 3 tháng', nsxs: 'Năng suất xuất sắc (NSXS)',
-  mba: 'MBA Pro', promotion: 'Theo dõi thăng cấp UM', recruitment: 'Tuyển dụng mới',
+  mba: 'MBA Pro', gtf: 'Theo dõi ứng viên UM+ GTF', manproOfficial: 'Manulife Pro – danh hiệu chính thức', segment: 'MAPA theo phân khúc', m0m1: 'Đại lý mới M0–M1 theo cấp quản lý', promotion: 'Theo dõi thăng cấp UM', recruitment: 'Tuyển dụng mới',
   kdLayer: 'Báo cáo KD theo cấp quản lý (tháng)', targetFyp: 'Target FYP (file Target RH)', targetAa: 'Target 1mAA (file Target RH)',
   kqkd_area: 'Template KQKD theo khu vực', kqkd_agent: 'Template KQKD theo đại lý', mapping: 'Mapping cấu trúc',
   unknown: 'Khác / chưa nhận diện',
@@ -485,14 +485,18 @@ const SIGS = [
   ['newAgentCohort', ['Mã Đại lý', 'Ngày gia nhập', 'RTH', '# Số lượng Đại lý được cấp code (M0)']],
   ['mdrt', ['Đại lý', 'Danh hiệu tạm tính MDRT', 'Số lần đạt MDRT chính thức', 'FYP thực cấp']],
   ['manproNew', ['Đại lý', 'Tổng FYP phát sinh trong tháng M0-M2', 'Thăng hạng nhanh Danh hiệu Manulife Pro Bạc']],
+  ['manproOfficial', ['Đại lý', 'Danh hiệu Manulife Pro chính thức', 'FYP tính từ Tháng hiệu lực Danh hiệu chính thức']],
   ['manproLong', ['Đại lý', 'Danh hiệu Manulife Pro chính thức', 'Số tháng làm việc']],
   ['nsxs', ['Mã Đại lý', 'Khoản thưởng năng suất xuất sắc tháng', 'Phí BH năm 1 tháng hiện tại']],
   ['mba', ['Mã UM+', 'Tiến độ MBA Pro hàng tháng', 'Danh hiệu MBA Pro chuyển đổi']],
+  ['gtf', ['Mã đại lý', 'Vị trí ứng tuyển', 'Kết quả bổ nhiệm UM+ GTF', 'Ngày kết thúc giai đoạn đánh giá']],
+  ['segment', ['Phân khúc Đại lý', 'ManPro Sub-Segment', 'FYP thực cấp']],
   ['promotion', ['Đại lý', 'Chức danh hiện tại', 'Xét hạng thăng bậc từ', 'Kết quả thăng cấp tạm tính']],
   ['recruitment', ['Khu vực', 'UM_L1', 'UM_L2', 'YTD']],
   ['kqkd_agent', ['Tháng (YYYY-MM)', 'Mã Đại lý', 'FYP thực cấp']],
   ['kqkd_area', ['Tháng (YYYY-MM)', 'Mã khu vực', 'FYP thực cấp']],
   ['kdLayer', ['Hệ thống phân cấp đại lý', 'Layer 2', 'Mã khu vực', 'FYP thực cấp', 'Tổng nguồn lực']],
+  ['m0m1', ['Hệ thống phân cấp đại lý', 'Layer 2', 'Mã khu vực', '# Số lượng Đại lý được cấp code', '# Số lượng Đại lý có hoạt động']],
   ['targetFyp', ['Name', 'SM code', 'Loc code', 'Direct report', 'Rank PSM+', 'Target 20']],
   ['targetAa', ['Name', 'SM code', 'Loc code', 'Direct report', 'Rank PSM+']],
   ['mapping', ['Mã khu vực', 'Layer 2', 'Layer 3']],
@@ -695,13 +699,16 @@ function analyzeSheet(sheet, fileName) {
 async function existing(hash) {
   return must(await sb().from('data_uploads').select('id,sheet_name,created_at,status').eq('file_hash', hash).eq('status', 'ready'), 'Kiểm tra trùng');
 }
+// báo cáo ảnh chụp tại thời điểm tải (không có cột ngày chốt): lấy ngày tải lên làm ngày chốt để bản mới nhất luôn được dùng
+const SNAP_KEYS = new Set(['manproNew', 'manproLong', 'manproOfficial', 'gtf', 'mba', 'mdrt', 'dncc', 'segment', 'm0m1', 'promotion', 'nsxs']);
+const todayLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 async function saveItem(file, item, onProgress) {
   const db = sb();
   const label = TYPES[item.key] || item.key;
   const path = `raw/${item.hash.slice(0, 16)}_${safeName(file.name)}`;
   const up = must(await db.from('data_uploads').insert({
     file_name: file.name, file_size: file.size, file_hash: item.hash, sheet_name: item.sheet, report_key: item.key, report_label: label,
-    period: item.period || null, as_of: item.asOf || null, header_row: item.headerRow, columns: item.columns, row_count: item.rows.length,
+    period: item.period || (SNAP_KEYS.has(item.key) ? todayLocal().slice(0, 7) : null), as_of: item.asOf || (SNAP_KEYS.has(item.key) ? todayLocal() : null), header_row: item.headerRow, columns: item.columns, row_count: item.rows.length,
     months: item.months, warnings: item.warnings, storage_path: path, status: 'saving',
   }).select('id').single(), 'Tạo bản ghi');
   try {
@@ -3450,6 +3457,13 @@ function incPlan(a, withTeam = true) {
   const pCur = nowO.total, pTgt = plan[0].o.total, mCur = team ? team.feeN.total + (team.g?.ok ? 10000 : 0) : 0, mTgt = team ? team.feeT.total + (team.gOkT ? 10000 : 0) + sum(acts.filter((x) => x.who === 'Tuyển dụng'), (x) => x.gain) : sum(acts.filter((x) => x.who === 'Tuyển dụng'), (x) => x.gain);
   return { X, plan, nowO, curInc, tgtInc, acts, goals, team, L, Lr, daysLeft, months, cs, rr, curQ, pCur, pTgt, mCur, mTgt };
 }
+// số Manulife tạm tính trong báo cáo Manulife Pro (thưởng xuất sắc MPro tháng) và Manulife Pro dưới 3 tháng (thưởng ĐL mới)
+function offChip(a) {
+  const mp = DS.manpro.get(a.c), mn = DS.manproNew.get(a.c), out = [];
+  if (mp && mp.bonusM != null && N(mp.bonusM) > 0) out.push(`thưởng MPro tháng ${money(mp.bonusM)}`);
+  if (mn && (N(mn.b1) || N(mn.b2) || N(mn.bx))) out.push(`thưởng ĐL mới M0–M1 ${money(mn.b1)} · M2 ${money(mn.b2)}${N(mn.bx) ? ` · xuất sắc ${money(mn.bx)}` : ''}`);
+  return out.length ? `<span class="pl-chip ok" title="Số do Manulife tạm tính trong báo cáo Manulife Pro">Manulife tạm tính: ${out.join(' · ')}</span>` : '';
+}
 function incChecklistHtml(a) {
   let Pn; try { Pn = incPlan(a); } catch (e) { console.error(e); return ''; }
   const { X, plan, acts, goals, team, L, Lr, daysLeft, rr, curQ, nowO, pCur, pTgt, mCur, mTgt } = Pn, M = DS.months, ym = M[3];
@@ -3461,7 +3475,7 @@ function incChecklistHtml(a) {
   const tbl = (rows) => `<div class="tbl-wrap"><table class="tbl pl-tbl"><thead><tr><th></th>${plan.map((p, i) => `<th class="r">${mLabel(p.m)}${i === 0 ? ` <small>(còn ${daysLeft} ngày)</small>` : ''}</th>`).join('')}</tr></thead><tbody>${rows.map(([lb, fn]) => `<tr><td>${lb}</td>${plan.map((p, i) => `<td class="r num">${fn(p, i)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   // ---- tab cá nhân
   const pActs = acts.filter((x) => x.side === 'p'), pGoals = goals.filter((g) => g.side === 'p');
-  const personal = `${box('Thu nhập bán cá nhân', pCur, pTgt, [chip(`Thưởng tháng ${pct(nowO.mRate)}${N(a.cc[3]) < 1 ? ' · chưa có HĐ tháng này' : ''}`, N(a.cc[3]) < 1 ? 'bad' : ''), chip(`FYC 3 tháng ${money(curQ)}`), a.tier && chip(`Manulife Pro ${TIER_NAME[a.tier]}`)].filter(Boolean).join(''), [chip(`Thưởng tháng ${pct(Lr)}`, 'ok'), chip(`FYC 3 tháng ${money(L)}`, 'ok')].join(''))}
+  const personal = `${box('Thu nhập bán cá nhân', pCur, pTgt, [chip(`Thưởng tháng ${pct(nowO.mRate)}${N(a.cc[3]) < 1 ? ' · chưa có HĐ tháng này' : ''}`, N(a.cc[3]) < 1 ? 'bad' : ''), chip(`FYC 3 tháng ${money(curQ)}`), a.tier && chip(`Manulife Pro ${TIER_NAME[a.tier]}`), offChip(a)].filter(Boolean).join(''), [chip(`Thưởng tháng ${pct(Lr)}`, 'ok'), chip(`FYC 3 tháng ${money(L)}`, 'ok')].join(''))}
     <h5 class="pl-h">Việc cần làm trong ${mLabel(ym)} · còn ${daysLeft} ngày</h5>${pActs.map(actRow).join('') || '<p class="note">Đã ở bậc tốt nhất khả thi tháng này – giữ nhịp.</p>'}
     <h5 class="pl-h">Nhịp bán cá nhân 3 tháng</h5>${tbl([['Số HĐ', (p, i) => `${f0(p.cc)}${i === 0 && p.add.cc ? ` <small>(+${f0(p.add.cc)})</small>` : ''}`], ['FYP', (p, i) => `${money(p.fyp)}${i === 0 && fypNow(a) > 0 ? ` <small>(+${money(p.add.fyp)})</small>` : ''}`], ['FYC 3 tháng → bậc thưởng tháng', (p) => pct(p.rate)], ['<b>Thu nhập bán cá nhân</b>', (p) => `<b>${money(p.o.total)}</b>`]])}
     ${pGoals.length ? `<h5 class="pl-h">Danh hiệu & thưởng đến cuối năm</h5>${pGoals.map(goalRow).join('')}` : ''}`;
