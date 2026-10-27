@@ -186,7 +186,7 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .rs-kpis{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:1.2cqw}.rs-kpi{background:#F4F8F5;border:1px solid #CDEFD9;border-radius:1cqw;padding:1cqw 1.2cqw;display:grid;gap:.2cqw}
 .rs-kpi span{font-size:1.1cqw;color:#5E6F66}.rs-kpi b{font-size:2.4cqw;color:#0A3D2A}.rs-kpi small{font-size:1cqw;color:#06874E}
 .rs-2{display:grid;grid-template-columns:1fr 1.2fr;gap:2cqw;flex:1;min-height:0}.rs-2.w{grid-template-columns:1.6fr 1fr}.rs-2 h4{margin:0 0 .6cqw;font-size:1.5cqw}.rs-2 h4.ok{color:#00A758}.rs-2 h4.bad{color:#b42318}
-.rs-tbl{width:100%;border-collapse:collapse;font-size:1.15cqw}.rs-tbl th{background:#0A3D2A;color:#fff;text-align:left;padding:.5cqw .7cqw}.rs-tbl td{padding:.45cqw .7cqw;border-bottom:1px solid #edf0f2}.rs-tbl tr:nth-child(even) td{background:#EDF5EF}.rs-tbl .r{text-align:right}
+.rs-tbl{width:100%;border-collapse:collapse;font-size:1.15cqw}.rs-tbl th{background:#0A3D2A;color:#fff;text-align:left;padding:.5cqw .7cqw}.rs-tbl td{padding:.45cqw .7cqw;border-bottom:1px solid #edf0f2}.rs-tbl tr:nth-child(even) td{background:#EDF5EF}.rs-tbl .r{text-align:right}.rs-2.eq{grid-template-columns:1fr 1fr}.rs-st{font-size:.95cqw}.rs-st td{padding:.25cqw .5cqw}.rs-st th{padding:.35cqw .5cqw}.rs-st tr.st-done td{background:#D1FADF!important;color:#05603A;font-weight:700}.rs-st tr.st-pace td{background:#ECFDF3!important}.rs-st tr.st-low td{background:#FFF4E5!important;color:#93370D}.rs-st tr.st-bot td{background:#FEE4E2!important;color:#B42318;font-weight:700}.rs-leg{display:flex;gap:.8cqw;flex-wrap:wrap;margin:0 0 .8cqw}.rs-leg span{padding:.25cqw .8cqw;border-radius:.4cqw;font-size:1.05cqw;font-weight:700}.rs-leg .st-done{background:#D1FADF;color:#05603A}.rs-leg .st-pace{background:#ECFDF3;color:#0A3D2A}.rs-leg .st-low{background:#FFF4E5;color:#93370D}.rs-leg .st-bot{background:#FEE4E2;color:#B42318}
 .rs-bars{display:flex;gap:1cqw;align-items:flex-end;height:100%;min-height:12cqw;padding-top:2cqw}.rs-bars.tall{flex:1}.rs-bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;position:relative}
 .rs-bar i{display:block;width:70%;max-height:calc(100% - 3.6cqw);background:#00A758;border-radius:.4cqw .4cqw 0 0;min-height:2px}.rs-bar em{position:absolute;left:10%;right:10%;border-top:.25cqw dashed #0A3D2A}.rs-bar b{order:-1;font-size:1cqw;color:#0A3D2A;margin-bottom:.3cqw}.rs-bar span{font-size:1cqw;color:#5E6F66;margin-top:.3cqw}
 .rs-note{position:absolute;left:3cqw;bottom:1cqw;right:3cqw;font-size:.95cqw;color:#5E6F66}
@@ -2853,7 +2853,7 @@ function pageInsight(c) {
     const C = insCohort(list), r4 = C.recent, tot = (f) => sum(r4, f);
     const totN = tot((r) => r.n), m01 = sum(r4.slice(0, 3), (r) => r.n);
     body = `<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-      ${k(`Tân binh ${mLabel(M[0])}–${mLabel(M[3])}`, f0(totN), `đang làm việc · ${f0(tot((r) => r.ever))} đã có HĐ (${pct(totN ? tot((r) => r.ever) / totN : null)})`)}
+      ${k(`ĐLM ${mLabel(M[0])}–${mLabel(M[3])}`, f0(totN), `đang làm việc · ${f0(tot((r) => r.ever))} đã có HĐ (${pct(totN ? tot((r) => r.ever) / totN : null)})`)}
       ${k('Có HĐ ngay tháng M0', pct(totN ? tot((r) => r.at[0]) / totN : null), `${f0(tot((r) => r.at[0]))} ĐL`)}
       ${k('Có HĐ ở M1', pct(m01 ? sum(r4.slice(0, 3), (r) => r.at[1]) / m01 : null), `trên ${f0(m01)} ĐL đã tới M1`)}
       ${k('Đủ 3 HĐ + 40 tr trong M0–M2', f0(tot((r) => r.both)), `${f0(tot((r) => r.cc3))} đủ 3 HĐ · ${f0(tot((r) => r.f40))} đủ 40 tr`)}
@@ -2976,12 +2976,12 @@ function insSummary(list) {
   const late = c0.slice(4).reduce((t, x) => ({ n: t.n + x.n, a: t.a + x.a }), { n: 0, a: 0 });
   const cards = [];
   const add = (tone, tab, title, big, text) => cards.push({ tone, tab, title, big, text });
-  add(rate(0) !== null && rate(0) < 0.3 ? 'warn' : 'ok', 'cohort', 'Kích hoạt tân binh', pct(nAll ? sum(r4, (r) => r.ever) / nAll : null),
-    `${f0(nAll)} tân binh ${mLabel(M[0])}–${mLabel(M[3])}: ${pct(rate(0))} có HĐ ngay M0, ${pct(m01 ? sum(r4.slice(0, 3), (r) => r.at[1]) / m01 : null)} có HĐ ở M1, ${pct(m012 ? sum(r4.slice(0, 2), (r) => r.at[2]) / m012 : null)} ở M2. Từ M4 trở đi tỷ lệ có HĐ mỗi tháng chỉ còn ${pct(late.n ? late.a / late.n : null)}.`);
+  add(rate(0) !== null && rate(0) < 0.3 ? 'warn' : 'ok', 'cohort', 'Kích hoạt ĐLM', pct(nAll ? sum(r4, (r) => r.ever) / nAll : null),
+    `${f0(nAll)} ĐLM ${mLabel(M[0])}–${mLabel(M[3])}: ${pct(rate(0))} có HĐ ngay M0, ${pct(m01 ? sum(r4.slice(0, 3), (r) => r.at[1]) / m01 : null)} có HĐ ở M1, ${pct(m012 ? sum(r4.slice(0, 2), (r) => r.at[2]) / m012 : null)} ở M2. Từ M4 trở đi tỷ lệ có HĐ mỗi tháng chỉ còn ${pct(late.n ? late.a / late.n : null)}.`);
   add(sum(r4, (r) => r.both) < 5 ? 'warn' : 'ok', 'cohort', 'Phễu fast-track', `${f0(sum(r4, (r) => r.both))} / ${f0(nAll)}`,
     `ĐL đủ 3 HĐ + 40 tr trong M0–M2. ${f0(sum(r4, (r) => r.cc3))} đủ 3 HĐ, ${f0(sum(r4, (r) => r.f40))} đủ 40 tr; ${f0(sum(r4, (r) => r.fast))} đã đạt Silver fast-track, ${f0(sum(r4, (r) => r.pot))} đang tiềm năng.`);
   const never = sum(C.rows12, (r) => r.n - r.ever), n12 = sum(C.rows12, (r) => r.n);
-  add(n12 && never / n12 > 0.4 ? 'warn' : 'ok', 'cohort', 'Tân binh 12 tháng chưa có HĐ nào', f0(never), `${pct(n12 ? never / n12 : null)} trong ${f0(n12)} ĐL gia nhập 12 tháng qua (còn làm việc) chưa từng có HĐ thực cấp.`);
+  add(n12 && never / n12 > 0.4 ? 'warn' : 'ok', 'cohort', 'ĐLM 12 tháng chưa có HĐ nào', f0(never), `${pct(n12 ? never / n12 : null)} trong ${f0(n12)} ĐL gia nhập 12 tháng qua (còn làm việc) chưa từng có HĐ thực cấp.`);
   const last = X.cols.at(-1), q3 = X.cols.find((x) => x.k === 'q3');
   add('ok', 'mdrt', `Pipeline MDRT ${y + 1}`, f0(last.b[0]), `đang đạt MDRT+ (${q3 ? `${f0(q3.b[0])} ở ${mLabel(`${y}-09`)}` : ''}). ${f0(last.b[1])} người ở 70–99% cần thêm ${money(sum(X.near.filter((x) => x.r >= 0.7), (x) => X.MV - x.f))}; ${f0(X.ups)} người đã lên bậc trong tháng này.`);
   const topMiss = B.miss.slice().sort((p, q) => q.only - p.only)[0];
@@ -3560,12 +3560,15 @@ function rptData() {
   areas.forEach((a) => { a.pct = a.tgt ? a.fyp / a.tgt : null; a.pace = a.pct !== null && clk.el ? a.pct / clk.el : null; });
   const ranked = areas.filter((a) => a.tgt).sort((p, q) => q.pct - p.pct), byF = [...areas].sort((p, q) => q.fyp - p.fyp);
   const top = (ranked.length >= 6 ? ranked : byF).slice(0, 5), bottom = (ranked.length >= 6 ? [...ranked].reverse() : [...byF].reverse()).slice(0, 5);
+  // toàn bộ khu vực: xếp % target (khu vực chưa có target xếp cuối theo FYP); đánh dấu hoàn thành / đúng nhịp / cần nỗ lực (bottom 5)
+  const hasT = ranked.length >= 6, allA = hasT ? [...ranked, ...byF.filter((a) => !a.tgt)] : byF, botSet = new Set(bottom.map((a) => a.code));
+  allA.forEach((a) => { a.st = hasT && a.pct !== null && a.pct >= 1 ? 'done' : botSet.has(a.code) ? 'bot' : hasT && a.pct !== null && a.pct >= clk.el ? 'pace' : ''; });
   // MDRT, MBA, UM+, fast-track, M0–M1
   const md = insMdrt(list), mb = insMba(list), co = insCohort(list), ft = fastTrack(list).filter((x) => x.t <= 2);
   const ums = list.filter((a) => a.um).map((u) => { const kids = u.kids, prod = kids.filter((z) => N(z.fyc[3]) >= 4000 && N(z.cc[3]) >= 1).length, g = y === '2026' && mo >= 9 && mo <= 12 ? pdvGroup(u, 3) : null;
     return { u, prod, self: N(u.cc[3]) >= 1, teamF: sum(kids, (z) => z.fyp[3]) + N(u.fyp[3]), l1: sum(kids, (z) => z.fyc[3]), g, n: kids.length }; });
   const umTiers = [[48000, '≥ 48 tr'], [24000, '24–48 tr'], [7000, '7–24 tr'], [1, '< 7 tr'], [0, 'Chưa có']].map(([lo, lb], i, arr) => ({ lb, n: ums.filter((x) => (lo === 0 ? x.l1 <= 0 : x.l1 >= lo && (i === 0 || x.l1 < arr[i - 1][0]))).length }));
-  return { ym, clk, list, tr, cur, ytdF, ytdT, ytdT2, ytdFT, tFrom, ytdPy, aa3v, areas, top, bottom, hasTgt: ranked.length >= 6, md, mb, co, ft, ums, umTiers, scope: scopeLabel(), asOf: DS.meta.asOf };
+  return { ym, clk, list, tr, cur, ytdF, ytdT, ytdT2, ytdFT, tFrom, ytdPy, aa3v, areas, allA, top, bottom, hasTgt: ranked.length >= 6, md, mb, co, ft, ums, umTiers, scope: scopeLabel(), asOf: DS.meta.asOf };
 }
 const rptPct = (v) => (v === null || v === undefined || !isFinite(v) ? '–' : pct(v));
 function rptSlides(R) {
@@ -3579,8 +3582,12 @@ function rptSlides(R) {
   ];
   function M3label() { return DS.months.slice(0, 3).map(mLabel).join(', '); }
   const S2 = { id: 'fyp', title: 'FYP & 1mAA · MTD và YTD', kpis: fypK, chart: R.tr.map((x) => ({ lb: mLabel(x.m).slice(0, 3), v: x.fyp, t: x.tgt, aa: x.aa })), note: `FYP thực cấp (VND) · tháng ${mLb} tạm tính đến ${dmy(R.asOf)} · cột = FYP, chấm = target · tháng trước T07 theo báo cáo tháng.` };
-  const aRow = (a) => [a.code, a.psm, money(a.fyp), a.tgt ? money(a.tgt) : '–', rptPct(a.pct), f0(a.aa)];
-  const S3 = { id: 'areas', title: `Khu vực Top & Bottom · ${mLb}`, cols: ['Khu vực', 'PSM+', 'FYP MTD', 'Target', '% target', '1mAA'], top: R.top.map(aRow), bottom: R.bottom.map(aRow), note: R.hasTgt ? `Xếp theo % target tháng · nhịp cần ${pct(el)} · ${f0(R.areas.filter((a) => a.pct !== null && a.pct >= el).length)}/${f0(R.areas.filter((a) => a.pct !== null).length)} khu vực đúng nhịp.` : 'Chưa đủ target khu vực – xếp theo FYP MTD.' };
+  const ST = { done: 'Hoàn thành', pace: 'Đúng nhịp', low: 'Dưới nhịp', bot: 'Cần nỗ lực', '': '' };
+  const aRow = (a, i) => [String(i + 1), a.code, (a.psm || '').length > 18 ? a.psm.slice(0, 17) + '…' : a.psm, money(a.fyp), a.tgt ? money(a.tgt) : '–', rptPct(a.pct), f0(a.aa)];
+  const cnt = (k) => R.allA.filter((a) => a.st === k).length;
+  const S3 = { id: 'areas', title: `Khu vực · hoàn thành & cần nỗ lực · ${mLb}`, cols: ['#', 'Khu vực', 'PSM+', 'FYP MTD', 'Target', '% target', '1mAA'],
+    rows: R.allA.map(aRow), st: R.allA.map((a) => a.st), legend: R.hasTgt ? [['done', `Hoàn thành ${f0(cnt('done'))}`], ...(cnt('pace') ? [['pace', `Đúng nhịp ${f0(cnt('pace'))}`]] : []), ['bot', `Cần nỗ lực (bottom ${f0(cnt('bot'))})`]] : [['bot', `Cần nỗ lực (bottom ${f0(cnt('bot'))})`]],
+    note: R.hasTgt ? `${f0(R.allA.length)} khu vực xếp theo % target tháng · nhịp cần ${pct(el)} · Hoàn thành ≥ 100% target · Đúng nhịp ≥ ${pct(el)} · Cần nỗ lực = 5 khu vực thấp nhất.` : `${f0(R.allA.length)} khu vực · chưa đủ target khu vực – xếp theo FYP MTD.` };
   const mdl = R.md.cols.at(-1);
   const S4 = { id: 'mdrt', title: `MDRT ${+yr + 1} · tổng quan`, kpis: [['Đạt MDRT+ (tạm tính)', f0(mdl.b[0]), `COT trở lên ${f0(mdl.cot)}`], ['70–99% mốc', f0(mdl.b[1]), `cần thêm ${money(sum(R.md.near.filter((x) => x.r >= 0.7), (x) => R.md.MV - x.f))}`], ['50–69%', f0(mdl.b[2]), ''], ['Trên nhịp năm', f0(mdl.onPace), `≥ ${pct(mdl.pace)} mốc, chưa đạt`]],
     bars: R.md.cols.map((c) => ({ lb: c.lb, v: c.b[0] })), cols: ['Đại lý', 'KV', '% mốc', 'Còn thiếu'], rows: R.md.near.slice(0, 8).map((x) => [x.a.n, x.a.a, rptPct(x.r), money(R.md.MV - x.f)]), note: `Mốc MDRT ${money(R.md.MV)} MDRT-FYP · cột = số ĐL đạt MDRT+ theo mốc tháng (T07, T08 ước tính).` };
@@ -3593,8 +3600,8 @@ function rptSlides(R) {
   const S7 = { id: 'fast', title: 'Silver Fast-track · ĐL mới M0–M2', kpis: [0, 1, 2].map((t) => [`M${t}`, f0(fc((x) => x.t === t)), `${f0(fc((x) => x.t === t && x.active))} có HĐ`]).concat([['Tiềm năng', f0(fc((x) => x.status === 'pot')), 'tiến độ ≥ 60%'], ['Đã đạt', f0(fc((x) => x.fast)), 'Manulife Pro Bạc nhanh']]),
     cols: ['Đại lý', 'KV', 'Nhóm', 'FYP / 40 tr', 'HĐ / 3', 'Còn thiếu'], rows: ft.filter((x) => x.status === 'pot').sort((p, q) => q.score - p.score).slice(0, 8).map((x) => [x.a.n, x.a.a, 'M' + x.t, money(x.fyp), f0(x.cc), x.miss.slice(0, 2).join(' · ') + (x.miss.length > 2 ? ` +${x.miss.length - 2}` : '')]), note: 'Memo 0001M02/2026: 3 HĐ + 40 tr FYP + SBW + ĐNCC ≥ 4 buổi/tháng trong M0–M2.' };
   const co = R.co.recent;
-  const S8 = { id: 'm0m1', title: 'Tân binh M0 → M1 · kích hoạt', cols: ['Gia nhập', 'Số ĐL', 'Có HĐ M0', 'M1', 'M2', 'Đã có HĐ', '3 HĐ + 40 tr'], rows: co.map((r) => [mLabel(r.m), f0(r.n), `${f0(r.at[0])} (${rptPct(r.n ? r.at[0] / r.n : null)})`, r.at[1] === null ? '–' : `${f0(r.at[1])} (${rptPct(r.n ? r.at[1] / r.n : null)})`, r.at[2] === null ? '–' : `${f0(r.at[2])} (${rptPct(r.n ? r.at[2] / r.n : null)})`, `${f0(r.ever)} (${rptPct(r.n ? r.ever / r.n : null)})`, f0(r.both)]),
-    bars: R.co.curve.slice(0, 7).map((x, t) => ({ lb: 'M' + t, v: x.n ? Math.round((x.a / x.n) * 100) : 0 })), note: 'Bảng: tân binh 4 tháng gần nhất · biểu đồ: % ĐL có HĐ theo tháng thâm niên M0…M6 (gộp các tháng quan sát).' };
+  const S8 = { id: 'm0m1', title: 'ĐLM M0 → M1 · kích hoạt', cols: ['Gia nhập', 'Số ĐL', 'Có HĐ M0', 'M1', 'M2', 'Đã có HĐ', '3 HĐ + 40 tr'], rows: co.map((r) => [mLabel(r.m), f0(r.n), `${f0(r.at[0])} (${rptPct(r.n ? r.at[0] / r.n : null)})`, r.at[1] === null ? '–' : `${f0(r.at[1])} (${rptPct(r.n ? r.at[1] / r.n : null)})`, r.at[2] === null ? '–' : `${f0(r.at[2])} (${rptPct(r.n ? r.at[2] / r.n : null)})`, `${f0(r.ever)} (${rptPct(r.n ? r.ever / r.n : null)})`, f0(r.both)]),
+    bars: R.co.curve.slice(0, 7).map((x, t) => ({ lb: 'M' + t, v: x.n ? Math.round((x.a / x.n) * 100) : 0 })), note: 'Bảng: ĐLM 4 tháng gần nhất · biểu đồ: % ĐL có HĐ theo tháng thâm niên M0…M6 (gộp các tháng quan sát).' };
   return [S1, S2, S3, S4, S5, S6, S7, S8];
 }
 // ---------- xem trước HTML ----------
@@ -3605,7 +3612,8 @@ function rptHtmlSlide(s, i, n) {
   let body = '';
   if (s.id === 'cover') body = `<div class="rs-cover"><div class="rs-eb">RH Dashboard · ${esc(DS.meta.region || '')}</div><h2>${esc(s.title)}</h2><p>${esc(s.sub)}</p></div>`;
   else if (s.id === 'fyp') { const mx = Math.max(1, ...s.chart.flatMap((x) => [N(x.v), N(x.t)])); body = `${kp(s.kpis)}<div class="rs-bars tall">${s.chart.map((x) => `<div class="rs-bar"><i style="height:${(N(x.v) / mx) * 100}%"></i>${x.t ? `<em style="bottom:${(N(x.t) / mx) * 100}%"></em>` : ''}<b>${money(x.v)}</b><span>${esc(x.lb)}</span></div>`).join('')}</div>`; }
-  else if (s.id === 'areas') body = `<div class="rs-2"><div><h4 class="ok">Top 5</h4>${tb(s.cols, s.top)}</div><div><h4 class="bad">Bottom 5</h4>${tb(s.cols, s.bottom)}</div></div>`;
+  else if (s.id === 'areas') { const h = Math.ceil(s.rows.length / 2), tA = (a, b) => `<table class="rs-tbl rs-st"><thead><tr>${s.cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.rows.slice(a, b).map((r, j) => `<tr class="st-${s.st[a + j] || 'n'}">${r.map((v, k) => `<td class="${k > 2 || k === 0 ? 'r' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    body = `<div class="rs-leg">${s.legend.map(([k, t]) => `<span class="st-${k}">${esc(t)}</span>`).join('')}</div><div class="rs-2 eq"><div>${tA(0, h)}</div><div>${tA(h, s.rows.length)}</div></div>`; }
   else if (s.id === 'm0m1') body = `<div class="rs-2 w"><div>${tb(s.cols, s.rows)}</div><div><h4>% có HĐ theo tháng thâm niên</h4>${bars(s.bars, '%')}</div></div>`;
   else body = `${kp(s.kpis)}<div class="rs-2"><div>${s.bars ? bars(s.bars) : ''}</div><div>${tb(s.cols, s.rows)}</div></div>`;
   return `<section class="rs" data-sid="${s.id}"><div class="rs-in"><div class="rs-h"><span>${i + 1}/${n}</span><h3>${esc(s.id === 'cover' ? '' : s.title)}</h3></div>${body}${s.note ? `<div class="rs-note">${esc(s.note)}</div>` : ''}</div></section>`;
@@ -3634,8 +3642,15 @@ async function rptPptx(slides, R) {
       sl.addText(s.sub, { x: 0.8, y: 4.3, w: 11.5, h: 0.6, fontFace: F, fontSize: 18, color: 'CFE3D8' }); return; }
     head(sl, s, i);
     if (s.id === 'fyp') { kpis(sl, s.kpis); chart(sl, s.chart.map((x) => x.lb), [{ name: 'FYP thực cấp (tr)', values: s.chart.map((x) => (x.v == null ? null : x.v / 1000)) }, { name: 'Target (tr)', values: s.chart.map((x) => (x.t == null ? null : x.t / 1000)) }], { x: 0.5, y: 2.6, w: 12.33, h: 4.2 }); }
-    else if (s.id === 'areas') { sl.addText('Top 5', { x: 0.5, y: 1.05, w: 6, h: 0.4, fontFace: F, fontSize: 16, bold: true, color: B }); table(sl, s.cols, s.top, { x: 0.5, y: 1.5, w: 6.0, colW: [0.9, 1.7, 1.0, 1.0, 0.7, 0.7] });
-      sl.addText('Bottom 5', { x: 6.83, y: 1.05, w: 6, h: 0.4, fontFace: F, fontSize: 16, bold: true, color: 'B42318' }); table(sl, s.cols, s.bottom, { x: 6.83, y: 1.5, w: 6.0, colW: [0.9, 1.7, 1.0, 1.0, 0.7, 0.7] }); }
+    else if (s.id === 'areas') {
+      const SF = { done: ['D1FADF', '05603A', true], pace: ['ECFDF3', '0A3D2A', false], low: ['FFF4E5', '93370D', false], bot: ['FEE4E2', 'B42318', true] };
+      let lx = 0.5; s.legend.forEach(([k, t]) => { const w = 0.25 + t.length * 0.085; sl.addShape(p.ShapeType.roundRect, { x: lx, y: 1.0, w, h: 0.32, fill: { color: SF[k][0] }, line: { color: SF[k][0] }, rectRadius: 0.05 });
+        sl.addText(t, { x: lx, y: 1.0, w, h: 0.32, fontFace: F, fontSize: 11, bold: true, color: SF[k][1], align: 'center' }); lx += w + 0.15; });
+      const per = Math.ceil(s.rows.length / 2), fs = per > 20 ? 8 : per > 15 ? 9 : 10, rh = Math.min(0.3, 5.45 / (per + 1));
+      [0, 1].forEach((c) => { const rows = s.rows.slice(c * per, (c + 1) * per); if (!rows.length) return;
+        sl.addTable([s.cols.map((t) => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: G } } })), ...rows.map((r, jj) => { const f = SF[s.st[c * per + jj]];
+          return r.map((v, k) => ({ text: String(v), options: { align: k > 2 || k === 0 ? 'right' : 'left', fill: { color: f ? f[0] : jj % 2 ? 'F7FAF8' : 'FFFFFF' }, color: f ? f[1] : G, bold: !!(f && f[2]) } })); })],
+          { x: 0.5 + c * 6.33, y: 1.45, w: 6.0, colW: [0.35, 0.8, 1.55, 0.95, 0.95, 0.75, 0.65], rowH: rh, fontFace: F, fontSize: fs, color: G, border: { type: 'solid', color: 'E4E7EC', pt: 0.5 }, autoPage: false, margin: 0.03 }); }); }
     else if (s.id === 'm0m1') { table(sl, s.cols, s.rows, { x: 0.5, y: 1.2, w: 7.6, fs: 12 }); sl.addText('% ĐL có HĐ theo tháng thâm niên', { x: 8.4, y: 1.1, w: 4.4, h: 0.4, fontFace: F, fontSize: 13, bold: true, color: G });
       chart(sl, s.bars.map((b) => b.lb), [{ name: '% có HĐ', values: s.bars.map((b) => b.v) }], { x: 8.3, y: 1.5, w: 4.6, h: 4.8 }); }
     else { kpis(sl, s.kpis); if (s.bars) chart(sl, s.bars.map((b) => b.lb), [{ name: 'Số người', values: s.bars.map((b) => b.v) }], { x: 0.5, y: 2.6, w: 5.4, h: 4.2 });
