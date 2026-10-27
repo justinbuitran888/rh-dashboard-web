@@ -1260,18 +1260,25 @@ const scopeKey = () => (S.rh === 'all' ? 'TOÀN VÙNG' : 'RH:' + S.rh); // khóa
 const planScope = () => (S.rh === 'all' ? 'ALL' : S.rh); // khóa kế hoạch
 function prepare(row) {
   const P = row.payload, meta = P.meta, months = meta.months;
-  const agents = (P.agents || []).map((a) => ({
+  // ĐL có trong báo cáo KD ĐL mới nhất nhưng chưa có trong BC70 (gia nhập / chuyển khu vực sau ngày chốt BC70)
+  const extra = (P.offNew || []).map((x) => { const j = String(x.j || '').slice(0, 10), td = j, ten = j ? Math.max(0, monthDiff(j.slice(0, 7), String(meta.asOf).slice(0, 7))) : 0;
+    return { c: x.c, n: x.n, t: x.t || 'FA', um: !/^(FA|SA)$/i.test(x.t || 'FA'), a: x.a, p: x.p, m: null, j, td, mpseg: x.mpseg, ten, fyp: [0, 0, 0, 0], fyc: [0, 0, 0, 0], cc: [0, 0, 0, 0], act: [0, 0, 0, 0], nr: [0, 0, 0, 0], d1: [0, 0, 0, 0], fyp6: 0, fyp12: 0, cc12: 0, am12: 0, fromOff: true }; });
+  const agents = [...(P.agents || []), ...extra].map((a) => ({
     ...a, cc: a.cc || [], fyp: a.fyp || [], fyc: a.fyc || [], act: a.act || [], nr: a.nr || [], d1: a.d1 || [],
     tier: TIER[a.mpseg] || null, kids: [], parent: null,
   }));
   // FYP thực cấp chính thức (báo cáo KD ĐL, cột 23) thay cho FYP tính thưởng của BC70 ở các tháng có báo cáo; giữ bản BC70 ở fypB
   const OF = P.offFyp && Array.isArray(P.offFyp.months) && P.offFyp.months.length ? P.offFyp : null;
   const offIdx = OF ? months.map((m, i) => (OF.months.includes(m) ? i : -1)).filter((i) => i >= 0) : [];
+  // tháng có báo cáo KD ĐL chốt SAU ngày chốt BC70 (thường là tháng đang chạy): HĐ, FYC và "có hoạt động" cũng lấy theo báo cáo KD ĐL
+  const bcAsOf = String(meta.asOf), newer = offIdx.filter((i) => OF.asOf && OF.asOf[months[i]] && String(OF.asOf[months[i]]) > bcAsOf);
   for (const a of agents) {
     a.fypB = a.fyp.slice();
     if (!offIdx.length) continue;
     const o = OF.ag[a.c]; a.fyp = a.fyp.slice(); let d6 = 0;
     for (const i of offIdx) { const v = o ? N(o[i]) : 0; if (i <= 2) d6 += v - N(a.fypB[i]); a.fyp[i] = v; }
+    if (newer.length) { const oc = OF.cc?.[a.c], oy = OF.yc?.[a.c]; a.cc = a.cc.slice(); a.fyc = a.fyc.slice();
+      for (const i of newer) { a.cc[i] = oc && oc[i] != null ? N(oc[i]) : 0; a.fyc[i] = oy && oy[i] != null ? N(oy[i]) : 0; a.fypB[i] = a.fyp[i]; a.act[i] = a.fyp[i] > 0 ? 1 : 0; } }
     if (a.fyp6 !== null && a.fyp6 !== undefined) a.fyp6 = N(a.fyp6) + d6;
     if (a.fyp12 !== null && a.fyp12 !== undefined) a.fyp12 = N(a.fyp12) + d6;
   }
@@ -1306,7 +1313,14 @@ function prepare(row) {
   });
   const manual = P.manual || [];
   const hist = (P.hist || []).map((h) => ({ ...h, ch: Array.isArray(h.ch) ? h.ch : [] }));
-  return { ins: P.ins || { mq: {}, snaps: {} }, offFyp: OF, offIdx: new Set(offIdx), saFyp: P.saFyp || null, gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
+  // SA có FYP: tháng có báo cáo KD ĐL phục vụ mới hơn BC70 → lấy theo báo cáo đó
+  let saF = P.saFyp || null;
+  if (newer.length && OF.saN) { saF = { ...(saF || {}) }; for (const [ar, v] of Object.entries(OF.saN)) { const cur = (saF[ar] || [0, 0, 0, 0]).slice(); for (const i of newer) if (v[i] != null) cur[i] = N(v[i]); saF[ar] = cur; } }
+  // ngày chốt hiển thị = ngày chốt mới nhất của dữ liệu tháng đang chạy (BC70 hoặc báo cáo KD ĐL)
+  meta.bc70AsOf = bcAsOf;
+  if (newer.includes(3)) meta.asOf = String(OF.asOf[months[3]]).slice(0, 10);
+  meta.extraAgents = extra.length;
+  return { ins: P.ins || { mq: {}, snaps: {} }, offFyp: OF, offIdx: new Set(offIdx), saFyp: saF, gtfPipe, gtfUm, dncc, dnccLabel, hist, histMonths: new Set(hist.map((h) => h.m)), id: row.id, builtAt: row.built_at, meta, months, agents, by, areas, mdrt, mba, manpro, manproNew, gtf, manual, segments: P.segments || [], layers: P.layers || [],
     psmTree: new Map((P.psmTree || []).map((x) => [x.c, x])), mapa: P.mapa || [], mapaMonth: P.mapaMonth || meta.officialMonth };
 }
 
@@ -1459,7 +1473,7 @@ function renderNav() {
       + `<a href="#" id="bn-more" class="${quick.includes(S.page) ? '' : 'on'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Thêm</a>`;
     $('#bn-more').onclick = (e) => { e.preventDefault(); document.body.classList.toggle('nav-open'); };
   }
-  $('#side-foot').innerHTML = DS ? `<div>Dữ liệu chốt <b style="color:#fff">${dmy(DS.meta.asOf)}</b></div><div>Dựng lúc ${esc(new Date(DS.builtAt).toLocaleString('vi-VN'))}</div><div style="margin-top:8px">${esc(user.email)}<br><a href="#" id="logout" style="color:#9ee6bf">Đăng xuất</a></div>` : `<div>${esc(user.email)}<br><a href="#" id="logout" style="color:#9ee6bf">Đăng xuất</a></div>`;
+  $('#side-foot').innerHTML = DS ? `<div>Dữ liệu chốt <b style="color:#fff">${dmy(DS.meta.asOf)}</b></div>${DS.meta.bc70AsOf && DS.meta.bc70AsOf.slice(0, 10) !== DS.meta.asOf ? `<div style="font-size:11px;opacity:.8" title="FYP, HĐ, FYC, hoạt động tháng này theo báo cáo KD ĐL; cây đội ngũ, P13, MDRT-FYP… theo BC70">KD ĐL ${dmy(DS.meta.asOf)} · BC70 ${dmy(DS.meta.bc70AsOf.slice(0, 10))}</div>` : ''}<div>Dựng lúc ${esc(new Date(DS.builtAt).toLocaleString('vi-VN'))}</div><div style="margin-top:8px">${esc(user.email)}<br><a href="#" id="logout" style="color:#9ee6bf">Đăng xuất</a></div>` : `<div>${esc(user.email)}<br><a href="#" id="logout" style="color:#9ee6bf">Đăng xuất</a></div>`;
   $('#logout').onclick = (e) => { e.preventDefault(); signOut(); };
 }
 function route() {
