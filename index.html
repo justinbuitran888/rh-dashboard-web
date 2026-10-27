@@ -851,7 +851,9 @@ async function addFiles(files) {
   flash = ''; draw();
 }
 async function saveAll() {
-  if (busy) return; busy = true; flash = ''; draw();
+  if (busy) return;
+  if (window.RH_ensureSession) { try { await window.RH_ensureSession(); } catch { flash = 'Phiên đăng nhập đã hết hạn hoặc chưa đăng nhập trên trình duyệt này – đăng xuất, đăng nhập lại rồi lưu.'; draw(); return; } }
+  busy = true; flash = ''; draw();
   const todo = pending.filter((p) => !p.error && p.include);
   const cards = new Map(todo.map((p) => [p, host.querySelector(`[data-dh-idx="${pending.indexOf(p)}"] [data-dh-progress]`)]));
   let ok = 0; const errs = [], uploadedFiles = new Set();
@@ -869,7 +871,7 @@ async function saveAll() {
   if (ok) {
     // tự dựng lại dashboard từ dữ liệu mới
     flash += ' Đang cập nhật dashboard…'; draw();
-    try { must(await sb().rpc('v10_build'), 'Dựng lại dữ liệu'); flash = flash.replace(' Đang cập nhật dashboard…', ' Dashboard đã cập nhật theo dữ liệu mới.'); window.dispatchEvent(new CustomEvent('rh:rebuilt')); }
+    try { if (window.RH_ensureSession) await window.RH_ensureSession().catch(() => { throw new Error('Phiên đăng nhập đã hết hạn – đăng nhập lại rồi bấm "Dựng lại dashboard"'); }); must(await sb().rpc('v10_build'), 'Dựng lại dữ liệu'); flash = flash.replace(' Đang cập nhật dashboard…', ' Dashboard đã cập nhật theo dữ liệu mới.'); window.dispatchEvent(new CustomEvent('rh:rebuilt')); }
     catch (e) { flash = flash.replace(' Đang cập nhật dashboard…', ' Chưa dựng lại được dashboard: ' + e.message); }
     draw();
   }
@@ -1064,6 +1066,16 @@ function viewMsg(title, msg, extra = '') {
   gate(`<h1>${esc(title)}</h1><p>${msg}</p>${extra}<p style="margin-top:16px"><a href="#" id="g-out">Đăng xuất</a></p>`);
   $('#g-out').onclick = (e) => { e.preventDefault(); signOut(); };
 }
+// phiên đăng nhập còn hiệu lực? (token hết hạn / bị mạng công ty chặn làm mới → request đi với vai trò anon và bị từ chối)
+async function ensureSession() {
+  let { data: { session } } = await sb.auth.getSession();
+  if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 60000) { const r = await sb.auth.refreshSession(); session = r.data?.session || null; }
+  if (!session) throw new Error('SESSION');
+  return session;
+}
+window.RH_ensureSession = () => ensureSession();
+const sessionMsg = 'Phiên đăng nhập đã hết hạn hoặc chưa đăng nhập trên trình duyệt này, nên database từ chối (permission denied). Bấm "Đăng nhập lại" rồi thử lại.';
+const authErr = (m) => /permission denied|JWT|SESSION|401/i.test(String(m || ''));
 async function signOut() { try { await sb.auth.signOut(); } catch {} location.hash = ''; location.reload(); }
 
 async function afterAuth() {
@@ -4017,8 +4029,10 @@ function pageData(c) {
   if (DS) bindRhMap();
   $('#rebuild').onclick = async () => {
     const b = $('#rebuild'); b.disabled = true; b.textContent = 'Đang dựng…'; $('#rb-msg').textContent = 'Đang tổng hợp dữ liệu trên database…';
+    const fail = (m) => { $('#rb-msg').innerHTML = authErr(m) ? `<span class="err">${esc(sessionMsg)}</span> <button class="btn btn-sm" id="rb-relogin">Đăng nhập lại</button>` : `<span class="err">${esc(m)}</span>`; const rl = $('#rb-relogin'); if (rl) rl.onclick = () => signOut(); b.disabled = false; b.textContent = 'Dựng lại dashboard'; };
+    try { await ensureSession(); } catch { return fail('SESSION'); }
     const r = await sb.rpc('v10_build');
-    if (r.error) { $('#rb-msg').innerHTML = `<span class="err">${esc(r.error.message)}</span>`; b.disabled = false; b.textContent = 'Dựng lại dashboard'; return; }
+    if (r.error) return fail(r.error.message);
     await loadDataset();
     $('#rb-msg').innerHTML = `<span class="ok">Đã dựng xong bộ dữ liệu #${r.data} · chốt ${dmy(DS.meta.asOf)} · ${f0(DS.agents.length)} đại lý.</span>`;
     b.disabled = false; b.textContent = 'Dựng lại dashboard'; renderNav();
