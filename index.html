@@ -520,7 +520,7 @@ const TYPES = {
   mba: 'MBA Pro', gtf: 'Theo dõi ứng viên UM+ GTF', manproOfficial: 'Manulife Pro – danh hiệu chính thức', segment: 'MAPA theo phân khúc', m0m1: 'Đại lý mới M0–M1 theo cấp quản lý', promotion: 'Theo dõi thăng cấp UM', recruitment: 'Tuyển dụng mới',
   kdLayer: 'Báo cáo KD theo cấp quản lý (tháng)', targetFyp: 'Target FYP (file Target RH)', targetAa: 'Target 1mAA (file Target RH)',
   kqkd_area: 'Template KQKD theo khu vực', kqkd_agent: 'Template KQKD theo đại lý', mapping: 'Mapping cấu trúc',
-  unknown: 'Khác / chưa nhận diện',
+  unknown: 'Khác / chưa nhận diện', archive: 'Lưu trữ – cấu trúc mới',
 };
 // Chữ ký cột để nhận diện (so sánh sau khi bỏ dấu, bỏ số thứ tự "(12)" và "(VND 000)")
 const SIGS = [
@@ -749,12 +749,12 @@ const SNAP_KEYS = new Set(['manproNew', 'manproLong', 'manproOfficial', 'gtf', '
 const todayLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 async function saveItem(file, item, onProgress) {
   const db = sb();
-  const label = TYPES[item.key] || item.key;
+  const label = item.label || TYPES[item.key] || item.key;
   const path = `raw/${item.hash.slice(0, 16)}_${safeName(file.name)}`;
   const up = must(await db.from('data_uploads').insert({
     file_name: file.name, file_size: file.size, file_hash: item.hash, sheet_name: item.sheet, report_key: item.key, report_label: label,
     period: item.period || (SNAP_KEYS.has(item.key) ? todayLocal().slice(0, 7) : null), as_of: item.asOf || (SNAP_KEYS.has(item.key) ? todayLocal() : null), header_row: item.headerRow, columns: item.columns, row_count: item.rows.length,
-    months: item.months, warnings: item.warnings, storage_path: path, status: 'saving',
+    months: item.months, warnings: item.warnings, storage_path: path, status: 'saving', description: item.description || null,
   }).select('id').single(), 'Tạo bản ghi');
   try {
     if (!item.fileUploaded) {
@@ -774,7 +774,7 @@ async function saveItem(file, item, onProgress) {
   }
 }
 async function listUploads() {
-  return must(await sb().from('data_uploads').select('id,file_name,sheet_name,report_key,report_label,period,as_of,row_count,columns,months,status,note,storage_path,created_at').order('created_at', { ascending: false }).limit(500), 'Đọc danh sách');
+  return must(await sb().from('data_uploads').select('id,file_name,sheet_name,report_key,report_label,description,period,as_of,row_count,columns,months,status,note,storage_path,created_at').order('created_at', { ascending: false }).limit(500), 'Đọc danh sách');
 }
 async function removeUpload(u) {
   const db = sb();
@@ -818,36 +818,62 @@ async function downloadZip(list, onStep) {
 
 // ---------- giao diện ----------
 let host = null, pending = [], uploads = [], flash = '', busy = false, listErr = '', picked = new Set(), dlBusy = '';
-const typeOptions = (sel) => Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(v)}</option>`).join('');
+let tab = (() => { try { return localStorage.getItem('dh-tab') || 'update'; } catch { return 'update'; } })();
+let memos = [], memoPending = [], memoList = [], memoCats = [], memoErr = '';
+const typeOptions = (sel) => Object.entries(TYPES).filter(([k]) => k !== 'archive').map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(v)}</option>`).join('');
 const tone = { ready: 'green', saving: 'amber', failed: 'red' }, stLabel = { ready: 'Đã lưu', saving: 'Đang lưu', failed: 'Lỗi' };
 const badge = (t, c) => `<span class="dh-badge dh-${c}">${esc(t)}</span>`;
-
+const isArch = (u) => u.report_key === 'archive' || u.report_key === 'unknown';
+const baseName = (n) => String(n || '').replace(/\.[^.]+$/, '');
+// báo cáo dashboard đang dùng → độ mới
+const USED = [['bc70', 1], ['agents', 3], ['serviceAgents', 3], ['mba', 10], ['mdrt', 10], ['manproLong', 10], ['manproNew', 10], ['manproOfficial', 35], ['gtf', 10], ['dncc', 10], ['promotion', 35], ['nsxs', 35], ['segment', 35], ['m0m1', 35], ['kdLayer', 35], ['newAgentCohort', 35], ['targetFyp', 120], ['targetAa', 120], ['mapping', 120]];
+function freshness() {
+  const ok = uploads.filter((u) => u.status === 'ready'), now = Date.now();
+  const rows = USED.map(([k, max]) => { const xs = ok.filter((u) => u.report_key === k); const last = xs.sort((p, q) => String(q.as_of || q.created_at).localeCompare(String(p.as_of || p.created_at)))[0];
+    const d = last ? String(last.as_of || last.created_at).slice(0, 10) : null, age = d ? Math.floor((now - new Date(d)) / 864e5) : null;
+    return { k, max, last, d, age, st: !last ? 'red' : age <= max ? 'green' : age <= max * 2 ? 'amber' : 'red' }; });
+  const late = rows.filter((r) => r.st !== 'green');
+  return `<section class="dh-panel"><div class="dh-head"><div><div class="dh-title">Tình trạng báo cáo dashboard đang dùng</div><div class="dh-desc">${late.length ? `<b>${late.length}</b> báo cáo cần tải bản mới (vàng/đỏ).` : 'Tất cả báo cáo đều mới.'} Ngày chốt = ngày dữ liệu trong file (hoặc ngày tải với báo cáo không ghi ngày).</div></div></div>
+    <div class="dh-fresh">${rows.map((r) => `<div class="dh-fr dh-fr-${r.st}"><b>${esc(TYPES[r.k])}</b><span>${r.d ? `chốt ${r.d.split('-').reverse().join('/')} · ${r.age === 0 ? 'hôm nay' : r.age + ' ngày trước'}` : 'chưa có'}</span><small>nên cập nhật ${r.max <= 1 ? 'hằng ngày' : r.max <= 3 ? '2–3 ngày/lần' : r.max <= 10 ? 'hằng tuần' : r.max <= 35 ? 'hằng tháng' : 'khi có bản mới'}</small></div>`).join('')}</div></section>`;
+}
 function coverage() {
-  const ok = uploads.filter((u) => u.status === 'ready');
+  const ok = uploads.filter((u) => u.status === 'ready' && !isArch(u));
   const months = [...new Set(ok.flatMap((u) => (u.months && u.months.length ? u.months : [u.period])).filter(Boolean))].sort().slice(-18);
   const keys = Object.keys(TYPES).filter((k) => ok.some((u) => u.report_key === k));
   if (!months.length || !keys.length) return '';
   const has = (k, m) => ok.some((u) => u.report_key === k && (u.period === m || (u.months || []).includes(m)));
-  return `<section class="dh-panel"><div class="dh-head"><div><div class="dh-title">Độ phủ dữ liệu theo tháng</div><div class="dh-desc">Ô xanh = đã có dữ liệu loại đó trong tháng. Dùng để biết còn thiếu tháng nào.</div></div></div>
+  return `<details class="dh-panel"><summary class="dh-title" style="font-size:15px">Độ phủ dữ liệu theo tháng</summary><div class="dh-desc" style="margin:6px 0">Ô xanh = đã có dữ liệu loại đó trong tháng.</div>
   <div class="dh-scroll"><table class="dh-table dh-cov"><thead><tr><th>Loại dữ liệu</th>${months.map((m) => `<th>${m.slice(5)}/${m.slice(2, 4)}</th>`).join('')}</tr></thead>
-  <tbody>${keys.map((k) => `<tr><td>${esc(TYPES[k])}</td>${months.map((m) => `<td class="${has(k, m) ? 'dh-yes' : 'dh-no'}">${has(k, m) ? '✓' : ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>`;
+  <tbody>${keys.map((k) => `<tr><td>${esc(TYPES[k])}</td>${months.map((m) => `<td class="${has(k, m) ? 'dh-yes' : 'dh-no'}">${has(k, m) ? '✓' : ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;
+}
+// so cấu trúc với bộ lưu trữ đã có (để gộp cùng tên)
+function similarArchive(cols) {
+  const ks = new Set(cols.map((c) => c.key)); let best = null;
+  for (const u of uploads.filter((x) => isArch(x) && x.status === 'ready')) {
+    const us = new Set((u.columns || []).map((c) => c.key)); if (!us.size) continue;
+    const inter = [...ks].filter((k) => us.has(k)).length, j = inter / (ks.size + us.size - inter);
+    if (j >= 0.6 && (!best || j > best.j)) best = { j, u };
+  }
+  return best;
 }
 function pendingCard(p, idx) {
   if (p.error) return `<div class="dh-card dh-card-err"><div class="dh-card-top"><b>${esc(p.file.name)}</b>${badge('Không đọc được', 'red')}</div><p>${esc(p.error)}</p></div>`;
-  const it = p, cols = it.columns.slice(0, 60);
-  const sampleCols = it.headers.slice(0, 8);
+  const it = p, cols = it.columns.slice(0, 60), sampleCols = it.headers.slice(0, 8), arch = it.mode === 'archive';
   return `<div class="dh-card${it.include ? '' : ' dh-off'}" data-dh-idx="${idx}">
     <div class="dh-card-top"><label class="dh-check"><input type="checkbox" data-dh-include ${it.include ? 'checked' : ''}> <b>${esc(it.file.name)}</b></label>
-      <span class="dh-muted">Sheet: ${esc(it.sheet)}</span>${it.duplicate ? badge('Đã tải trước đó', 'amber') : ''}${it.key !== 'unknown' ? badge('Tự nhận diện', 'green') : badge('Chưa nhận diện', 'gray')}</div>
+      <span class="dh-muted">Sheet: ${esc(it.sheet)}</span>${it.duplicate ? badge('Đã tải trước đó', 'amber') : ''}${it.key !== 'unknown' ? badge('Khớp: ' + (TYPES[it.key] || it.key), 'green') : badge('Cấu trúc mới', 'gray')}</div>
+    ${it.moved ? `<div class="dh-note">${esc(it.moved)}</div>` : ''}
     <div class="dh-fields">
-      <label>Loại dữ liệu<select data-dh-key>${typeOptions(it.key)}</select></label>
+      <label>Lưu vào<select data-dh-mode><option value="update" ${!arch ? 'selected' : ''}>① Cập nhật dashboard</option><option value="archive" ${arch ? 'selected' : ''}>② Lưu trữ (cấu trúc mới)</option></select></label>
+      ${arch ? `<label style="flex:1 1 220px">Tên bộ dữ liệu<input data-dh-name value="${esc(it.dsName || '')}" placeholder="VD: Báo cáo hoạt động tư vấn tuần"></label>
+        <label style="flex:2 1 300px">Mô tả · dùng để làm gì<input data-dh-desc value="${esc(it.desc || '')}" placeholder="VD: số cuộc hẹn / ĐL theo tuần – muốn thêm vào trang Sức khỏe đội ngũ"></label>`
+      : `<label>Loại dữ liệu<select data-dh-key>${typeOptions(it.key)}</select></label>`}
       <label>Kỳ (tháng)<input type="month" data-dh-period value="${esc(it.period || '')}"></label>
-      <div class="dh-stat"><span>Dòng dữ liệu</span><b>${fmt0(it.rows.length)}</b></div>
-      <div class="dh-stat"><span>Số cột</span><b>${fmt0(it.headers.length)}</b></div>
-      <div class="dh-stat"><span>Dòng tiêu đề</span><b>${it.headerRow ?? '–'}</b></div>
+      <div class="dh-stat"><span>Dòng</span><b>${fmt0(it.rows.length)}</b></div><div class="dh-stat"><span>Cột</span><b>${fmt0(it.headers.length)}</b></div>
       ${it.asOf ? `<div class="dh-stat"><span>Ngày chốt</span><b>${esc(it.asOf)}</b></div>` : ''}
     </div>
-    ${it.warnings.length ? `<ul class="dh-warn">${it.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+    ${arch && it.similar ? `<div class="dh-note ok">Giống cấu trúc bộ đã lưu <b>"${esc(it.similar.u.report_label)}"</b> (${Math.round(it.similar.j * 100)}% cột) – đã đặt cùng tên để nối thành chuỗi theo thời gian.</div>` : ''}
+    ${it.warnings.length ? `<ul class="dh-warn">${it.warnings.filter((w) => !(arch && /kỳ dữ liệu/.test(w))).map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
     <details><summary>Cấu trúc ${fmt0(it.headers.length)} cột & 5 dòng mẫu</summary>
       <div class="dh-chips">${cols.map((c) => `<span class="dh-chip dh-k-${c.kind === 'số' ? 'num' : c.kind === 'ngày' ? 'date' : c.kind === 'trống' ? 'empty' : 'text'}" title="${esc(c.kind)} · ${fmt0(c.filled)} ô có dữ liệu">${esc(c.name)}<i>${esc(c.kind)}</i></span>`).join('')}${it.columns.length > 60 ? `<span class="dh-muted">+${it.columns.length - 60} cột</span>` : ''}</div>
       <div class="dh-scroll"><table class="dh-table"><thead><tr>${sampleCols.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${it.rows.slice(0, 5).map((r) => `<tr>${sampleCols.map((h) => `<td>${esc(r[h] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -855,98 +881,245 @@ function pendingCard(p, idx) {
     <div class="dh-progress" data-dh-progress></div>
   </div>`;
 }
-function listTable() {
+function listTable(list) {
   if (listErr) return `<p class="dh-error">${esc(listErr)}</p>`;
-  if (!uploads.length) return '<p class="dh-muted">Chưa có dữ liệu nào được lưu.</p>';
-  const sel = uploads.filter((u) => picked.has(String(u.id)));
-  const bar = `<div class="dh-bar" style="margin:0 0 10px"><button class="dh-btn dh-primary" id="dh-dl-sel" ${sel.length && !dlBusy ? '' : 'disabled'}>⬇ Tải ${sel.length ? sel.length + ' file đã chọn' : 'các file đã chọn'}</button><button class="dh-btn" id="dh-dl-all" ${dlBusy ? 'disabled' : ''}>⬇ Tải tất cả (${fmt0(new Set(uploads.filter((u) => u.storage_path).map((u) => u.storage_path)).size)} file, .zip)</button>${dlBusy ? `<span class="dh-muted" style="align-self:center">${esc(dlBusy)}</span>` : '<span class="dh-muted" style="align-self:center">Nhiều file được gom thành 1 file .zip; tên file có ngày tải lên ở đầu.</span>'}</div>`;
-  return `${bar}<div class="dh-scroll"><table class="dh-table"><thead><tr><th><input type="checkbox" id="dh-pick-all" ${sel.length && sel.length === uploads.length ? 'checked' : ''} aria-label="Chọn tất cả"></th><th>Ngày tải</th><th>File · sheet</th><th>Loại dữ liệu</th><th>Kỳ</th><th class="r">Dòng</th><th class="r">Cột</th><th>Trạng thái</th><th></th></tr></thead><tbody>
-  ${uploads.map((u) => `<tr><td><input type="checkbox" data-dh-pick="${u.id}" ${picked.has(String(u.id)) ? 'checked' : ''} ${u.storage_path ? '' : 'disabled'}></td><td>${esc(new Date(u.created_at).toLocaleString('vi-VN'))}</td><td><b>${esc(u.file_name)}</b><div class="dh-muted">${esc(u.sheet_name || '')}</div></td>
-    <td>${esc(u.report_label || TYPES[u.report_key] || u.report_key)}</td><td>${esc(u.months?.length > 1 ? `${u.months[0]} → ${u.months.at(-1)}` : u.period || '–')}</td>
+  if (!list.length) return '<p class="dh-muted">Chưa có dữ liệu nào được lưu.</p>';
+  const sel = list.filter((u) => picked.has(String(u.id)));
+  const bar = `<div class="dh-bar" style="margin:0 0 10px"><button class="dh-btn dh-primary" data-dh-dlsel ${sel.length && !dlBusy ? '' : 'disabled'}>⬇ Tải ${sel.length ? sel.length + ' file đã chọn' : 'các file đã chọn'}</button><button class="dh-btn" data-dh-dlall ${dlBusy ? 'disabled' : ''}>⬇ Tải tất cả (${list.length})</button>${dlBusy ? `<span class="dh-muted" style="align-self:center">${esc(dlBusy)}</span>` : ''}</div>`;
+  return `${bar}<div class="dh-scroll"><table class="dh-table"><thead><tr><th><input type="checkbox" data-dh-pickall ${sel.length && sel.length === list.length ? 'checked' : ''} aria-label="Chọn tất cả"></th><th>Ngày tải</th><th>File · sheet</th><th>Loại / tên bộ dữ liệu</th><th>Kỳ</th><th class="r">Dòng</th><th class="r">Cột</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+  ${list.map((u) => `<tr><td><input type="checkbox" data-dh-pick="${u.id}" ${picked.has(String(u.id)) ? 'checked' : ''} ${u.storage_path ? '' : 'disabled'}></td><td>${esc(new Date(u.created_at).toLocaleString('vi-VN'))}</td><td><b>${esc(u.file_name)}</b><div class="dh-muted">${esc(u.sheet_name || '')}</div></td>
+    <td>${esc(u.report_label || TYPES[u.report_key] || u.report_key)}${u.description ? `<div class="dh-muted" style="white-space:normal;max-width:320px">${esc(u.description)}</div>` : ''}</td><td>${esc(u.months?.length > 1 ? `${u.months[0]} → ${u.months.at(-1)}` : u.period || '–')}</td>
     <td class="r">${fmt0(u.row_count)}</td><td class="r">${fmt0((u.columns || []).length)}</td><td>${badge(stLabel[u.status] || u.status, tone[u.status] || 'gray')}${u.note ? `<div class="dh-muted">${esc(u.note)}</div>` : ''}</td>
     <td class="dh-actions">${u.storage_path ? `<button class="dh-btn dh-small" data-dh-dl="${u.id}" title="Tải file gốc đã upload">⬇ Tải về</button>` : ''}<button class="dh-btn dh-small dh-danger" data-dh-del="${u.id}">Xóa</button></td></tr>`).join('')}
   </tbody></table></div>`;
 }
+function archiveCards() {
+  const list = uploads.filter(isArch);
+  if (!list.length) return '<p class="dh-muted">Chưa có bộ dữ liệu lưu trữ nào.</p>';
+  const groups = new Map(); list.forEach((u) => { const k = u.report_label || u.file_name; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(u); });
+  return `<div class="dh-arch">${[...groups].map(([name, us]) => { const u = us[0], cols = u.columns || [];
+    return `<div class="dh-ac"><div class="dh-card-top"><b>${esc(name)}</b>${badge(us.length + ' lần tải', 'gray')}${badge(fmt0(us.reduce((a, x) => a + x.row_count, 0)) + ' dòng', 'green')}</div>
+      ${u.description ? `<div class="dh-muted" style="margin:-4px 0 6px">${esc(u.description)}</div>` : ''}
+      <div class="dh-muted">Kỳ: ${esc([...new Set(us.map((x) => x.period).filter(Boolean))].sort().join(', ') || '–')} · mới nhất ${esc(new Date(u.created_at).toLocaleDateString('vi-VN'))} · ${fmt0(cols.length)} cột</div>
+      <details><summary>Cấu trúc cột</summary><div class="dh-chips">${cols.slice(0, 80).map((c) => `<span class="dh-chip dh-k-${c.kind === 'số' ? 'num' : c.kind === 'ngày' ? 'date' : c.kind === 'trống' ? 'empty' : 'text'}">${esc(c.name)}<i>${esc(c.kind)}</i></span>`).join('')}</div></details></div>`; }).join('')}</div>`;
+}
+// ---------- MEMO ----------
+let pdfjsP = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (pdfjsP) return pdfjsP;
+  const V = '3.11.174', base = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${V}/`;
+  pdfjsP = new Promise((res, rej) => { const s = document.createElement('script'); s.src = base + 'pdf.min.js'; s.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js'; res(window.pdfjsLib); } catch (e) { rej(e); } }; s.onerror = () => { pdfjsP = null; rej(new Error('Không tải được bộ đọc PDF (mạng chặn cdnjs).')); }; document.head.appendChild(s); });
+  return pdfjsP;
+}
+async function memoText(file, buf) {
+  const n = file.name.toLowerCase();
+  if (n.endsWith('.pdf')) {
+    const lib = await loadPdfJs(); const doc = await lib.getDocument({ data: new Uint8Array(buf) }).promise; const out = [];
+    for (let i = 1; i <= doc.numPages; i++) { const pg = await doc.getPage(i); const tc = await pg.getTextContent(); let line = '', y = null;
+      for (const it of tc.items) { const yy = it.transform ? Math.round(it.transform[5]) : y; if (y !== null && yy !== y) { out.push(line); line = ''; } line += it.str + (it.hasEOL ? '\n' : ''); y = yy; } out.push(line, ` ${i}/${doc.numPages}`); }
+    return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  if (n.endsWith('.docx')) {
+    if (!window.JSZip) throw new Error('Thiếu thư viện đọc DOCX.');
+    const z = await window.JSZip.loadAsync(buf), x = await z.file('word/document.xml')?.async('text'); if (!x) throw new Error('DOCX không có nội dung.');
+    return x.replace(/<w:tab\/>/g, '\t').replace(/<\/w:p>/g, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  if (/\.(txt|md|csv)$/.test(n)) return new TextDecoder('utf-8').decode(buf);
+  return '';
+}
+const dmyToIso = (d, end) => { let m = String(d).match(/(\d{1,2})[/.-](\d{1,2})[/.-](20\d{2})/); if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  m = String(d).match(/(\d{1,2})[/.-](20\d{2})/); if (m) { const y = +m[2], mo = +m[1]; return end ? new Date(Date.UTC(y, mo, 0)).toISOString().slice(0, 10) : `${y}-${String(mo).padStart(2, '0')}-01`; } return null; };
+function memoGuess(name, text) {
+  const t = text || '', nt = norm(t), src = `${name}\n${t.slice(0, 3000)}`;
+  const cm = src.match(/(\d{2,4})\s*M\s*(\d{2})\s*[/_\- ]\s*(20\d{2})/i), code = cm ? `${cm[1].padStart(4, '0')}M${cm[2]}/${cm[3]}` : '';
+  const vv = t.match(/(?:V\/v|Về việc)\s*:\s*([^\n]{6,200})/i);
+  let title = baseName(name).replace(/[_]+/g, ' ').trim(); if (vv && title.length < 12) title = vv[1].replace(/Số tham chiếu.*$/i, '').trim();
+  let start = null, end = null;
+  const dm = t.match(/(?:Thời gian|Giai đoạn)\s*(?:hiệu lực|áp dụng|thi đua|thực hiện|chương trình)?[^:\n]*:?\s*([^\n]{0,160})/i);
+  if (dm) { const ds = dm[1].match(/\d{1,2}[/.-]\d{1,2}[/.-]20\d{2}|\d{1,2}[/.-]20\d{2}/g) || []; if (ds[0]) start = dmyToIso(ds[0]); if (ds[1]) end = dmyToIso(ds[1], true); }
+  if (!start) { const sd = t.match(/Ngày gửi\s*:?\s*(\d{1,2}\s*[/.-]\s*\d{1,2}\s*[/.-]\s*20\d{2})/i); if (sd) start = dmyToIso(sd[1].replace(/\s/g, '')); }
+  const cat = /thi dua|chuong trinh|thuong /.test(nt) ? 'Thi đua' : /bieu phi|hoa hong|thu nhap|phi dich vu/.test(nt) ? 'Thu nhập' : /danh hieu|mdrt|mba pro|manulife pro/.test(nt) ? 'Danh hiệu' : /tuyen dung|gtf/.test(nt) ? 'Tuyển dụng' : /thang cap|duy tri chuc danh/.test(nt) ? 'Thăng cấp' : 'Quy định';
+  const head = norm(t.slice(0, 1500)), aud = [/\bfa\b|dai ly bao hiem/.test(head) && 'FA', /um\+|quan ly dai ly/.test(head) && 'UM+', /psm\+|quan ly cap cao/.test(head) && 'PSM+'].filter(Boolean);
+  return { code, title, start, end, cat, aud };
+}
+async function addMemos(files) {
+  for (const file of files) {
+    try {
+      const buf = await file.arrayBuffer(), hash = await sha256(buf);
+      let text = '', textErr = '';
+      try { text = await memoText(file, buf); } catch (e) { textErr = e.message; }
+      if (!text.trim() && !textErr) textErr = /\.pdf$/i.test(file.name) ? 'PDF dạng ảnh scan – không có chữ để trích xuất.' : 'Định dạng chưa trích xuất được chữ.';
+      const g = memoGuess(file.name, text), dup = memoList.find((m) => m.id === 'up_' + hash.slice(0, 20)), same = g.code ? memoList.find((m) => m.code === g.code) : null;
+      memoPending.push({ file, hash, text, textErr, ...g, summary: '', dup, same, include: !dup });
+    } catch (e) { memoPending.push({ file, error: e.message }); }
+    draw();
+  }
+}
+function memoCard(m, i) {
+  if (m.error) return `<div class="dh-card dh-card-err"><b>${esc(m.file.name)}</b> ${badge('Không đọc được', 'red')}<p>${esc(m.error)}</p></div>`;
+  const aud = ['FA', 'UM+', 'PSM+'];
+  return `<div class="dh-card${m.include ? '' : ' dh-off'}" data-mm="${i}"><div class="dh-card-top"><label class="dh-check"><input type="checkbox" data-mm-inc ${m.include ? 'checked' : ''}> <b>${esc(m.file.name)}</b></label>
+      ${m.text ? badge(`Đã trích ${fmt0(m.text.length)} ký tự`, 'green') : badge('Chưa trích được chữ', 'amber')}${m.dup ? badge('File này đã có trong kho', 'amber') : m.same ? badge(`Đã có mã ${m.code}: ${m.same.title}`, 'amber') : ''}</div>
+    ${m.textErr ? `<div class="dh-note">${esc(m.textErr)} File gốc vẫn được lưu; nội dung sẽ được bổ sung khi chuẩn hoá.</div>` : ''}
+    <div class="dh-fields">
+      <label>Mã memo<input data-mm-f="code" value="${esc(m.code)}" placeholder="0050M01/2026" style="min-width:130px"></label>
+      <label style="flex:2 1 320px">Tên memo<input data-mm-f="title" value="${esc(m.title)}"></label>
+      <label>Nhóm<input data-mm-f="cat" value="${esc(m.cat)}" list="dh-cats" style="min-width:130px"></label>
+      <label>Hiệu lực từ<input type="date" data-mm-f="start" value="${esc(m.start || '')}"></label>
+      <label>Đến<input type="date" data-mm-f="end" value="${esc(m.end || '')}"></label>
+      <div class="dh-aud">Đối tượng ${aud.map((a) => `<label class="dh-check"><input type="checkbox" data-mm-aud="${a}" ${m.aud.includes(a) ? 'checked' : ''}>${a}</label>`).join('')}</div>
+      <label style="flex:1 1 100%">Tóm tắt (có thể để trống – sẽ được chuẩn hoá sau)<textarea data-mm-f="summary" rows="2">${esc(m.summary)}</textarea></label>
+    </div>
+    ${m.text ? `<details><summary>Xem nội dung trích xuất</summary><pre class="dh-pre">${esc(m.text.slice(0, 4000))}${m.text.length > 4000 ? '\n…' : ''}</pre></details>` : ''}
+    <div class="dh-progress" data-mm-progress></div></div>`;
+}
+async function loadMemos() {
+  try {
+    const r = await sb().from('policies').select('id,code,title,category,start_date,end_date,summary,source,review_status,storage_path,updated_at').order('updated_at', { ascending: false }).limit(2000);
+    if (r.error) throw new Error(r.error.message);
+    memoList = r.data; memoCats = [...new Set(memoList.map((x) => x.category).filter(Boolean))].sort(); memoErr = '';
+  } catch (e) { memoErr = e.message; }
+}
+async function saveMemos() {
+  if (busy) return;
+  if (window.RH_ensureSession) { try { await window.RH_ensureSession(); } catch { flash = 'Phiên đăng nhập đã hết hạn – đăng nhập lại rồi lưu.'; draw(); return; } }
+  busy = true; draw(); let ok = 0; const errs = [];
+  for (const m of memoPending.filter((x) => !x.error && x.include)) {
+    const el = host.querySelector(`[data-mm="${memoPending.indexOf(m)}"] [data-mm-progress]`); if (el) el.textContent = 'Đang lưu…';
+    try {
+      const path = `memo/${m.hash.slice(0, 16)}_${safeName(m.file.name)}`;
+      const r = await sb().storage.from(BUCKET).upload(path, m.file, { upsert: true, contentType: m.file.type || 'application/octet-stream' });
+      if (r.error && !/exist/i.test(r.error.message || '')) throw new Error('Lưu file gốc: ' + r.error.message);
+      must(await sb().from('policies').upsert({ id: 'up_' + m.hash.slice(0, 20), code: m.code || null, title: m.title || baseName(m.file.name), folder: 'Tải lên', category: m.cat || null, audience: m.aud, start_date: m.start || null, end_date: m.end || null,
+        summary: m.summary || '', points: [], versions: [], content: m.text || '', source: 'upload', sent: todayLocal(), storage_path: path, review_status: 'pending' }), 'Lưu memo');
+      ok++; memoPending = memoPending.filter((x) => x !== m);
+    } catch (e) { errs.push(`${m.file.name}: ${e.message}`); if (el) el.textContent = 'Lỗi: ' + e.message; }
+  }
+  busy = false; flash = `Đã thêm ${ok} memo vào kho chính sách.` + (errs.length ? ' Lỗi: ' + errs.join(' | ') : ' Memo hiện ngay ở Thư viện chính sách (nhãn "Mới tải lên").');
+  window.RH_libReset?.(); await loadMemos(); draw();
+}
+function memoListHtml() {
+  if (memoErr) return `<p class="dh-error">${esc(memoErr)}</p>`;
+  const ups = memoList.filter((x) => x.source === 'upload');
+  const fd = (d) => (d ? d.split('-').reverse().join('/') : '…');
+  return `<div class="dh-desc" style="margin-bottom:8px">Kho hiện có <b>${fmt0(memoList.length)}</b> memo / tài liệu · ${fmt0(ups.length)} tải lên từ đây · ${fmt0(ups.filter((x) => x.review_status === 'pending').length)} chờ chuẩn hoá (tóm tắt, điểm chính).</div>
+    ${ups.length ? `<div class="dh-scroll"><table class="dh-table"><thead><tr><th>Ngày tải</th><th>Mã</th><th>Tên memo</th><th>Nhóm</th><th>Hiệu lực</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+    ${ups.map((x) => `<tr><td>${esc(new Date(x.updated_at).toLocaleDateString('vi-VN'))}</td><td>${esc(x.code || '–')}</td><td style="white-space:normal"><b>${esc(x.title)}</b></td><td>${esc(x.category || '')}</td><td>${fd(x.start_date)} – ${x.end_date ? fd(x.end_date) : 'dài hạn'}</td>
+      <td>${x.review_status === 'pending' ? badge('Chờ chuẩn hoá', 'amber') : badge('Đã chuẩn hoá', 'green')}</td><td class="dh-actions">${x.storage_path ? `<button class="dh-btn dh-small" data-mm-dl="${esc(x.id)}">⬇ File gốc</button>` : ''}<button class="dh-btn dh-small dh-danger" data-mm-del="${esc(x.id)}">Xóa</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="dh-muted">Chưa có memo nào tải lên từ đây.</p>'}`;
+}
+function drop(id, title, hint, accept) {
+  return `<div class="dh-drop" data-drop="${id}" tabindex="0" role="button"><div class="dh-drop-title">${title}</div><div class="dh-muted">${hint}</div><input type="file" data-file="${id}" accept="${accept}" multiple hidden></div>`;
+}
 function draw() {
   if (!host) return;
-  const n = pending.filter((p) => !p.error && p.include).length;
-  host.innerHTML = `<div class="dh-wrap">
-    <section class="dh-panel"><div class="dh-head"><div><div class="dh-title">Tải dữ liệu lên</div><div class="dh-desc">Kéo thả 1 hoặc nhiều file Excel (.xlsx) / CSV. Hệ thống tự tìm dòng tiêu đề, nhận diện loại báo cáo (11 báo cáo công ty, template KQKD, mapping…), kiểu từng cột và kỳ dữ liệu. File chỉ được đọc trên máy anh cho tới khi bấm Lưu.</div></div></div>
-      <div class="dh-drop" id="dh-drop" tabindex="0" role="button"><div class="dh-drop-title">Kéo thả file vào đây</div><div class="dh-muted">hoặc bấm để chọn file · tối đa ${MAX_MB} MB/file · mỗi sheet có dữ liệu thành 1 bộ dữ liệu riêng</div><input type="file" id="dh-file" accept=".xlsx,.xlsm,.csv" multiple hidden></div>
-      ${flash ? `<div class="dh-flash">${esc(flash)}</div>` : ''}
-      ${pending.length ? `<div class="dh-pending">${pending.map(pendingCard).join('')}</div>
-        <div class="dh-bar"><button class="dh-btn dh-primary" id="dh-save" ${!n || busy ? 'disabled' : ''}>${busy ? 'Đang lưu…' : `Lưu ${n} bộ dữ liệu lên database`}</button><button class="dh-btn" id="dh-clear" ${busy ? 'disabled' : ''}>Bỏ chọn tất cả file</button></div>` : ''}
-    </section>
-    ${coverage()}
-    <section class="dh-panel"><div class="dh-head"><div><div class="dh-title">Dữ liệu đã lưu</div><div class="dh-desc">${fmt0(uploads.filter((u) => u.status === 'ready').length)} bộ dữ liệu · ${fmt0(uploads.reduce((a, u) => a + (u.status === 'ready' ? u.row_count : 0), 0))} dòng · file gốc lưu kèm, tải lại được</div></div><button class="dh-btn dh-small" id="dh-refresh">Tải lại danh sách</button></div>${listTable()}</section>
-  </div>`;
+  const upd = pending.filter((p) => p.error || p.mode !== 'archive'), arc = pending.filter((p) => !p.error && p.mode === 'archive');
+  const nU = upd.filter((p) => !p.error && p.include).length, nA = arc.filter((p) => p.include).length, nM = memoPending.filter((m) => !m.error && m.include).length;
+  const T = [['update', '① Cập nhật dữ liệu', upd.length], ['archive', '② Lưu trữ cấu trúc mới', arc.length], ['memo', '③ Memo / chính sách', memoPending.length]];
+  const saveBar = (n, lbl, id) => `<div class="dh-bar"><button class="dh-btn dh-primary" id="${id}" ${!n || busy ? 'disabled' : ''}>${busy ? 'Đang lưu…' : lbl}</button><button class="dh-btn" data-dh-clear="${id}" ${busy ? 'disabled' : ''}>Bỏ các file đang chờ</button></div>`;
+  let body = '';
+  if (tab === 'update') body = `<section class="dh-panel"><div class="dh-head"><div><div class="dh-title">① Cập nhật dữ liệu dashboard</div><div class="dh-desc">Báo cáo công ty đã có cấu trúc (BC70, KD ĐL, MBA Pro, MDRT, Manulife Pro, GTF, ĐNCC, Target…). Hệ thống tự nhận diện, lưu rồi <b>tự dựng lại dashboard</b>. File không khớp báo cáo nào sẽ tự chuyển sang mục ② Lưu trữ.</div></div></div>
+      ${drop('update', 'Kéo thả báo cáo cập nhật vào đây', `hoặc bấm để chọn · .xlsx / .csv · tối đa ${MAX_MB} MB/file`, '.xlsx,.xlsm,.csv')}
+      ${upd.length ? `<div class="dh-pending">${upd.map((p) => pendingCard(p, pending.indexOf(p))).join('')}</div>${saveBar(nU, `Lưu ${nU} báo cáo & dựng lại dashboard`, 'dh-save-u')}` : ''}</section>
+    ${freshness()}${coverage()}
+    <section class="dh-panel"><div class="dh-head"><div><div class="dh-title">Báo cáo đã lưu</div><div class="dh-desc">${fmt0(uploads.filter((u) => u.status === 'ready' && !isArch(u)).length)} bộ dữ liệu · file gốc lưu kèm.</div></div><button class="dh-btn" id="dh-refresh">Làm mới</button></div>${listTable(uploads.filter((u) => !isArch(u)))}</section>`;
+  else if (tab === 'archive') body = `<section class="dh-panel"><div class="dh-head"><div><div class="dh-title">② Lưu trữ dữ liệu có cấu trúc mới</div><div class="dh-desc">Báo cáo dashboard chưa dùng (cấu trúc mới, file nội bộ, số liệu bổ sung…). Lưu nguyên dòng & cột vào database kèm file gốc; đặt tên và ghi <b>muốn dùng để làm gì</b> – các bộ này là nguồn để bổ sung chỉ số / trang mới cho dashboard. File cùng cấu trúc với bộ đã có sẽ được gợi ý cùng tên để nối theo thời gian.</div></div></div>
+      ${drop('archive', 'Kéo thả file dữ liệu mới vào đây', `hoặc bấm để chọn · .xlsx / .csv · tối đa ${MAX_MB} MB/file`, '.xlsx,.xlsm,.csv')}
+      ${arc.length ? `<div class="dh-pending">${arc.map((p) => pendingCard(p, pending.indexOf(p))).join('')}</div>${saveBar(nA, `Lưu ${nA} bộ dữ liệu vào kho lưu trữ`, 'dh-save-a')}` : ''}</section>
+    <section class="dh-panel"><div class="dh-head"><div><div class="dh-title">Các bộ dữ liệu lưu trữ</div><div class="dh-desc">Gom theo tên bộ dữ liệu.</div></div></div>${archiveCards()}
+      <details style="margin-top:12px"><summary>Danh sách file · tải về / xóa</summary><div style="margin-top:8px">${listTable(uploads.filter(isArch))}</div></details></section>`;
+  else body = `<section class="dh-panel"><div class="dh-head"><div><div class="dh-title">③ Memo / chính sách mới</div><div class="dh-desc">Tải memo PDF / Word (.docx) / .txt. Hệ thống trích xuất chữ, tự đoán <b>mã memo, tên, thời gian hiệu lực, nhóm, đối tượng</b> – kiểm tra lại rồi lưu. Memo vào ngay Thư viện chính sách (tìm được theo nội dung) với nhãn "Mới tải lên"; phần tóm tắt và điểm chính được chuẩn hoá sau. PDF dạng ảnh scan vẫn lưu file gốc.</div></div></div>
+      ${drop('memo', 'Kéo thả memo vào đây', 'hoặc bấm để chọn · .pdf, .docx, .txt · nhiều file cùng lúc', '.pdf,.docx,.txt,.md')}
+      <datalist id="dh-cats">${memoCats.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
+      ${memoPending.length ? `<div class="dh-pending">${memoPending.map(memoCard).join('')}</div>${saveBar(nM, `Thêm ${nM} memo vào kho`, 'dh-save-m')}` : ''}</section>
+    <section class="dh-panel"><div class="dh-head"><div><div class="dh-title">Memo đã tải lên</div></div></div>${memoListHtml()}</section>`;
+  host.innerHTML = `<div class="dh-wrap"><div class="dh-tabs">${T.map(([k, l, n]) => `<button class="${tab === k ? 'on' : ''}" data-dh-tab="${k}">${l}${n ? ` <span class="dh-cnt">${n}</span>` : ''}</button>`).join('')}</div>
+    ${flash ? `<div class="dh-flash">${esc(flash)}</div>` : ''}${body}</div>`;
   bind();
 }
-async function addFiles(files) {
+async function addFiles(files, mode = 'update') {
   if (busy) return;
   flash = `Đang đọc ${files.length} file…`; draw();
+  let moved = 0;
   for (const file of files) {
     try {
       const { hash, sheets } = await readFile(file);
       let dup = [];
       try { dup = await existing(hash); } catch { dup = []; }
       const items = sheets.map((s) => analyzeSheet(s, file.name)).filter((it) => it.rows.length || it.headers.length);
-      if (!items.length) { pending.push({ file, error: 'Không có sheet nào chứa dữ liệu.' }); continue; }
+      if (!items.length) { pending.push({ file, error: 'Không có sheet nào chứa dữ liệu.', mode }); continue; }
       const anyKnown = items.some((it) => it.key !== 'unknown');
       items.forEach((it) => {
         const isDup = dup.some((d) => d.sheet_name === it.sheet);
         const helper = it.key === 'unknown' && (anyKnown || /huong.?dan|readme|guide|note/.test(norm(it.sheet)));
-        pending.push({ ...it, file, hash, duplicate: isDup, include: it.rows.length > 0 && !isDup && !helper && !(it.hidden && items.length > 1) });
+        let m = mode, note = '';
+        if (mode === 'update' && it.key === 'unknown' && !helper) { m = 'archive'; moved++; note = 'Không khớp báo cáo nào dashboard đang dùng → chuyển sang ② Lưu trữ.'; }
+        if (mode === 'archive' && it.key !== 'unknown') note = `Khớp báo cáo "${TYPES[it.key]}" – nếu muốn cập nhật dashboard, đổi "Lưu vào" sang ①.`;
+        const sim = m === 'archive' ? similarArchive(it.columns) : null;
+        pending.push({ ...it, file, hash, mode: m, moved: note, similar: sim, dsName: sim ? sim.u.report_label : `${baseName(file.name)}${items.length > 1 ? ' · ' + it.sheet : ''}`, desc: sim ? sim.u.description || '' : '',
+          duplicate: isDup, include: it.rows.length > 0 && !isDup && !(helper && m === 'update') && !(it.hidden && items.length > 1) });
       });
-    } catch (e) { pending.push({ file, error: e.message }); }
+    } catch (e) { pending.push({ file, error: e.message, mode }); }
   }
-  flash = ''; draw();
+  flash = moved ? `${moved} sheet không khớp cấu trúc báo cáo hiện có đã được chuyển sang mục ② Lưu trữ.` : ''; draw();
 }
-async function saveAll() {
+async function saveAll(mode) {
   if (busy) return;
   if (window.RH_ensureSession) { try { await window.RH_ensureSession(); } catch { flash = 'Phiên đăng nhập đã hết hạn hoặc chưa đăng nhập trên trình duyệt này – đăng xuất, đăng nhập lại rồi lưu.'; draw(); return; } }
   busy = true; flash = ''; draw();
-  const todo = pending.filter((p) => !p.error && p.include);
+  const todo = pending.filter((p) => !p.error && p.include && (p.mode === 'archive') === (mode === 'archive'));
   const cards = new Map(todo.map((p) => [p, host.querySelector(`[data-dh-idx="${pending.indexOf(p)}"] [data-dh-progress]`)]));
   let ok = 0; const errs = [], uploadedFiles = new Set();
   for (const p of todo) {
     const card = cards.get(p);
     try {
-      await saveItem(p.file, { ...p, fileUploaded: uploadedFiles.has(p.hash) }, (d, t) => { if (card) card.textContent = `Đang lưu ${fmt0(d)}/${fmt0(t)} dòng…`; });
+      const item = p.mode === 'archive' ? { ...p, key: 'archive', label: (p.dsName || baseName(p.file.name)).trim(), description: p.desc || null } : p;
+      await saveItem(p.file, { ...item, fileUploaded: uploadedFiles.has(p.hash) }, (d, t) => { if (card) card.textContent = `Đang lưu ${fmt0(d)}/${fmt0(t)} dòng…`; });
       uploadedFiles.add(p.hash); ok++;
       pending = pending.filter((x) => x !== p);
     } catch (e) { errs.push(`${p.file.name} · ${p.sheet}: ${e.message}`); if (card) card.textContent = 'Lỗi: ' + e.message; }
   }
   busy = false;
-  flash = `Đã lưu ${ok}/${todo.length} bộ dữ liệu.` + (errs.length ? ' Lỗi: ' + errs.join(' | ') : '');
+  flash = `Đã lưu ${ok}/${todo.length} bộ dữ liệu${mode === 'archive' ? ' vào kho lưu trữ' : ''}.` + (errs.length ? ' Lỗi: ' + errs.join(' | ') : '');
   await refresh();
-  if (ok) {
-    // tự dựng lại dashboard từ dữ liệu mới
+  if (ok && mode !== 'archive') {
     flash += ' Đang cập nhật dashboard…'; draw();
-    try { if (window.RH_ensureSession) await window.RH_ensureSession().catch(() => { throw new Error('Phiên đăng nhập đã hết hạn – đăng nhập lại rồi bấm "Dựng lại dashboard"'); }); must(await sb().rpc('v10_build'), 'Dựng lại dữ liệu'); flash = flash.replace(' Đang cập nhật dashboard…', ' Dashboard đã cập nhật theo dữ liệu mới.'); window.dispatchEvent(new CustomEvent('rh:rebuilt')); }
+    try { if (window.RH_ensureSession) await window.RH_ensureSession().catch(() => { throw new Error('Phiên đăng nhập đã hết hạn – đăng nhập lại rồi bấm "Dựng lại dashboard"'); }); must(await sb().rpc('v10_build'), 'Dựng lại dữ liệu'); flash = flash.replace(' Đang cập nhật dashboard…', ' Dashboard đã cập nhật – tải lại trang (F5) để xem số mới.'); window.RH_reload?.(); }
     catch (e) { flash = flash.replace(' Đang cập nhật dashboard…', ' Chưa dựng lại được dashboard: ' + e.message); }
     draw();
   }
 }
-async function refresh() { try { uploads = await listUploads(); listErr = ''; } catch (e) { listErr = e.message; } draw(); }
+async function refresh() { try { uploads = await listUploads(); listErr = ''; } catch (e) { listErr = e.message; } await loadMemos(); draw(); }
 function bind() {
-  const drop = host.querySelector('#dh-drop'), input = host.querySelector('#dh-file');
-  if (drop) {
-    drop.onclick = () => input.click();
+  host.querySelectorAll('[data-dh-tab]').forEach((b) => b.onclick = () => { tab = b.dataset.dhTab; try { localStorage.setItem('dh-tab', tab); } catch {} flash = ''; draw(); });
+  host.querySelectorAll('[data-drop]').forEach((drop) => {
+    const id = drop.dataset.drop, input = drop.querySelector('[data-file]'), go = (fs) => (id === 'memo' ? addMemos(fs) : addFiles(fs, id));
+    drop.onclick = (e) => { if (e.target !== input) input.click(); };
     drop.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } };
     drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('dh-over'); };
     drop.ondragleave = () => drop.classList.remove('dh-over');
-    drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('dh-over'); addFiles([...e.dataTransfer.files]); };
-    input.onchange = () => { const f = [...input.files]; input.value = ''; addFiles(f); };
-  }
+    drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('dh-over'); go([...e.dataTransfer.files]); };
+    input.onchange = () => { const f = [...input.files]; input.value = ''; go(f); };
+  });
   host.querySelectorAll('[data-dh-idx]').forEach((card) => {
     const p = pending[+card.dataset.dhIdx];
     card.querySelector('[data-dh-include]').onchange = (e) => { p.include = e.target.checked; draw(); };
-    card.querySelector('[data-dh-key]').onchange = (e) => { p.key = e.target.value; };
+    const k = card.querySelector('[data-dh-key]'); if (k) k.onchange = (e) => { p.key = e.target.value; };
+    card.querySelector('[data-dh-mode]').onchange = (e) => { p.mode = e.target.value; if (p.mode === 'archive') { p.similar = similarArchive(p.columns); if (p.similar && !p.dsName) p.dsName = p.similar.u.report_label; } else if (p.key === 'unknown') p.include = false; draw(); };
+    const nm = card.querySelector('[data-dh-name]'); if (nm) nm.oninput = (e) => { p.dsName = e.target.value; };
+    const ds = card.querySelector('[data-dh-desc]'); if (ds) ds.oninput = (e) => { p.desc = e.target.value; };
     card.querySelector('[data-dh-period]').onchange = (e) => { p.period = e.target.value; };
   });
-  const save = host.querySelector('#dh-save'); if (save) save.onclick = saveAll;
-  const clr = host.querySelector('#dh-clear'); if (clr) clr.onclick = () => { pending = []; flash = ''; draw(); };
+  host.querySelectorAll('[data-mm]').forEach((card) => {
+    const m = memoPending[+card.dataset.mm];
+    card.querySelector('[data-mm-inc]').onchange = (e) => { m.include = e.target.checked; draw(); };
+    card.querySelectorAll('[data-mm-f]').forEach((el) => el.oninput = () => { m[el.dataset.mmF] = el.value; });
+    card.querySelectorAll('[data-mm-aud]').forEach((el) => el.onchange = () => { const a = el.dataset.mmAud; m.aud = el.checked ? [...new Set([...m.aud, a])] : m.aud.filter((x) => x !== a); });
+  });
+  const su = host.querySelector('#dh-save-u'); if (su) su.onclick = () => saveAll('update');
+  const sa = host.querySelector('#dh-save-a'); if (sa) sa.onclick = () => saveAll('archive');
+  const sm = host.querySelector('#dh-save-m'); if (sm) sm.onclick = saveMemos;
+  host.querySelectorAll('[data-dh-clear]').forEach((b) => b.onclick = () => { const id = b.dataset.dhClear; if (id === 'dh-save-m') memoPending = []; else pending = pending.filter((p) => (id === 'dh-save-a') !== (p.mode === 'archive' && !p.error)); flash = ''; draw(); });
   const rf = host.querySelector('#dh-refresh'); if (rf) rf.onclick = refresh;
   host.querySelectorAll('[data-dh-del]').forEach((b) => b.onclick = async () => {
     if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Bấm lần nữa để xóa'; return; }
@@ -960,17 +1133,25 @@ function bind() {
     try { await downloadOriginal(u); } catch (e) { flash = 'Không tải được file gốc: ' + e.message; draw(); return; }
     b.disabled = false; b.textContent = '⬇ Tải về';
   });
+  host.querySelectorAll('[data-mm-dl]').forEach((b) => b.onclick = async () => { const x = memoList.find((y) => y.id === b.dataset.mmDl);
+    try { const r = await sb().storage.from(BUCKET).download(x.storage_path); if (r.error) throw new Error(r.error.message); saveBlob(r.data, x.storage_path.split('/').pop().replace(/^[0-9a-f]{16}_/, '')); } catch (e) { flash = 'Không tải được: ' + e.message; draw(); } });
+  host.querySelectorAll('[data-mm-del]').forEach((b) => b.onclick = async () => {
+    if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Bấm lần nữa để xóa'; return; }
+    const x = memoList.find((y) => y.id === b.dataset.mmDel);
+    try { must(await sb().from('policies').delete().eq('id', x.id), 'Xóa memo'); if (x.storage_path) await sb().storage.from(BUCKET).remove([x.storage_path]); flash = `Đã xóa memo "${x.title}".`; window.RH_libReset?.(); } catch (e) { flash = e.message; }
+    await loadMemos(); draw();
+  });
   host.querySelectorAll('[data-dh-pick]').forEach((c) => c.onchange = () => { if (c.checked) picked.add(c.dataset.dhPick); else picked.delete(c.dataset.dhPick); draw(); });
-  const pa = host.querySelector('#dh-pick-all'); if (pa) pa.onchange = () => { picked = pa.checked ? new Set(uploads.filter((u) => u.storage_path).map((u) => String(u.id))) : new Set(); draw(); };
+  const curList = () => uploads.filter((u) => (tab === 'archive') === isArch(u));
+  host.querySelectorAll('[data-dh-pickall]').forEach((pa) => pa.onchange = () => { const ids = curList().filter((u) => u.storage_path).map((u) => String(u.id)); ids.forEach((i) => (pa.checked ? picked.add(i) : picked.delete(i))); draw(); });
   const zipRun = async (list) => {
     dlBusy = 'Đang chuẩn bị…'; draw();
-    try { const fail = await downloadZip(list, (i, n) => { dlBusy = `Đang tải ${i}/${n} file…`; const el = host.querySelector('#dh-dl-all + span, #dh-dl-all ~ span'); if (el) el.textContent = dlBusy; });
-      flash = fail?.length ? `Đã tải, ${fail.length} file lỗi: ${fail.join(' · ')}` : ''; }
+    try { const fail = await downloadZip(list, (i, n) => { dlBusy = `Đang tải ${i}/${n} file…`; }); flash = fail?.length ? `Đã tải, ${fail.length} file lỗi: ${fail.join(' · ')}` : ''; }
     catch (e) { flash = 'Không tải được: ' + e.message; }
     dlBusy = ''; draw();
   };
-  const ds = host.querySelector('#dh-dl-sel'); if (ds) ds.onclick = () => zipRun(uploads.filter((u) => picked.has(String(u.id))));
-  const da = host.querySelector('#dh-dl-all'); if (da) da.onclick = () => zipRun(uploads);
+  host.querySelectorAll('[data-dh-dlsel]').forEach((b) => b.onclick = () => zipRun(curList().filter((u) => picked.has(String(u.id)))));
+  host.querySelectorAll('[data-dh-dlall]').forEach((b) => b.onclick = () => zipRun(curList()));
 }
 function injectStyles() {
   if (document.getElementById('dh-styles')) return;
@@ -992,6 +1173,13 @@ function injectStyles() {
 .dh-primary{background:var(--manu-green,#00a758);border-color:var(--manu-green,#00a758);color:#fff}.dh-small{padding:4px 9px;font-size:12px}.dh-danger{color:#b42318}.dh-actions{display:flex;gap:6px}
 .dh-badge{font-size:11.5px;padding:2px 8px;border-radius:999px;font-weight:600}.dh-green{background:#dcfae6;color:#067647}.dh-amber{background:#fef0c7;color:#93370d}.dh-red{background:#fee4e2;color:#b42318}.dh-gray{background:#f2f4f7;color:#475467}
 .dh-progress{font-size:12.5px;color:#067647;margin-top:6px}
+.dh-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line,#e4e7ec)}.dh-tabs button{border:0;background:none;padding:10px 14px;font:inherit;font-weight:700;font-size:14px;color:var(--muted,#667085);border-bottom:3px solid transparent;cursor:pointer}.dh-tabs button.on{color:#067647;border-bottom-color:#00a758}.dh-cnt{display:inline-block;min-width:18px;padding:0 6px;border-radius:999px;background:#fef0c7;color:#93370d;font-size:11.5px}
+.dh-note{font-size:12.5px;padding:7px 10px;border-radius:8px;background:#fffaeb;border:1px solid #fedf89;margin:0 0 10px}.dh-note.ok{background:#f0fbf5;border-color:#b7e4c7;margin-top:10px}
+.dh-fields textarea{width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--line,#d0d5dd);border-radius:8px;font:inherit;font-size:13px;color:#101828;resize:vertical}.dh-aud{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted,#667085);padding-bottom:6px}
+.dh-pre{white-space:pre-wrap;font-size:12px;max-height:260px;overflow:auto;background:#f9fafb;border-radius:8px;padding:10px;margin:8px 0 0}
+.dh-fresh{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}.dh-fr{border:1px solid var(--line,#e4e7ec);border-left:4px solid;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;font-size:12.5px}.dh-fr b{font-size:13px}.dh-fr small{color:var(--muted,#667085)}
+.dh-fr-green{border-left-color:#17b26a}.dh-fr-amber{border-left-color:#f79009;background:#fffcf5}.dh-fr-red{border-left-color:#f04438;background:#fffbfa}
+.dh-arch{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}.dh-ac{border:1px solid var(--line,#e4e7ec);border-radius:12px;padding:10px 12px}
 #dh-standalone{position:fixed;inset:0;z-index:2147483000;background:#f5f7f6;overflow:auto;padding:20px 16px}#dh-standalone .dh-top{max-width:1200px;margin:0 auto 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}#dh-standalone .dh-body{max-width:1200px;margin:0 auto}
 @media (max-width:640px){.dh-fields select,.dh-fields input{min-width:0;width:100%}.dh-fields label{flex:1 1 100%}}`;
   document.head.appendChild(st);
@@ -4373,6 +4561,7 @@ function planInput(body, Y, YM) {
 //  TRANG 5 · THƯ VIỆN CHÍNH SÁCH
 // =====================================================================
 let LIB = null;
+window.RH_libReset = () => { LIB = null; };
 function libStatus(p) {
   const t = new Date(); t.setHours(0, 0, 0, 0);
   const s = p.start_date ? new Date(p.start_date) : null, e = p.end_date ? new Date(p.end_date) : null;
@@ -4384,7 +4573,7 @@ async function ensureLib() {
   if (LIB) return LIB;
   const out = [];
   for (let from = 0; ; from += 1000) {
-    const r = await sb.from('policies').select('id,code,title,folder,category,audience,start_date,end_date,summary,points,versions,drive_url,sent').order('start_date', { ascending: false, nullsFirst: false }).range(from, from + 999);
+    const r = await sb.from('policies').select('id,code,title,folder,category,audience,start_date,end_date,summary,points,versions,drive_url,sent,source,storage_path,review_status').order('start_date', { ascending: false, nullsFirst: false }).range(from, from + 999);
     if (r.error) throw new Error(r.error.message);
     out.push(...r.data); if (r.data.length < 1000) break;
   }
@@ -4399,7 +4588,7 @@ async function pageLibrary(c) {
   const cats = ['Tất cả', ...new Set(LIB.map((p) => p.category).filter(Boolean))];
   const q = norm(S.libQ);
   const rows = LIB.map((p) => ({ ...p, st: libStatus(p) })).filter((p) => (S.libCat === 'Tất cả' || p.category === S.libCat)
-    && (S.libStatus === 'Tất cả' || (S.libStatus === 'Đang hiệu lực' ? ['Đang hiệu lực', 'Sắp hết hạn'].includes(p.st) : p.st === S.libStatus))
+    && (S.libStatus === 'Tất cả' || (p.review_status === 'pending' && !q) || (S.libStatus === 'Đang hiệu lực' ? ['Đang hiệu lực', 'Sắp hết hạn'].includes(p.st) : p.st === S.libStatus))
     && (!q || norm(`${p.code} ${p.title} ${p.summary} ${(p.points || []).join(' ')}`).includes(q)));
   c.innerHTML = `<div id="memo-focus">${DS ? memoFocusHtml(DS.agents) : ''}</div>
   ${isAdmin ? `<section class="panel"><div class="panel-h"><div><h3>Quản trị thư viện</h3><p>${f0(LIB.length)} tài liệu trên database. Nạp/cập nhật bằng file policies_library.json (ghi đè theo mã tài liệu).</p></div><div class="toolbar"><button class="btn btn-primary btn-sm" id="lib-imp">Nhập file thư viện (.json)</button><input type="file" id="lib-file" accept=".json" hidden></div></div><div class="panel-b" id="lib-msg" style="padding-top:8px;padding-bottom:8px"></div></section>` : ''}
@@ -4408,7 +4597,7 @@ async function pageLibrary(c) {
     <select class="select" id="lib-st">${['Đang hiệu lực', 'Sắp áp dụng', 'Hết hạn', 'Tham khảo', 'Tất cả'].map((s) => `<option ${S.libStatus === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
     <select class="select" id="lib-cat">${cats.map((s) => `<option ${S.libCat === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
     <span class="muted small">${f0(rows.length)} kết quả</span></div>
-    ${LIB.length ? `<div class="lib-grid">${rows.map((p) => `<div class="lib-card" data-lib="${esc(p.id)}" tabindex="0"><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge ${LIB_TONE[p.st]}">${p.st}</span>${p.category ? `<span class="badge">${esc(p.category)}</span>` : ''}${(p.audience || []).map((x) => `<span class="badge b-silver">${esc(x)}</span>`).join('')}</div><b>${esc(p.title)}</b><span class="small muted">${esc(p.code || '')} · ${p.start_date ? dmy(p.start_date) : '…'} – ${p.end_date ? dmy(p.end_date) : 'dài hạn'}</span><span class="small">${esc(p.summary || '')}</span></div>`).join('')}</div>` : '<div class="empty">Thư viện đang trống.</div>'}
+    ${LIB.length ? `<div class="lib-grid">${rows.map((p) => `<div class="lib-card" data-lib="${esc(p.id)}" tabindex="0"><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge ${LIB_TONE[p.st]}">${p.st}</span>${p.review_status === 'pending' ? '<span class="badge b-amber">Mới tải lên</span>' : ''}${p.category ? `<span class="badge">${esc(p.category)}</span>` : ''}${(p.audience || []).map((x) => `<span class="badge b-silver">${esc(x)}</span>`).join('')}</div><b>${esc(p.title)}</b><span class="small muted">${esc(p.code || '')} · ${p.start_date ? dmy(p.start_date) : '…'} – ${p.end_date ? dmy(p.end_date) : 'dài hạn'}</span><span class="small">${esc(p.summary || '')}</span></div>`).join('')}</div>` : '<div class="empty">Thư viện đang trống.</div>'}
   </div></section>`;
   const qi = $('#lib-q'); qi.oninput = () => { clearTimeout(qi._t); qi._t = setTimeout(() => { S.libQ = qi.value; pageLibrary(c).then(() => { const n = $('#lib-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }); }, 250); };
   $('#lib-st').onchange = (e) => { S.libStatus = e.target.value; pageLibrary(c); };
@@ -4439,9 +4628,11 @@ async function openPolicy(id) {
   <div class="dr-b"><p style="margin:0;line-height:1.6">${esc(p.summary || '')}</p>
   ${(p.points || []).length ? `<div class="sec"><h4>Điểm chính</h4><ul style="margin:0;padding-left:18px;line-height:1.7">${p.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
   ${p.drive_url ? `<p><a href="${esc(p.drive_url)}" target="_blank" rel="noopener">Mở file gốc trên Google Drive ↗</a></p>` : ''}
+  ${p.storage_path ? `<p><button class="btn btn-sm" id="pol-dl">⬇ Tải file memo gốc</button>${p.review_status === 'pending' ? ' <span class="badge b-amber">Mới tải lên – chờ chuẩn hoá tóm tắt</span>' : ''}</p>` : ''}
   ${(p.versions || []).length ? `<div class="sec"><h4>Phiên bản khác</h4>${p.versions.map((v) => `<div><a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.title)}</a></div>`).join('')}</div>` : ''}
   <div class="sec"><h4>Toàn văn</h4><div class="prose" id="pol-content">Đang tải…</div></div></div>`;
   $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); $('#dr-x').onclick = closeDrawer;
+  const pdl = $('#pol-dl'); if (pdl) pdl.onclick = async () => { const d = await sb.storage.from('reports').download(p.storage_path); if (d.error) { pdl.textContent = 'Lỗi: ' + d.error.message; return; } const u = URL.createObjectURL(d.data), l = document.createElement('a'); l.href = u; l.download = p.storage_path.split('/').pop().replace(/^[0-9a-f]{16}_/, ''); document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); };
   const r = await sb.from('policies').select('content').eq('id', id).maybeSingle();
   const el = $('#pol-content'); if (el) el.textContent = r.data?.content || '(không có nội dung trích xuất)';
 }
