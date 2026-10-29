@@ -307,7 +307,19 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .cond.ok{border-color:#abefc6;background:#f6fef9}
 .cond .t{font-weight:600;font-size:13px}.cond .r{font-size:12.5px;font-weight:600}
 .cond .meter{grid-column:1/-1}
-.pf-tabs,.pf-pane{flex-shrink:0}.pf-tabs{position:sticky;top:-1px;z-index:3;background:var(--bg-card,#fff);margin:0;padding-top:4px;overflow:visible;flex-wrap:wrap;min-height:max-content}.pf-tabs button{white-space:nowrap}
+#qs{position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:9vh 12px 12px}#qs.open{display:flex}
+.qs-box{width:min(680px,100%);background:#fff;border-radius:14px;box-shadow:0 20px 50px rgba(16,24,40,.3);overflow:hidden;display:flex;flex-direction:column;max-height:78vh}
+.qs-bar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}.qs-bar input{flex:1;border:0;outline:0;font-size:17px;font-family:inherit;background:none}
+kbd{font-family:inherit;font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--muted);background:#f9fafb}
+#qs-list{overflow:auto;padding:6px}.qs-h{font-size:12px;color:var(--muted);padding:8px 10px}
+.qs-it{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:10px;cursor:pointer}.qs-it.on{background:#ecfdf3}.qs-it .av{width:32px;height:32px;font-size:12px;flex:none}
+.qs-t{flex:1;min-width:0;display:flex;flex-direction:column}.qs-t b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qs-t small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qs-it mark{background:#fef0c7;color:inherit;border-radius:2px}.qs-f{display:flex;flex-direction:column;align-items:flex-end;font-size:13px;font-weight:600}.qs-f small{font-size:10.5px;color:var(--muted);font-weight:400}
+.qs-foot{font-size:11.5px;color:var(--muted);padding:8px 14px;border-top:1px solid var(--line);background:#f9fafb}
+.qs-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px 6px 12px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;min-width:190px}.qs-btn span{flex:1;text-align:left}.qs-btn:hover{border-color:#00a758;color:var(--ink-2)}
+.dl-sep{font-size:11.5px;color:var(--muted);padding:8px 10px 4px;text-transform:uppercase;letter-spacing:.04em}.dl-item mark{background:#fef0c7;color:inherit}
+@media (max-width:640px){.qs-btn{min-width:0}.qs-btn span,.qs-btn kbd{display:none}.qs-f{display:none}}
+.pf-tabs,.pf-pane{flex-shrink:0}.pf-tabs{position:relative;z-index:3;background:#fff;margin:0;padding:2px 20px 0;flex-wrap:wrap;min-height:max-content;flex:none;overflow:visible}.pf-tabs button:focus{outline:none}.pf-tabs button:focus-visible{outline:2px solid #abefc6;outline-offset:-2px;border-radius:6px}.pf-tabs button{white-space:nowrap}
 .pf-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin:0 0 12px}
 .pf-card{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line);border-left:4px solid #98a2b3;border-radius:12px;background:#fff;transition:box-shadow .15s}.pf-card:hover{box-shadow:0 2px 10px rgba(16,24,40,.08)}
 .pf-card.good{border-left-color:#17b26a}.pf-card.warn{border-left-color:#f79009}.pf-card.bad{border-left-color:#f04438}.pf-card.blue{border-left-color:#0a3d2a;background:#f6fef9}
@@ -1509,15 +1521,17 @@ $('#menu-btn').onclick = () => {
   $('#menu-btn').setAttribute('aria-label', on ? 'Mở rộng menu' : 'Thu gọn menu');
 };
 
+const qsBtn = () => `<button class="qs-btn" id="qs-btn" title="Tìm nhanh bất kỳ ai (Ctrl/⌘ + K hoặc /)">🔎 <span>Tìm người…</span><kbd>Ctrl K</kbd></button>`;
 function topControls() {
+  if (DS && !['overview', 'health', 'titles', 'insight', 'income', 'report', 'plan', 'history'].includes(S.page)) return qsBtn();
   if (!DS || !['overview', 'health', 'titles', 'insight', 'income', 'report', 'plan', 'history'].includes(S.page)) return '';
   const rhSel = `<select class="select" id="sel-rh" aria-label="Đầu RH" style="font-weight:700">${[['all', 'ALL · toàn bộ'], ...rhList().map((g) => [g.id, g.name])].map(([id, n]) => `<option value="${id}" ${S.rh === id ? 'selected' : ''}>${esc(id === 'all' ? n : 'RH · ' + n)} (${id === 'all' ? DS.areasAll.length : DS.areasAll.filter((a) => a.rh === id).length} KV)</option>`).join('')}</select>`;
-  if (['plan', 'history'].includes(S.page)) return rhSel;
+  if (['plan', 'history'].includes(S.page)) return qsBtn() + rhSel;
   const M = DS.months;
   const monthSel = S.page === 'overview' ? `<select class="select" id="sel-focus" aria-label="Tháng xem">${[2, 1, 0].map((i) => `<option value="${i}" ${S.focus === i ? 'selected' : ''}>${mLabel(M[i])}${i === 2 ? ' · tháng gần nhất' : ''}</option>`).join('')}</select>` : '';
   const brSel = DS.branches.length || S.branch ? `<select class="select" id="sel-branch" aria-label="Nhánh"><option value="">Tất cả nhánh</option>${DS.branches.map((b) => `<option value="${esc(b.code)}" ${S.branch === b.code ? 'selected' : ''}>${'– '.repeat(Math.max(0, b.depth - 1))}${esc(b.name)} · ${esc(b.title || '')} (${b.areas.length} KV)</option>`).join('')}</select>` : '';
   const areaSel = `<select class="select" id="sel-area" aria-label="Khu vực"><option value="all">Tất cả khu vực (${DS.areas.length})</option>${DS.areas.map((a) => `<option value="${a.code}" ${S.area === a.code ? 'selected' : ''}>${esc(a.code)}${a.psm ? ' · ' + esc(a.psm) : ''}</option>`).join('')}</select>`;
-  return `${rhSel}${brSel}${monthSel}${areaSel}<span class="chip">Chốt <b>${dmy(DS.meta.asOf)}</b></span><span class="chip">Đơn vị tiền <b>VND</b></span>`;
+  return `${qsBtn()}${rhSel}${brSel}${monthSel}${areaSel}<span class="chip">Chốt <b>${dmy(DS.meta.asOf)}</b></span><span class="chip">Đơn vị tiền <b>VND</b></span>`;
 }
 function render() {
   const p = PAGES.find((x) => x.id === S.page);
@@ -1525,6 +1539,7 @@ function render() {
   $('#page-title').textContent = p.name; $('#page-sub').textContent = p.sub;
   renderNav();
   $('#top-r').innerHTML = topControls();
+  const qb = $('#qs-btn'); if (qb) qb.onclick = () => qsOpen();
   const fs = $('#sel-focus'); if (fs) fs.onchange = (e) => { S.focus = +e.target.value; render(); };
   const rs = $('#sel-rh'); if (rs) rs.onchange = (e) => setRh(e.target.value);
   const bs = $('#sel-branch'); if (bs) bs.onchange = (e) => setBranch(e.target.value);
@@ -2602,8 +2617,67 @@ function teamHealth(a) {
   return { d, t, sd: seg(d), st: seg(t), prod: d.filter((k) => N(k.fyc[3]) >= 4000 && N(k.cc[3]) >= 1).length, aaTrend: [0, 1, 2, 3].map((i) => t.filter((x) => isActive(x, i)).length + (isActive(a, i) ? 1 : 0)) };
 }
 
+// =====================================================================
+//  TÌM NHANH BẤT KỲ AI (Ctrl/⌘ + K hoặc phím /) – tên không dấu, mã ĐL, chức danh, khu vực
+// =====================================================================
+const QS = { sel: 0, res: [] };
+const qsAll = () => (DS ? DS.agentsAll || DS.agents : []);
+function qsRecent() { try { return JSON.parse(localStorage.getItem('rh-recent') || '[]'); } catch { return []; } }
+function qsPush(c) { try { const r = [c, ...qsRecent().filter((x) => x !== c)].slice(0, 8); localStorage.setItem('rh-recent', JSON.stringify(r)); } catch {} }
+function qsFind(q, limit = 30) {
+  const nq = norm(q), toks = nq.split(/\s+/).filter(Boolean);
+  if (!toks.length) return qsRecent().map((c) => DS.by.get(c)).filter(Boolean);
+  const out = [];
+  for (const a of qsAll()) {
+    const n = a._qn || (a._qn = norm(a.n)), c = String(a.c).toLowerCase(), words = n.split(/\s+/);
+    let sc = 0;
+    if (c === nq) sc = 100; else if (c.startsWith(nq)) sc = 80;
+    else if (toks.every((t) => n.includes(t) || c.includes(t) || norm(a.a) === t || norm(a.t) === t)) {
+      sc = 20 + toks.filter((t) => words.some((w) => w.startsWith(t))).length * 10 + (n.startsWith(nq) ? 15 : 0) + (words.slice(-1)[0] === toks.slice(-1)[0] ? 10 : 0) + (n.includes(nq) ? 8 : 0);
+    }
+    if (sc) out.push({ a, sc });
+  }
+  return out.sort((p, q2) => q2.sc - p.sc || (q2.a.um - p.a.um) || N(q2.a.fyp6) - N(p.a.fyp6)).slice(0, limit).map((x) => x.a);
+}
+const qsHl = (name, q) => { const toks = norm(q).split(/\s+/).filter(Boolean); if (!toks.length) return esc(name); const n = norm(name); const mark = Array(name.length).fill(false);
+  toks.forEach((t) => { let i = n.indexOf(t); while (i >= 0) { for (let k = i; k < i + t.length; k++) mark[k] = true; i = n.indexOf(t, i + 1); } });
+  return [...name].map((ch, i) => (mark[i] ? `<mark>${esc(ch)}</mark>` : esc(ch))).join(''); };
+function qsRow(a, q, i) {
+  const tags = [isGtfX(a) && a.um ? 'GTF' : '', isNewUM(a) ? 'UM mới' : '', DS.mba.get(a.c)?.cur ? DS.mba.get(a.c).cur.replace('MBA Pro ', 'MBA ') : '', a.tier ? TIER_NAME[a.tier] || '' : ''].filter(Boolean);
+  const out = DS.agents.indexOf(a) < 0;
+  return `<button class="qs-it${i === QS.sel ? ' on' : ''}" data-qs="${esc(a.c)}" role="option"><span class="av ${a.um ? 'um' : ''}">${esc(initials(a.n))}</span><span class="qs-t"><b>${qsHl(a.n, q)}</b><small>${esc(a.t)} · ${esc(a.c)} · KV ${esc(a.a)}${a.parent ? ' · QL ' + esc(a.parent.n) : ''}${out ? ' · ngoài phạm vi RH đang chọn' : ''}</small></span>${tags.map((t) => `<span class="badge">${esc(t)}</span>`).join('')}<span class="qs-f num">${money(a.fyp6)}<small>FYP 6T</small></span></button>`;
+}
+function qsRender() {
+  const q = $('#qs-in').value; QS.res = qsFind(q); QS.sel = Math.min(QS.sel, Math.max(0, QS.res.length - 1));
+  $('#qs-list').innerHTML = (q.trim() ? '' : QS.res.length ? '<div class="qs-h">Xem gần đây</div>' : '<div class="qs-h">Gõ tên (có hoặc không dấu), mã ĐL, hoặc thêm khu vực / chức danh: "lan hcm82", "um nga"</div>')
+    + (QS.res.map((a, i) => qsRow(a, q, i)).join('') || (q.trim() ? `<div class="qs-h">Không tìm thấy "${esc(q)}" trong ${f0(qsAll().length)} người.</div>` : ''));
+  $$('#qs-list [data-qs]').forEach((b, i) => { b.onmouseenter = () => { QS.sel = i; $$('#qs-list .qs-it').forEach((x, j) => x.classList.toggle('on', j === i)); }; b.onclick = () => qsGo(b.dataset.qs); });
+}
+function qsGo(c) { qsClose(); qsPush(c); openPerson(c); }
+function qsOpen(pre = '') {
+  if (!DS) return;
+  let m = $('#qs'); if (!m) { m = document.createElement('div'); m.id = 'qs'; m.innerHTML = `<div class="qs-box" role="dialog" aria-label="Tìm nhanh đại lý"><div class="qs-bar"><span>🔎</span><input id="qs-in" placeholder="Tìm bất kỳ ai: tên, mã ĐL…" autocomplete="off" spellcheck="false"><kbd>Esc</kbd></div><div id="qs-list" role="listbox"></div><div class="qs-foot">↑ ↓ chọn · Enter mở · tìm trong toàn bộ ${f0(qsAll().length)} ĐL & UM+</div></div>`; document.body.appendChild(m);
+    m.onclick = (e) => { if (e.target === m) qsClose(); };
+    $('#qs-in').oninput = () => { QS.sel = 0; qsRender(); };
+    $('#qs-in').onkeydown = (e) => { const n = QS.res.length;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!n) return; QS.sel = (QS.sel + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; $$('#qs-list .qs-it').forEach((x, j) => x.classList.toggle('on', j === QS.sel)); $$('#qs-list .qs-it')[QS.sel]?.scrollIntoView({ block: 'nearest' }); }
+      else if (e.key === 'Enter') { e.preventDefault(); const a = QS.res[QS.sel]; if (a) qsGo(a.c); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); qsClose(); } }; }
+  $('.qs-foot', m).textContent = `↑ ↓ chọn · Enter mở · tìm trong toàn bộ ${f0(qsAll().length)} ĐL & UM+`;
+  m.classList.add('open'); $('#qs-in').value = pre; QS.sel = 0; qsRender(); setTimeout(() => $('#qs-in').focus(), 0);
+}
+function qsClose() { $('#qs')?.classList.remove('open'); }
+window.RH_quickSearch = qsOpen;
+document.addEventListener('keydown', (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
+  if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); qsOpen(); }
+  else if (e.key === '/' && !typing && DS) { e.preventDefault(); qsOpen(); }
+  else if (e.key === 'Escape' && $('#qs')?.classList.contains('open')) qsClose();
+});
+
 function openPerson(code) {
   const a = DS.by.get(code); if (!a) return;
+  qsPush(code);
   S.sel = code;
   $$('.node-row.sel').forEach((n) => n.classList.remove('sel'));
   $$(`.node-row[data-person="${CSS.escape(code)}"]`).forEach((n) => n.classList.add('sel'));
@@ -2661,8 +2735,8 @@ function openPerson(code) {
   const sideList = DS.agents.filter((u) => u.a === sideArea && u.um).sort((p, q) => N(q.fyp6) - N(p.fyp6));
   const sideItem = (u) => { const mbx = DS.mba.get(u.c); return `<button class="dl-item${u.c === a.c ? ' on' : ''}${chain.includes(u) ? ' up' : ''}" data-open="${esc(u.c)}" data-q="${esc(norm(u.n + ' ' + u.c))}"><span class="av um">${esc(initials(u.n))}</span><span class="dl-t"><b>${esc(u.n)}</b><small>${esc(u.t)} · ${u.kids.length} trực tiếp · FYP 6T ${money(u.fyp6)}</small><span class="dl-b">${mbx?.cur ? `<span class="badge b-green">${esc(mbx.cur.replace('MBA Pro ', 'MBA '))}</span>` : ''}${isNewUM(u) ? '<span class="badge b-blue">UM mới</span>' : ''}${u.gtf_date || DS.gtf.has(u.c) ? '<span class="badge b-amber">GTF</span>' : ''}${N(u.mdrtf) >= MDRT[0].v ? '<span class="badge b-green">MDRT</span>' : ''}</span></span>${dots(u)}</button>`; };
   const side = `<aside class="dr-side"><div class="dl-h"><select class="select" id="dl-area">${DS.areas.map((x) => `<option value="${esc(x.code)}" ${x.code === sideArea ? 'selected' : ''}>KV ${esc(x.code)}${x.psm ? ' · ' + esc(x.psm) : ''}</option>`).join('')}</select>
-      <input class="input" id="dl-q" placeholder="Tìm UM+ trong khu vực…" autocomplete="off"><small>${sideList.length} UM+ · sắp theo FYP 6 tháng${chain.length ? ' · viền xanh = cấp trên của người đang xem' : ''}</small></div>
-    <div class="dl-list">${sideList.map(sideItem).join('') || '<p class="note" style="padding:10px">Khu vực không có UM+.</p>'}</div></aside>`;
+      <input class="input" id="dl-q" placeholder="Tìm tên / mã bất kỳ ai…" autocomplete="off"><small>${sideList.length} UM+ · sắp theo FYP 6 tháng${chain.length ? ' · viền xanh = cấp trên của người đang xem' : ''}</small></div>
+    <div class="dl-list"><div id="dl-all"></div>${sideList.map(sideItem).join('') || '<p class="note" style="padding:10px">Khu vực không có UM+.</p>'}</div></aside>`;
   $('#drawer').classList.add('wide');
   $('#drawer').innerHTML = `<div class="dr-split">${side}<section class="dr-main">
   <div class="dr-h"><div class="av ${a.um ? 'um' : ''}" style="width:44px;height:44px;font-size:14px">${esc(initials(a.n))}</div>
@@ -2724,10 +2798,17 @@ function openPerson(code) {
   </div></section></div>`;
   $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false');
   $('#dr-x').onclick = closeDrawer;
+  { const tb = $('#drawer .pf-tabs'), db = $('#drawer .dr-b'); if (tb && db) db.parentNode.insertBefore(tb, db); } // thanh tab cố định ngoài vùng cuộn
   $$('[data-ptab]', $('#drawer')).forEach((b) => b.onclick = () => { S.prTab = b.dataset.ptab; $$('.pf-tabs [data-ptab]', $('#drawer')).forEach((x) => x.classList.toggle('on', x.dataset.ptab === S.prTab)); $$('.pf-pane', $('#drawer')).forEach((p) => { p.hidden = p.dataset.pfp !== S.prTab; }); $('.dr-b').scrollTop = 0; });
   $$('[data-open]', $('#drawer')).forEach((el) => el.onclick = (e) => { e.preventDefault(); openPerson(el.dataset.open); });
   $('#dl-area').onchange = (e) => { S.drArea = e.target.value; const first = DS.agents.filter((u) => u.a === S.drArea && u.um).sort((p, q) => N(q.fyp6) - N(p.fyp6))[0]; if (first) openPerson(first.c); else { S.drArea = null; } };
-  $('#dl-q').oninput = (e) => { const q = norm(e.target.value); $$('.dl-item', $('#drawer')).forEach((b) => { b.style.display = !q || b.dataset.q.includes(q) ? '' : 'none'; }); };
+  $('#dl-q').oninput = (e) => { const raw = e.target.value, q = norm(raw), box = $('#dl-all', $('#drawer'));
+    $$('.dl-item:not(.qx)', $('#drawer')).forEach((b) => { b.style.display = !q || b.dataset.q.includes(q) ? '' : 'none'; });
+    if (q.length < 2) { box.innerHTML = ''; return; }
+    const hits = qsFind(raw, 15).filter((u) => !(u.a === sideArea && u.um));
+    box.innerHTML = hits.length ? `<div class="dl-sep">Toàn bộ (mọi khu vực, cả FA)</div>${hits.map((u) => `<button class="dl-item qx" data-open="${esc(u.c)}"><span class="av ${u.um ? 'um' : ''}">${esc(initials(u.n))}</span><span class="dl-t"><b>${qsHl(u.n, raw)}</b><small>${esc(u.t)} · ${esc(u.c)} · KV ${esc(u.a)}</small></span></button>`).join('')}` : '';
+    $$('[data-open]', box).forEach((el) => el.onclick = (ev) => { ev.preventDefault(); openPerson(el.dataset.open); }); };
+  $('#dl-q').onkeydown = (e) => { if (e.key === 'Enter') { const f = [...$$('.dl-item', $('#drawer'))].find((b) => b.style.display !== 'none' && b.dataset.open !== a.c); if (f) f.click(); } };
   $('.dr-b').scrollTop = 0;
   const on = $('.dl-item.on', $('#drawer')); if (on) on.scrollIntoView({ block: 'nearest' });
 }
