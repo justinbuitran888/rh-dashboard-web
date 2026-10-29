@@ -307,6 +307,15 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .cond.ok{border-color:#abefc6;background:#f6fef9}
 .cond .t{font-weight:600;font-size:13px}.cond .r{font-size:12.5px;font-weight:600}
 .cond .meter{grid-column:1/-1}
+.pf-tabs,.pf-pane{flex-shrink:0}.pf-tabs{position:sticky;top:-1px;z-index:3;background:var(--bg-card,#fff);margin:0;padding-top:4px;overflow:visible;flex-wrap:wrap;min-height:max-content}.pf-tabs button{white-space:nowrap}
+.pf-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin:0 0 12px}
+.pf-card{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line);border-left:4px solid #98a2b3;border-radius:12px;background:#fff;transition:box-shadow .15s}.pf-card:hover{box-shadow:0 2px 10px rgba(16,24,40,.08)}
+.pf-card.good{border-left-color:#17b26a}.pf-card.warn{border-left-color:#f79009}.pf-card.bad{border-left-color:#f04438}.pf-card.blue{border-left-color:#0a3d2a;background:#f6fef9}
+.pf-ct{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.pf-cv{font-size:20px;line-height:1.2}.pf-cv small{font-size:12px;font-weight:500;color:var(--muted)}.pf-cs{font-size:12.5px;color:var(--ink-2)}.pf-go{font-size:12px;color:#067647;margin-top:auto;font-weight:600}
+.pf-mini{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}.pf-mini span{font-size:12px;color:var(--muted)}.pf-mini b{font-size:18px}.pf-mini small{font-size:11.5px;color:var(--muted)}
+.pf-hero{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:14px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 10px;background:#f9fafb}.pf-k{font-size:12px;color:var(--muted)}.pf-v{font-size:22px;font-weight:700;margin:2px 0 6px}.pf-s{font-size:12.5px;line-height:1.55}
+.pf-pane>.sec:first-child,.pf-pane>.chk:first-child{margin-top:0}
+@media (max-width:640px){.pf-hero{grid-template-columns:1fr}}
 .mt-ck{white-space:nowrap;font-size:12px;font-weight:600}.mt-ck.ok{color:#067647}.mt-ck.miss{color:#b42318}.mt-tbl td{vertical-align:top}
 .mr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}.mr-c{border:1px solid var(--line);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:4px}.mr-c.ok{border-color:#abefc6;background:#f6fef9}.mr-c.miss{border-color:#fda29b;background:#fffbfa}
 .mr-ct{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}.mr-n{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--ink-2,#344054);color:#fff;font-size:11px}.mr-ic{margin-left:auto;font-weight:800}.mr-c.ok .mr-ic{color:#067647}.mr-c.miss .mr-ic{color:#b42318}
@@ -2543,6 +2552,56 @@ function bindGtfKpi(c) {
   };
 }
 
+// =====================================================================
+//  TRANG CÁ NHÂN – thăng cấp / duy trì UM+ (0064M01/2025 + 0019M09/2026) & sức khỏe đội ngũ
+// =====================================================================
+const UMP = { up: { SUM: 80000, DM: 190000, SDM: 360000, BM: 600000, AM: 800000 }, keep: { UM: 25000, SUM: 40000, DM: 100000, SDM: 180000, BM: 300000, AM: 400000 }, ladder: ['UM', 'SUM', 'DM', 'SDM', 'BM', 'AM'] };
+const fyc3 = (x) => N(x.fyc[0]) + N(x.fyc[1]) + N(x.fyc[2]);
+function grpFyc6(a) { // FYC nhóm 6 tháng: BC70 "FYC toàn tổ 6T" (đã gồm cá nhân); thiếu thì cộng từ đội
+  const t = a.fyct6 != null && N(a.fyct6) > 0 ? N(a.fyct6) : N(a.fyc6) + sum(a.team(), (z) => N(z.fyc6));
+  const self = Math.min(N(a.fyc6), t), oth = Math.max(0, t - self);
+  return { t, self, oth, l50: oth + Math.min(self, oth) };
+}
+function umPromoEval(a) {
+  const team = a.team(), recs = DS.agents.filter((r) => r.rec === a.c && r !== a), g = grpFyc6(a), p13 = a.p13 == null ? null : N(a.p13);
+  if (!a.um) { // FA → UM
+    const rOk = recs.filter(prod6ok), tOk = team.filter(prod6ok), big = team.filter((z) => fyc3(z) >= 15000), src = tOk.length + (prod6ok(a) ? 1 : 0);
+    const cs = [
+      { k: 'ĐL tuyển trực tiếp có SX (6 tháng)', v: rOk.length, t: 2, f: f0, ok: rOk.length >= 2, h: 'Có SX = ≥ 1 HĐ & ≥ 4 tr FYC trong 6 tháng · ĐL/UM+ chuyển đổi MIT thành công & có SX được tính như 1 ĐL tuyển trực tiếp (0019M09)', need: rOk.length >= 2 ? '' : `cần thêm ${2 - rOk.length} ĐL tự tuyển có SX` },
+      { k: 'ĐL toàn nhóm có SX (hoặc 1 ĐL ≥ 15 tr FYC 3 tháng)', v: tOk.length, t: 4, f: f0, ok: tOk.length >= 4 || big.length >= 1, h: big.length ? `Đã có ${big.map((z) => esc(z.n)).slice(0, 2).join(', ')} ≥ 15 tr FYC 3 tháng` : '', need: tOk.length >= 4 || big.length ? '' : `cần thêm ${4 - tOk.length} ĐL có SX, hoặc 1 ĐL đạt 15 tr FYC trong 3 tháng` },
+      { k: 'Nguồn sản xuất (bản thân + nhóm)', v: src, t: 4, f: f0, ok: src >= 4, h: 'Ước tính: bản thân và mỗi ĐL trong nhóm có SX 6 tháng tính 1 nguồn', need: src >= 4 ? '' : `cần thêm ${4 - src} nguồn có SX` },
+      { k: 'FYC nhóm 6 tháng', v: g.t, t: 40000, f: money, ok: g.t >= 40000, h: '', need: g.t >= 40000 ? '' : `cần thêm ${money(40000 - g.t)} FYC nhóm` },
+      { k: 'P13 ≥ 60%', v: p13, t: 60, f: (v) => (v == null ? '–' : f1(v) + '%'), ok: p13 == null || p13 >= 60, h: p13 == null ? 'Chưa có P13' : '', need: p13 != null && p13 < 60 ? 'nâng P13 lên 60%' : '' },
+    ];
+    return { mode: 'up', to: 'UM', cs, ok: cs.filter((c) => c.ok).length, n: cs.length, bc: a.ump == null ? null : N(a.ump), recs, rOk, tOk, g };
+  }
+  const t = String(a.t).toUpperCase(), i = UMP.ladder.indexOf(t), nx = i >= 0 ? UMP.ladder[i + 1] : null, keepT = UMP.keep[t];
+  const cs = [];
+  if (keepT) cs.push({ k: `Duy trì ${t}: FYC 6 tháng (luật 50)`, v: g.l50, t: keepT, f: money, ok: g.l50 >= keepT, h: `Xét ${/^(UM|SUM)$/.test(t) ? 'tháng 3 & 9' : 'tháng 9'} · FYC nhóm ${money(g.t)}, cá nhân tính tối đa bằng phần của đội`, need: g.l50 >= keepT ? '' : `thiếu ${money(keepT - g.l50)} FYC (6 tháng)`, keep: 1 });
+  cs.push({ k: 'P13 ≥ 50% (duy trì)', v: p13, t: 50, f: (v) => (v == null ? '–' : f1(v) + '%'), ok: p13 == null || p13 >= 50, h: p13 == null ? 'Chưa có P13' : '', need: p13 != null && p13 < 50 ? 'nâng P13 lên 50%' : '', keep: 1 });
+  if (nx && UMP.up[nx]) cs.push({ k: `Thăng ${nx}: FYC 6 tháng (luật 50)`, v: g.l50, t: UMP.up[nx], f: money, ok: g.l50 >= UMP.up[nx], h: 'Cùng các điều kiện đội ngũ khác của 0064M01/2025', need: g.l50 >= UMP.up[nx] ? '' : `thiếu ${money(UMP.up[nx] - g.l50)} FYC (6 tháng) – ~${money((UMP.up[nx] - g.l50) / 6)}/tháng` });
+  const kc = cs.filter((c) => c.keep);
+  return { mode: 'um', to: nx, cs, keepOk: kc.every((c) => c.ok), ok: cs.filter((c) => c.ok).length, n: cs.length, recs, rOk: recs.filter(prod6ok), g };
+}
+function umPromoHtml(a, gtfHtml) {
+  const e = umPromoEval(a), y = evalYear(), up = upOf(a), m1 = up && up.um ? up : null;
+  const card = (c) => `<div class="mr-c ${c.ok ? 'ok' : 'miss'}"><div class="mr-ct">${esc(c.k)}<span class="mr-ic">${c.ok ? '✓' : '✗'}</span></div><div class="mr-v"><b class="num">${c.f(c.v)}</b><span> / ${c.f(c.t)}</span></div>${meter(c.v == null ? 1 : N(c.v) / c.t)}<div class="mr-g">${c.ok ? 'Đạt' : `<b>${esc(c.need)}</b>`}${c.h ? `<br><span class="muted">${c.h}</span>` : ''}</div></div>`;
+  const recRow = (r) => `<li><a href="#" data-open="${esc(r.c)}">${esc(r.n)}</a> <span class="muted small">${esc(r.t)} · mã ${dmy(r.j)}</span> — ${f0(r.cc6)} HĐ · FYC ${money(r.fyc6)} (6T) ${prod6ok(r) ? '<span class="badge b-green">có SX</span>' : `<span class="badge b-red">thiếu ${[N(r.cc6) < 1 && '1 HĐ', N(r.fyc6) < 4000 && money(4000 - N(r.fyc6)) + ' FYC'].filter(Boolean).join(' + ')}</span>`}</li>`;
+  const near = e.recs.filter((r) => !prod6ok(r)).sort((p, q) => N(q.fyc6) - N(p.fyc6));
+  const head = e.mode === 'up'
+    ? `<div class="pf-hero"><div><div class="pf-k">Tiến độ thăng cấp UM (BC70)</div><div class="pf-v num">${e.bc == null ? '–' : pct(e.bc)}</div>${meter(e.bc ?? e.ok / e.n)}</div><div class="pf-s">${e.ok}/${e.n} điều kiện ước tính đã đạt · đánh giá hằng tháng, giai đoạn 6 tháng (0064M01/2025)${m1 ? `<br>Nếu thăng cấp UM trong ${y} (không GTF): <a href="#" data-open="${esc(m1.c)}">${esc(m1.n)}</a> có thêm 1 UM+ mới cho MBA Pro (TC3) và đội của ${esc(a.n)} cộng dồn TC1 & TC2.` : ''}</div></div>`
+    : `<div class="pf-hero"><div><div class="pf-k">Chức danh hiện tại</div><div class="pf-v">${esc(a.t)} ${e.keepOk ? '<span class="badge b-green">đang đủ duy trì</span>' : '<span class="badge b-red">chưa đủ duy trì</span>'}</div></div><div class="pf-s">FYC nhóm 6 tháng ${money(e.g.t)} · tính theo luật 50: ${money(e.g.l50)}${e.to ? ` · cấp kế tiếp: <b>${esc(e.to)}</b>` : ''}<br>ĐL do ${esc(a.n)} tự tuyển có SX 6 tháng: ${f0(e.rOk.length)}/${f0(e.recs.length)}</div></div>`;
+  return `${head}<div class="mr-grid">${e.cs.map(card).join('')}</div>
+    ${near.length || e.rOk.length ? `<div class="mr-act"><h5>ĐL tự tuyển · ai cần chạy thêm để được tính "có sản xuất"</h5><ul class="mr-ul">${[...near.slice(0, 8), ...e.rOk.slice(0, 6)].map(recRow).join('')}</ul></div>` : ''}
+    ${gtfHtml}
+    <p class="note">Ngưỡng theo slide tổng hợp UM+ 2026 (0064M01/2025 là file ảnh): FA→UM cần 2 ĐL tuyển trực tiếp có SX, 4 ĐL toàn nhóm có SX (hoặc 1 ĐL ≥ 15 tr FYC 3T), 4 nguồn SX, FYC nhóm 6T 40 tr, P13 ≥ 60%. Thăng cấp UM+: FYC 6T luật 50 SUM 80 · DM 190 · SDM 360 · BM 600 · AM 800 tr. Duy trì: UM 25 · SUM 40 · DM 100 · SDM 180 · BM 300 · AM 400 tr, P13 ≥ 50%. Giáng cấp nếu điểm danh tháng 0% hoặc 3 tháng liên tục &lt; 50%. Số liệu ước tính từ BC70 – tiến độ chính thức theo cột "Tiến độ UM".</p>`;
+}
+function teamHealth(a) {
+  const d = a.kids, t = a.team(), M = DS.months;
+  const seg = (xs) => ({ reg: xs.filter((x) => act3(x, 2) === 3).length, some: xs.filter((x) => act3(x, 2) > 0 && act3(x, 2) < 3).length, none: xs.filter((x) => act3(x, 2) === 0 && !(N(x.ten) <= 1)).length, nw: xs.filter((x) => N(x.ten) <= 3).length, now: xs.filter((x) => isActive(x, 3)).length });
+  return { d, t, sd: seg(d), st: seg(t), prod: d.filter((k) => N(k.fyc[3]) >= 4000 && N(k.cc[3]) >= 1).length, aaTrend: [0, 1, 2, 3].map((i) => t.filter((x) => isActive(x, i)).length + (isActive(a, i) ? 1 : 0)) };
+}
+
 function openPerson(code) {
   const a = DS.by.get(code); if (!a) return;
   S.sel = code;
@@ -2583,7 +2642,7 @@ function openPerson(code) {
   // UM promotion (FA)
   const umHtml = !a.um && a.ump != null ? `<div class="sec"><h4>Tiến độ thăng cấp UM</h4>${meter(N(a.ump))}<p class="note">${pct(N(a.ump))} theo BC70.</p></div>` : '';
   const gp = DS.gtfPipe.find((x) => x.c === a.c);
-  const gtfHtml = gp ? `<div class="sec"><h4>Ứng viên UM+ GTF · ${esc(gp.role || '')} ${gtfBadge(gtfEval(gp))}</h4>${gtfCondHtml(gtfEval(gp))}</div>` : gt ? `<div class="sec"><h4>UM+ GTF</h4><p class="note">${esc(gt.role || '')} · ${esc(gt.result || '')}${gt.reached ? ' · đạt ' + esc(gt.reached) : ''} · đánh giá đến ${dmy(gt.end)} · ${esc(gt.eval || '')} · ${esc(gt.file || '')}</p></div>` : '';
+  const gtfHtml = gp ? `<div class="sec"><h4>Ứng viên UM+ GTF · ${esc(gp.role || '')} ${gtfBadge(gtfEval(gp))}</h4>${gtfCondHtml(gtfEval(gp))}</div>` : gt && (gt.role || gt.result || gt.reached) ? `<div class="sec"><h4>UM+ GTF</h4><p class="note">${esc(gt.role || '')} · ${esc(gt.result || '')}${gt.reached ? ' · đạt ' + esc(gt.reached) : ''} · đánh giá đến ${dmy(gt.end)} · ${esc(gt.eval || '')} · ${esc(gt.file || '')}</p></div>` : '';
 
   // đội ngũ trực tiếp
   const direct = [...a.kids].sort((p, q) => N(q.fyp6) - N(p.fyp6));
@@ -2611,16 +2670,46 @@ function openPerson(code) {
       <p>${chain.length ? 'Báo cáo: ' + chain.map((p) => `<a href="#" data-open="${esc(p.c)}">${esc(p.n)}</a>`).join(' › ') : 'Báo cáo trực tiếp khu vực'}</p></div>
     <button class="btn btn-sm btn-ghost" id="dr-x" aria-label="Đóng">✕</button></div>
   <div class="dr-b">
-    <div class="mini-kpis">
-      <div class="mini"><div class="k">FYP 6 tháng (cá nhân)</div><div class="x num">${money(a.fyp6)}</div></div>
-      <div class="mini"><div class="k">3 tháng có HĐ</div><div class="x">${act3(a, 2)}/3 ${dots(a)}</div></div>
-      <div class="mini"><div class="k">P13 cá nhân</div><div class="x num">${a.p13 == null ? '–' : f1(a.p13) + '%'}</div></div>
-      <div class="mini"><div class="k">FYP 12 tháng</div><div class="x num">${money(a.fyp12)}</div></div>
-      <div class="mini"><div class="k">HĐ 12 tháng</div><div class="x num">${f0(a.cc12)}</div></div>
-      <div class="mini"><div class="k">Tháng có HĐ / 12</div><div class="x num">${f0(a.am12)}</div></div>
-    </div>
-    ${creditsHtml(a)}
-    ${incChecklistHtml(a)}
+    ${(() => {
+      const Pn = (() => { try { return incPlan(a); } catch { return null; } })();
+      const mbS = a.um ? (() => { const m = DS.mba.get(a.c) || {}, ci = MBA.levels.indexOf(m.cur), t = Math.min(2, ci + 1); const ok = [N(m.n1a) >= MBA.n1a[t] || N(m.n1b) >= MBA.n1b[t], N(m.fyc) >= MBA.fyc[t], N(m.newUm) >= MBA.newUm, m.p13 == null || N(m.p13) >= MBA.p13].filter(Boolean).length; return { cur: ci >= 0 ? m.cur.replace('MBA Pro ', '') : null, to: MBA.levels[t].replace('MBA Pro ', ''), ok }; })() : null;
+      const pe = umPromoEval(a), th = teamHealth(a), hasTeam = a.um || a.kids.length || recruits.length;
+      const tabs = [['ov', 'Tổng quan'], ['inc', 'Thu nhập'], ...(a.um ? [['mba', 'MBA Pro']] : []), ['up', a.um ? 'Thăng cấp / duy trì' : 'Thăng cấp UM'], ...(hasTeam ? [['team', 'Sức khỏe đội ngũ']] : []), ['per', 'Sản xuất & danh hiệu']];
+      const cur = tabs.some(([k]) => k === S.prTab) ? S.prTab : 'ov';
+      const mdPct = MDRT[0].v ? N(a.mdrtf) / MDRT[0].v : 0;
+      const sc = (k, ttl, big, sub, st) => `<button class="pf-card ${st || ''}" data-ptab="${k}"><span class="pf-ct">${ttl}</span><b class="pf-cv">${big}</b><span class="pf-cs">${sub}</span><span class="pf-go">Xem chi tiết →</span></button>`;
+      const ov = `${''}
+        <div class="pf-cards">
+          ${Pn ? sc('inc', 'Tổng thu nhập ' + mLabel(M[3]), `${money(Pn.pCur + Pn.mCur)} → <span class="ok">${money(Pn.pTgt + Pn.mTgt)}</span>`, `Cá nhân ${money(Pn.pCur)} → ${money(Pn.pTgt)}${a.um ? ` · Đội ngũ ${money(Pn.mCur)} → ${money(Pn.mTgt)}` : ''}`, 'blue') : ''}
+          ${mbS ? sc('mba', 'MBA Pro ' + (+year + 1), `${mbS.ok}/4 <small>điều kiện ${esc(mbS.to)}</small>`, mbS.cur ? `Tạm tính ${esc(mbS.cur)}` : 'Chưa có danh hiệu', mbS.ok === 4 ? 'good' : mbS.ok === 3 ? 'warn' : 'bad') : ''}
+          ${pe.mode === 'up' ? sc('up', 'Thăng cấp UM', pe.bc == null ? `${pe.ok}/${pe.n}` : pct(pe.bc), `${pe.ok}/${pe.n} điều kiện ước tính · ${f0(pe.rOk.length)} ĐL tự tuyển có SX`, pe.ok >= pe.n - 1 ? 'good' : '') : sc('up', 'Chức danh ' + esc(a.t), pe.keepOk ? 'Đủ duy trì' : 'Chưa đủ duy trì', `FYC 6T luật 50 ${money(pe.g.l50)}${pe.to ? ` · lên ${esc(pe.to)} cần ${money(UMP.up[pe.to] || 0)}` : ''}`, pe.keepOk ? 'good' : 'bad')}
+          ${hasTeam ? sc('team', 'Sức khỏe đội ngũ', `${f0(th.sd.now)}/${f0(th.d.length)} <small>trực tiếp có HĐ ${mLabel(M[3])}</small>`, `Đều 3/3 tháng: ${f0(th.sd.reg)} · không HĐ 3 tháng: ${f0(th.sd.none)} · toàn nhóm ${f0(th.t.length)}`, th.d.length && th.sd.none / th.d.length > 0.5 ? 'bad' : '') : ''}
+          ${sc('per', 'Sản xuất & danh hiệu', `${money(a.fyp[3])} <small>FYP ${mLabel(M[3])}</small>`, `MDRT ${pct(Math.min(9.99, mdPct))} mốc${mp?.official ? ` · ${esc(mp.official.replace('Manulife Pro ', 'ManPro '))}` : ''}`)}
+        </div>
+            <div class="mini-kpis">
+              <div class="mini"><div class="k">FYP 6 tháng (cá nhân)</div><div class="x num">${money(a.fyp6)}</div></div>
+              <div class="mini"><div class="k">3 tháng có HĐ</div><div class="x">${act3(a, 2)}/3 ${dots(a)}</div></div>
+              <div class="mini"><div class="k">P13 cá nhân</div><div class="x num">${a.p13 == null ? '–' : f1(a.p13) + '%'}</div></div>
+              <div class="mini"><div class="k">FYP 12 tháng</div><div class="x num">${money(a.fyp12)}</div></div>
+              <div class="mini"><div class="k">HĐ 12 tháng</div><div class="x num">${f0(a.cc12)}</div></div>
+              <div class="mini"><div class="k">Tháng có HĐ / 12</div><div class="x num">${f0(a.am12)}</div></div>
+            </div>
+        
+        ${creditsHtml(a)}`;
+      const panes = { ov,
+        inc: incChecklistHtml(a) || '<p class="note">Chưa tính được thu nhập cho người này.</p>',
+        mba: mbaHtml,
+        up: umPromoHtml(a, gtfHtml),
+        team: `${(() => { const sd = th.sd; return `<div class="pf-cards">${[['Trực tiếp', th.d.length, `toàn nhóm ${f0(th.t.length)}`], ['Có HĐ ' + mLabel(M[3]), sd.now, pct(th.d.length ? sd.now / th.d.length : null)], ['Hoạt động đều 3/3 tháng', sd.reg, 'nòng cốt'], ['1–2/3 tháng', sd.some, 'cần kèm để đều'], ['Không HĐ 3 tháng', sd.none, 'nguy cơ rời'], ['ĐL mới ≤ 3 tháng', sd.nw, 'cần kích hoạt'], ...(a.um ? [['ĐL cấp 1 SX ' + mLabel(M[3]), th.prod, '1 HĐ & ≥ 4 tr FYC']] : [])].map(([k, v, s2]) => `<div class="pf-mini"><span>${k}</span><b class="num">${f0(v)}</b><small>${s2}</small></div>`).join('')}</div>
+            <div class="note" style="margin:0 0 10px">ĐL có HĐ toàn nhóm (gồm bản thân) theo tháng: ${M.map((m, i) => `${mLabel(m)}${i === 3 ? '*' : ''} <b>${f0(th.aaTrend[i])}</b>`).join(' · ')}</div>`; })()}
+          ${teamHtml}
+    <div class="sec"><h4>Tuyển dụng</h4>
+                <div class="mini-kpis"><div class="mini"><div class="k">Tuyển mới / tháng</div><div class="x">${spark(a.nr.slice(0, 3))} <span class="num small">${a.nr.slice(0, 4).map(f0).join(' · ')}</span></div></div>
+                <div class="mini"><div class="k">Tuyển 6T có hoạt động</div><div class="x num">${f0(a.nra6)}</div></div>
+                <div class="mini"><div class="k">ĐL đã tuyển (còn HĐ)</div><div class="x num">${f0(recruits.length)}</div></div></div>
+                ${recruits.length ? `<div class="tbl-wrap" style="max-height:220px;margin-top:8px"><table class="tbl"><tbody>${recruits.slice(0, 40).map((r) => `<tr class="click" data-open="${esc(r.c)}"><td>${esc(r.n)} <span class="muted small">${esc(r.t)}</span></td><td>${dmy(r.j)}</td><td>${dots(r)}</td><td class="r num">${money(r.fyp6)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>
+          `,
+        per: `${mdrtHtml}${mpHtml}
     <div class="sec"><h4>Kết quả sản xuất</h4>${barChart(prodItems, { h: 170, fmt: (v) => money(v) })}
       <div class="tbl-wrap"><table class="tbl"><thead><tr><th></th>${M.map((y, i) => `<th class="r">${mLabel(y)}${i === 3 ? '*' : ''}</th>`).join('')}</tr></thead><tbody>
       <tr><td>FYP</td>${a.fyp.map((v) => `<td class="r num">${money(v)}</td>`).join('')}</tr>
@@ -2628,15 +2717,14 @@ function openPerson(code) {
       <tr><td>FYC</td>${a.fyc.map((v) => `<td class="r num">${money(v)}</td>`).join('')}</tr>
       ${DS.meta.officialMonth === M[2] && a.offyp != null ? `<tr><td>FYP chính thức</td><td></td><td></td><td class="r num">${money(a.offyp)}</td><td></td></tr>` : ''}
       </tbody></table></div><p class="note">* ${mLabel(M[3])} tạm tính đến ${dmy(asOf)}. FYP thực cấp theo báo cáo KD ĐL (tháng chưa có báo cáo: FYP tính thưởng BC70)${a.offpend ? ` · ${f0(a.offpend)} HĐ đang thẩm định` : ''}.</p></div>
-    <div class="sec"><h4>Tuyển dụng</h4>
-      <div class="mini-kpis"><div class="mini"><div class="k">Tuyển mới / tháng</div><div class="x">${spark(a.nr.slice(0, 3))} <span class="num small">${a.nr.slice(0, 4).map(f0).join(' · ')}</span></div></div>
-      <div class="mini"><div class="k">Tuyển 6T có hoạt động</div><div class="x num">${f0(a.nra6)}</div></div>
-      <div class="mini"><div class="k">ĐL đã tuyển (còn HĐ)</div><div class="x num">${f0(recruits.length)}</div></div></div>
-      ${recruits.length ? `<div class="tbl-wrap" style="max-height:220px;margin-top:8px"><table class="tbl"><tbody>${recruits.slice(0, 40).map((r) => `<tr class="click" data-open="${esc(r.c)}"><td>${esc(r.n)} <span class="muted small">${esc(r.t)}</span></td><td>${dmy(r.j)}</td><td>${dots(r)}</td><td class="r num">${money(r.fyp6)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>
-    ${teamHtml}${mdrtHtml}${mbaHtml}${mpHtml}${umHtml}${gtfHtml}
+` };
+      return `<div class="tabs pf-tabs">${tabs.map(([k, l]) => `<button class="${k === cur ? 'on' : ''}" data-ptab="${k}">${l}</button>`).join('')}</div>
+        ${tabs.map(([k]) => `<div class="pf-pane" data-pfp="${k}" ${k === cur ? '' : 'hidden'}>${panes[k]}</div>`).join('')}`;
+    })()}
   </div></section></div>`;
   $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false');
   $('#dr-x').onclick = closeDrawer;
+  $$('[data-ptab]', $('#drawer')).forEach((b) => b.onclick = () => { S.prTab = b.dataset.ptab; $$('.pf-tabs [data-ptab]', $('#drawer')).forEach((x) => x.classList.toggle('on', x.dataset.ptab === S.prTab)); $$('.pf-pane', $('#drawer')).forEach((p) => { p.hidden = p.dataset.pfp !== S.prTab; }); $('.dr-b').scrollTop = 0; });
   $$('[data-open]', $('#drawer')).forEach((el) => el.onclick = (e) => { e.preventDefault(); openPerson(el.dataset.open); });
   $('#dl-area').onchange = (e) => { S.drArea = e.target.value; const first = DS.agents.filter((u) => u.a === S.drArea && u.um).sort((p, q) => N(q.fyp6) - N(p.fyp6))[0]; if (first) openPerson(first.c); else { S.drArea = null; } };
   $('#dl-q').oninput = (e) => { const q = norm(e.target.value); $$('.dl-item', $('#drawer')).forEach((b) => { b.style.display = !q || b.dataset.q.includes(q) ? '' : 'none'; }); };
