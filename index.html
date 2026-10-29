@@ -307,6 +307,14 @@ table.tbl{border-collapse:collapse;width:100%;font-size:13px}
 .cond.ok{border-color:#abefc6;background:#f6fef9}
 .cond .t{font-weight:600;font-size:13px}.cond .r{font-size:12.5px;font-weight:600}
 .cond .meter{grid-column:1/-1}
+.mt-ck{white-space:nowrap;font-size:12px;font-weight:600}.mt-ck.ok{color:#067647}.mt-ck.miss{color:#b42318}.mt-tbl td{vertical-align:top}
+.mr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}.mr-c{border:1px solid var(--line);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:4px}.mr-c.ok{border-color:#abefc6;background:#f6fef9}.mr-c.miss{border-color:#fda29b;background:#fffbfa}
+.mr-ct{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}.mr-n{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--ink-2,#344054);color:#fff;font-size:11px}.mr-ic{margin-left:auto;font-weight:800}.mr-c.ok .mr-ic{color:#067647}.mr-c.miss .mr-ic{color:#b42318}
+.mr-v b{font-size:17px}.mr-v span{font-size:12px;color:var(--muted)}.mr-g{font-size:12px}.mr-c.miss .mr-g b{color:#b42318}
+.mr-act{border:1px solid #fedf89;background:#fffcf5;border-radius:12px;padding:10px 12px;margin:0 0 12px}.mr-act h5,.mr-team h5{margin:0 0 8px;font-size:13px}.mr-ai{margin:0 0 8px}.mr-at{font-size:13px}.mr-ai ul{margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.55}
+.mr-gp{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 8px}.mr-gh{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px}.mr-chips{display:flex;flex-wrap:wrap;gap:4px;width:100%}.mr-y,.mr-x{font-size:11.5px;padding:2px 7px;border-radius:999px}.mr-y{background:#ecfdf3;color:#067647}.mr-x{background:#fef3f2;color:#b42318}
+.mr-gb{margin-top:6px}.mr-ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.6;max-height:220px;overflow:auto}.mr-rules{margin-top:8px;font-size:12.5px}.mr-rules summary{cursor:pointer;font-weight:600}.mr-rules table{margin-top:6px;font-size:12px}.mr-rules td{white-space:normal;vertical-align:top}
+@media (max-width:640px){.mr-grid{grid-template-columns:1fr}}
 .cond .h{grid-column:1/-1;font-size:12px;color:var(--muted)}
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow:auto}
 .tabs button{border:0;background:none;padding:9px 12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
@@ -2300,7 +2308,8 @@ function creditsOf(x) {
   if (m1) {
     add(m1, 'mba', `MBA Pro – FYC của ${x.n} vào "FYC cấp trực tiếp" (tiêu chí 2)`);
     if (isRecruitY(x)) { const st = mbaRecruitStatus(x); add(m1, 'mba', `MBA Pro – ĐL tuyển mới ${y} cấp trực tiếp (tiêu chí 1): ${st.a ? 'đã đạt 3HĐ & 40tr' : st.b ? 'đã đạt 1HĐ & 16tr' : `chưa đạt (${f0(st.cc)} HĐ · ${money(st.fyp)})`}`); }
-    if (isNewUM(x)) add(m1, 'mba', `MBA Pro – ${x.n} là UM+ mới ${y} → tính 1 "UM+ mới cấp trực tiếp" (tiêu chí 3)`);
+    if (isNewUM(x)) add(m1, 'mba', isNewUM3(x) ? `MBA Pro – ${x.n} là UM mới ${y} → tính 1 "UM+ mới cấp trực tiếp" (tiêu chí 3)` : `MBA Pro – ${x.n} thăng cấp UM tháng 01/${y}: không tính tiêu chí 3, vẫn cộng dồn tiêu chí 1 & 2`);
+    if (isGtfY(x)) { const g = gtfTc3(x); add(m1, 'mba', `MBA Pro – ${x.n} là UM+ GTF ${y}: chỉ FYC cá nhân tính tiêu chí 2, đội của ${x.n} KHÔNG cộng dồn; tính "UM+ mới" (tiêu chí 3) khi đủ 2 ĐL tự tuyển có 1HĐ&16tr (đang ${g.n}/2) và FYC ≥ 40 tr (đang ${money(g.fyc)})`); }
     if (!x.um && N(x.ump) >= 0.5) add(m1, 'um', `Nếu ${x.n} thăng cấp UM trong ${y} → ${m1.n} thêm 1 UM+ mới (MBA tiêu chí 3) và đội của ${x.n} sẽ cộng dồn lên ${m1.n}`);
     // UM mới: kết quả cấp trực tiếp của UM mới được cộng cho UM+ quản lý trực tiếp của UM mới
     const u2 = upOf(m1);
@@ -2334,7 +2343,7 @@ function creditsHtml(a) {
   const meNew = isNewUM(a), up2 = upOf(a), m2 = up2 && up2.um ? up2 : null;
   const tips = [
     meNew && m2 ? `<b>${esc(a.n)}</b> là <b>UM mới ${y}</b> → mọi ĐL tuyển mới có sản xuất và FYC cấp trực tiếp của ${esc(a.n)} được tính <b>cho cả ${esc(a.n)} và ${esc(m2.n)}</b>; bản thân ${esc(a.n)} cũng là 1 "UM+ mới" (tiêu chí 3) của ${esc(m2.n)}. Hai người nên cùng đẩy các ĐL dưới đây.` : '',
-    newUMs.length ? `Có <b>${newUMs.length} UM mới ${y}</b> trực tiếp (${newUMs.map((u) => `<a href="#" data-open="${esc(u.c)}">${esc(u.n)}</a>`).join(', ')}) → đã có ${newUMs.length}/1 UM+ mới (tiêu chí 3) và kết quả cấp trực tiếp của họ được cộng dồn lên ${esc(a.n)}.` : `Chưa có UM+ mới ${y} trực tiếp (tiêu chí 3 cần 1).${pot.length ? ` Ứng viên gần nhất: ${pot.slice(0, 3).map((k) => `<a href="#" data-open="${esc(k.c)}">${esc(k.n)}</a> (${pct(N(k.ump))})`).join(', ')}.` : ''}`,
+    newUMs.length ? `Có <b>${newUMs.length} UM mới ${y}</b> trực tiếp (${newUMs.map((u) => `<a href="#" data-open="${esc(u.c)}">${esc(u.n)}</a>`).join(', ')}) → ${newUMs.filter(isNewUM3).length}/1 UM+ mới tính tiêu chí 3 (thăng cấp T02–T12) và kết quả cấp trực tiếp của họ được cộng dồn lên ${esc(a.n)}.` : `Chưa có UM+ mới ${y} trực tiếp (tiêu chí 3 cần 1).${pot.length ? ` Ứng viên gần nhất: ${pot.slice(0, 3).map((k) => `<a href="#" data-open="${esc(k.c)}">${esc(k.n)}</a> (${pct(N(k.ump))})`).join(', ')}.` : ''}`,
     `ĐL tuyển mới ${y} được tính (tiêu chí 1, gồm cả qua UM mới): <b>${nA}</b> đạt 3HĐ&40tr · <b>${nB}</b> đạt 1HĐ&16tr / ${st.length} ĐL mới.`,
     near.length ? `Sắp đạt 1HĐ&16tr: ${near.slice(0, 5).map((r) => `<a href="#" data-open="${esc(r.k.c)}">${esc(r.k.n)}</a> (${f0(r.s.cc)} HĐ · ${money(r.s.fyp)}${r.u ? ` · qua ${esc(r.u.n)}` : ''})`).join(', ')}` : '',
     near3.length ? `Gần 3HĐ&40tr: ${near3.slice(0, 5).map((r) => `<a href="#" data-open="${esc(r.k.c)}">${esc(r.k.n)}</a> (${f0(r.s.cc)} HĐ · ${money(r.s.fyp)})`).join(', ')}` : '',
@@ -2342,6 +2351,112 @@ function creditsHtml(a) {
   ].filter(Boolean);
   return mine + `<div class="credit-box mgr"><div class="cb-h">🧭 Gợi ý vận hành · danh hiệu của ${esc(a.n)} nhận đóng góp từ đâu</div><ul>${tips.map((t) => `<li>${t}</li>`).join('')}</ul>
     <p class="note" style="margin:6px 0 0">Theo memo 0050M01/2026 (MBA Pro): tiêu chí 1 & 2 tính cấp báo cáo trực tiếp; kết quả cấp trực tiếp của <b>UM mới</b> (thăng cấp trong năm, không GTF, còn giữ UM+ cuối năm) được cộng cho UM+ quản lý trực tiếp của UM mới. Theo 0019M09/2026: thăng cấp / duy trì UM+ xét ĐL do mình <b>tuyển dụng trực tiếp</b> có sản xuất. UM mới xác định theo ngày hiệu lực chức danh trong BC70.</p></div>`;
+}
+
+// =====================================================================
+//  MBA PRO · TRA SOÁT TỪNG UM+ (memo 0050M01/2026) – tách UM mới / UM+ GTF, việc cần làm cụ thể
+// =====================================================================
+const isSA = (x) => /^SA$/i.test(String(x?.t || ''));
+const isGtfX = (x) => !!(x && (x.gtf_date || DS.gtf.has(x.c)));
+const gtfDt = (x) => String(x.gtf_date || DS.gtf.get(x.c)?.dt || x.td || '');
+const isGtfY = (x) => !!(x && x.um && isGtfX(x) && gtfDt(x).startsWith(evalYear())); // UM+ GTF bổ nhiệm trong năm đánh giá
+const isNewUM3 = (x) => isNewUM(x) && String(x.td || '').slice(5, 7) >= '02'; // TC3: thăng cấp T02–T12 (T01 năm đánh giá không tính)
+const recOk = (x) => isRecruitY(x) && !isSA(x); // ĐL tuyển mới trong năm, không phải SA (TC1)
+// điều kiện để 1 UM+ GTF bổ nhiệm trong năm được tính là "UM+ mới" cho quản lý trực tiếp
+function gtfTc3(g) {
+  const rs = DS.agents.filter((r) => r.rec === g.c && r !== g && recOk(r)).map((r) => ({ r, s: mbaRecruitStatus(r) }));
+  const ok1 = rs.filter((x) => x.s.b), near = rs.filter((x) => !x.s.b).sort((p, q) => q.s.fyp - p.s.fyp);
+  const off = DS.mba.get(g.c), fyc = off?.fyc != null ? N(off.fyc) : N(g.fyc12) + sum(g.kids, (k) => N(k.fyc12)), est = off?.fyc == null;
+  return { rs, n: ok1.length, near, fyc, est, okN: ok1.length >= 2, okF: fyc >= 40000, ok: ok1.length >= 2 && fyc >= 40000 && g.um };
+}
+const rcGap = (s, to) => (to === 'b' ? { cc: Math.max(0, 1 - s.cc), fyp: Math.max(0, 16000 - s.fyp) } : { cc: Math.max(0, 3 - s.cc), fyp: Math.max(0, 40000 - s.fyp) });
+const rcGapTxt = (g) => [g.cc > 0 && `${f0(g.cc)} HĐ`, g.fyp > 0 && `${money(g.fyp)} FYP`].filter(Boolean).join(' + ') || 'đã đủ';
+function mbaReview(a, left, year) {
+  const mb = DS.mba.get(a.c) || {}, ci = MBA.levels.indexOf(mb.cur), t = Math.min(2, ci + 1), lv = MBA.levels[t], lvS = lv.replace('MBA Pro ', '');
+  const n1a = N(mb.n1a ?? null), n1b = N(mb.n1b ?? null), fyc = N(mb.fyc ?? a.mba_fyc), nu = N(mb.newUm ?? a.mba_newum), p13 = mb.p13 ?? a.p13d;
+  const kids = a.kids, newUMs = kids.filter(isNewUM), gtfs = kids.filter(isGtfY);
+  // TC1: ĐL tuyển mới (trực tiếp + qua UM mới)
+  const rec = [...kids.filter(recOk).map((k) => ({ k, via: null })), ...newUMs.flatMap((u) => u.kids.filter(recOk).map((k) => ({ k, via: u })))].map((x) => ({ ...x, s: mbaRecruitStatus(x.k) }));
+  const cA = rec.filter((x) => x.s.a).length, cB = rec.filter((x) => x.s.b).length;
+  const needA = Math.max(0, MBA.n1a[t] - n1a), needB = Math.max(0, MBA.n1b[t] - n1b), ok1 = !needA || !needB;
+  // TC2: FYC (luật 50) – ước tính cơ cấu theo FYC 12 tháng
+  const gapF = Math.max(0, MBA.fyc[t] - fyc), ok2 = !gapF;
+  const self12 = N(a.fyc12), dir12 = sum(kids, (k) => N(k.fyc12)) + sum(newUMs, (u) => sum(u.kids, (k) => N(k.fyc12))), capped = self12 > dir12;
+  // TC3 / TC4
+  const ok3 = nu >= MBA.newUm, ok4 = p13 == null || N(p13) >= MBA.p13;
+  const nOk = [ok1, ok2, ok3, ok4].filter(Boolean).length;
+  const um3 = newUMs.filter(isNewUM3), gtfSt = gtfs.map((g) => ({ g, ...gtfTc3(g) })), pot = kids.filter((k) => !k.um && N(k.ump) >= 0.5).sort((p, q) => N(q.ump) - N(p.ump));
+  const L = (x) => `<a href="#" data-open="${esc(x.c)}">${esc(x.n)}</a>`;
+  // ---------- 4 tiêu chí ----------
+  const card = (ok, no, title, val, tgt, r, gap) => `<div class="mr-c ${ok ? 'ok' : 'miss'}"><div class="mr-ct"><span class="mr-n">${no}</span>${esc(title)}<span class="mr-ic">${ok ? '✓' : '✗'}</span></div><div class="mr-v"><b class="num">${val}</b><span> / ${tgt}</span></div>${meter(r)}<div class="mr-g">${gap}</div></div>`;
+  const cards = [
+    card(ok1, 1, 'ĐL tuyển mới có sản xuất', `${f0(n1a)} · ${f0(n1b)}`, `${MBA.n1a[t]} (3HĐ&40tr) hoặc ${MBA.n1b[t]} (1HĐ&16tr)`, Math.max(n1a / MBA.n1a[t], n1b / MBA.n1b[t]), ok1 ? 'Đạt' : `Thiếu <b>${needB} ĐL 1HĐ&16tr</b> hoặc <b>${needA} ĐL 3HĐ&40tr</b>`),
+    card(ok2, 2, 'FYC trực tiếp + cá nhân (luật 50)', money(fyc), money(MBA.fyc[t]), fyc / MBA.fyc[t], ok2 ? 'Đạt' : `Thiếu <b>${money(gapF)}</b>${left > 0 ? ` · ~${money(gapF / left)}/tháng` : ''}`),
+    card(ok3, 3, 'UM+ mới trực tiếp', f0(nu), f0(MBA.newUm), nu / MBA.newUm, ok3 ? 'Đạt' : 'Cần 1 UM thăng cấp hoặc 1 UM+ GTF đạt chuẩn'),
+    card(ok4, 4, 'TLDTHD cấp trực tiếp', p13 == null ? '–' : f1(p13) + '%', '≥ 70%', p13 == null ? 1 : N(p13) / MBA.p13, p13 == null ? 'Chưa có số – được miễn' : ok4 ? 'Đạt' : `Thiếu <b>${f1(MBA.p13 - N(p13))} điểm %</b>`),
+  ].join('');
+  // ---------- việc cần làm ----------
+  const acts = [];
+  if (!ok1) {
+    const toB = rec.filter((x) => !x.s.b).map((x) => ({ ...x, g: rcGap(x.s, 'b') })).sort((p, q) => p.g.fyp - q.g.fyp || p.g.cc - q.g.cc);
+    const toA = rec.filter((x) => x.s.b && !x.s.a).map((x) => ({ ...x, g: rcGap(x.s, 'a') })).sort((p, q) => p.g.fyp - q.g.fyp);
+    const pathB = needB <= needA * 3; // đường 1HĐ&16tr thường dễ hơn
+    const list = (pathB ? toB : toA).slice(0, pathB ? needB : needA);
+    const short = Math.max(0, (pathB ? needB : needA) - (pathB ? toB : toA).length);
+    acts.push({ k: 1, t: `Tiêu chí 1 · cần thêm <b>${pathB ? `${needB} ĐL đạt 1HĐ & 16tr FYP` : `${needA} ĐL đạt 3HĐ & 40tr FYP`}</b> trước 31/12`, li: [
+      ...list.map((x) => `Kèm ${L(x.k)}${x.via ? ` <span class="muted">(đội UM mới ${esc(x.via.n)})</span>` : ''}: đang ${f0(x.s.cc)} HĐ · ${money(x.s.fyp)} → cần thêm <b>${rcGapTxt(x.g)}</b>`),
+      short ? `Còn thiếu ${short} người: <b>tuyển mới thêm ${short} ĐL</b> (cấp mã trước 31/12/${year}) và kích hoạt ${pathB ? '1 HĐ & 16tr FYP' : '3 HĐ & 40tr FYP'} ngay tháng đầu` : '',
+      !pathB && toB.length ? `Hoặc đi đường 1HĐ&16tr: thiếu ${needB} ĐL, gần nhất ${toB.slice(0, 3).map((x) => `${L(x.k)} (${rcGapTxt(x.g)})`).join(', ')}` : ''].filter(Boolean) });
+  }
+  if (!ok2) {
+    const top = [...kids.filter((k) => N(k.fyc[3]) > 0 || N(k.fyc[2]) > 0)].sort((p, q) => N(q.fyc[3]) + N(q.fyc[2]) - N(p.fyc[3]) - N(p.fyc[2])).slice(0, 4);
+    acts.push({ k: 2, t: `Tiêu chí 2 · cần thêm <b>${money(gapF)} FYC</b>${left > 0 ? ` (~${money(gapF / left)}/tháng trong ${left} tháng)` : ''}`, li: [
+      self12 + dir12 <= 0 ? '' : capped ? `FYC cá nhân đang <b>cao hơn</b> FYC cấp trực tiếp (12T: ${money(self12)} vs ${money(dir12)}) → phần cá nhân vượt không được tính. <b>Ưu tiên FYC từ đội</b>: mỗi 1 tr FYC đội thêm mở thêm 1 tr FYC cá nhân được tính.` : `FYC cá nhân chưa chạm trần luật 50 (12T: cá nhân ${money(self12)} · trực tiếp ${money(dir12)}) → cả bán cá nhân và FYC đội đều được tính đủ.`,
+      top.length ? `Người đang đóng góp FYC nhiều nhất 2 tháng gần đây: ${top.map((k) => `${L(k)} (${money(N(k.fyc[2]) + N(k.fyc[3]))})`).join(', ')}` : '',
+      gtfs.length || newUMs.length ? `FYC cá nhân của ${[...newUMs, ...gtfs].map(L).join(', ')} được tính; ${newUMs.length ? `FYC đội của UM mới ${newUMs.map(L).join(', ')} được cộng dồn` : ''}${gtfs.length ? `${newUMs.length ? '; ' : ''}FYC đội của UM+ GTF ${gtfs.map(L).join(', ')} <b>không</b> được cộng` : ''}.` : ''].filter(Boolean) });
+  }
+  if (!ok3) {
+    const li = [];
+    gtfSt.forEach((x) => li.push(`UM+ GTF ${L(x.g)} (bổ nhiệm ${dmy(gtfDt(x.g))}): ${x.okN ? '✓' : '✗'} ${f0(x.n)}/2 ĐL tự tuyển có 1HĐ&16tr · ${x.okF ? '✓' : '✗'} FYC ${money(x.fyc)}/40 tr${x.est ? ' (ước tính)' : ''} → ${x.ok ? '<b class="ok">đủ chuẩn, giữ UM+ đến 31/12</b>' : `cần thêm <b>${[!x.okN && `${2 - x.n} ĐL tự tuyển đạt 1HĐ&16tr${x.near.length ? ` (gần nhất: ${x.near.slice(0, 2).map((y) => `${L(y.r)} thiếu ${rcGapTxt(rcGap(y.s, 'b'))}`).join(', ')})` : ' – chưa có ứng viên, cần tuyển mới'}`, !x.okF && `${money(40000 - x.fyc)} FYC`].filter(Boolean).join(' và ')}</b>`}`));
+    newUMs.filter((u) => !isNewUM3(u)).forEach((u) => li.push(`${L(u)} thăng cấp ${dmy(u.td)} (tháng 01) → <b>không</b> tính tiêu chí 3, nhưng vẫn được cộng dồn tiêu chí 1 & 2.`));
+    if (pot.length) li.push(`Ứng viên thăng cấp UM (phải hiệu lực từ T02/${year} đến T01/${+year + 1}): ${pot.slice(0, 4).map((k) => `${L(k)} (${pct(N(k.ump))} điều kiện)`).join(', ')}`);
+    if (!li.length) li.push(`Chưa có UM mới, UM+ GTF hay ứng viên UM trong đội trực tiếp → chọn 1 FA mạnh nhất để chạy thăng cấp UM hoặc tuyển 1 UM+ GTF.`);
+    acts.push({ k: 3, t: 'Tiêu chí 3 · cần <b>1 UM+ mới</b> báo cáo trực tiếp tại 31/12', li });
+  }
+  if (!ok4) acts.push({ k: 4, t: `Tiêu chí 4 · nâng TLDTHD cấp trực tiếp từ ${f1(p13)}% lên ≥ 70%`, li: ['Rà các hợp đồng năm 2 sắp đến hạn đóng phí của đội trực tiếp, gọi nhắc khách trước hạn; ưu tiên hợp đồng phí lớn.'] });
+  const actHtml = acts.length ? `<div class="mr-act"><h5>Việc cần làm đến 31/12/${year} để đạt ${esc(lvS)}</h5>${acts.map((x) => `<div class="mr-ai"><div class="mr-at">${x.t}</div><ul>${x.li.map((l) => `<li>${l}</li>`).join('')}</ul></div>`).join('')}</div>` : `<div class="banner ok" style="margin:10px 0"><span>🏆</span><div>Đủ 4/4 điều kiện ${esc(lv)}. Giữ đội ngũ và chức danh UM+ đến 31/12/${year}; ĐL tuyển mới phải còn làm việc tại cuối năm.</div></div>`;
+  // ---------- đội trực tiếp: được tính gì ----------
+  const yes = (s) => `<span class="mr-y">✓ ${s}</span>`, no = (s) => `<span class="mr-x">✗ ${s}</span>`;
+  const grp = (title, n, chips, body) => (n ? `<div class="mr-gp"><div class="mr-gh"><b>${title}</b> <span class="badge">${f0(n)}</span><div class="mr-chips">${chips.join('')}</div></div>${body ? `<div class="mr-gb">${body}</div>` : ''}</div>` : '');
+  const recRow = (x) => `<li>${L(x.k)}${x.via ? ` <span class="muted small">· đội ${esc(x.via.n)}</span>` : ''} <span class="muted small">mã ${dmy(x.k.j)}</span> — ${f0(x.s.cc)} HĐ · ${money(x.s.fyp)} ${x.s.a ? '<span class="badge b-green">3HĐ&40tr</span>' : x.s.b ? '<span class="badge b-green">1HĐ&16tr</span>' : `<span class="badge b-red">thiếu ${rcGapTxt(rcGap(x.s, 'b'))}</span>`}</li>`;
+  const recD = rec.filter((x) => !x.via), recV = rec.filter((x) => x.via);
+  const olds = kids.filter((k) => !recOk(k) && !newUMs.includes(k) && !gtfs.includes(k)), oSA = olds.filter(isSA);
+  const team = [
+    grp(`ĐL tuyển mới ${year} trực tiếp`, recD.length, [yes('TC1 nếu đạt SX & còn làm việc 31/12'), yes('TC2 FYC')], `<ul class="mr-ul">${recD.sort((p, q) => q.s.fyp - p.s.fyp).map(recRow).join('')}</ul>`),
+    grp(`UM mới thăng cấp ${year}`, newUMs.length, [yes('TC3 (thăng T02–T12)'), yes('Cộng dồn TC1 & TC2 của đội họ'), yes('FYC cá nhân họ')],
+      `<ul class="mr-ul">${newUMs.map((u) => { const r = rec.filter((x) => x.via === u); return `<li>${L(u)} <span class="muted small">thăng cấp ${dmy(u.td)}</span> ${isNewUM3(u) ? '<span class="badge b-green">tính TC3</span>' : '<span class="badge b-amber">T01 – không tính TC3</span>'} · cộng dồn ${f0(r.filter((x) => x.s.b).length)}/${f0(r.length)} ĐL mới có SX · FYC đội 12T ${money(sum(u.kids, (k) => N(k.fyc12)))}</li>`; }).join('')}</ul>${recV.length ? `<div class="small muted" style="margin-top:4px">ĐL tuyển mới trong đội UM mới (cộng cho ${esc(a.n)}):</div><ul class="mr-ul">${recV.sort((p, q) => q.s.fyp - p.s.fyp).map(recRow).join('')}</ul>` : ''}`),
+    grp(`UM+ GTF bổ nhiệm ${year}`, gtfs.length, [yes('FYC cá nhân họ (TC2)'), yes('TC3 chỉ khi đạt chuẩn GTF'), no('Không cộng dồn ĐL tuyển mới & FYC đội họ')],
+      `<ul class="mr-ul">${gtfSt.map((x) => `<li>${L(x.g)} <span class="muted small">bổ nhiệm ${dmy(gtfDt(x.g))}</span> — ${x.okN ? '✓' : '✗'} ${f0(x.n)}/2 ĐL tự tuyển có SX · ${x.okF ? '✓' : '✗'} FYC ${money(x.fyc)}/40 tr ${x.ok ? '<span class="badge b-green">đủ chuẩn TC3</span>' : '<span class="badge b-red">chưa đủ chuẩn</span>'}</li>`).join('')}</ul>`),
+    grp('ĐL & UM+ khác (tuyển trước ' + year + ')', olds.length - oSA.length, [yes('TC2 FYC'), no('TC1'), no('TC3')], ''),
+    grp('Đại lý phục vụ (SA)', oSA.length, [yes('TC2 FYC'), no('TC1 (kể cả SA tuyển mới)')], ''),
+  ].join('');
+  // UM+ này là UM mới / GTF → kết quả có tính lên quản lý không
+  const up = upOf(a), upUm = up && up.um ? up : null;
+  const meUp = !upUm ? '' : isGtfY(a) ? (() => { const x = gtfTc3(a); return `<div class="banner warn" style="margin:8px 0"><span>ℹ️</span><div><b>${esc(a.n)} là UM+ GTF bổ nhiệm ${dmy(gtfDt(a))}</b>: FYC cá nhân được tính cho ${L(upUm)}, nhưng ĐL tuyển mới & FYC đội của ${esc(a.n)} <b>không</b> cộng dồn lên ${esc(upUm.n)}. Để được tính là 1 "UM+ mới" của ${esc(upUm.n)}: ${x.okN ? '✓' : '✗'} ${f0(x.n)}/2 ĐL tự tuyển có 1HĐ&16tr · ${x.okF ? '✓' : '✗'} FYC ${money(x.fyc)}/40 tr · giữ UM+ đến 31/12.</div></div>`; })()
+    : isNewUM(a) ? `<div class="banner ok" style="margin:8px 0"><span>🔗</span><div><b>${esc(a.n)} là UM mới thăng cấp ${dmy(a.td)}</b>: ĐL tuyển mới có SX và FYC cấp trực tiếp của ${esc(a.n)} được cộng cả cho ${L(upUm)}${isNewUM3(a) ? `; ${esc(a.n)} cũng là 1 "UM+ mới" (TC3) của ${esc(upUm.n)}` : ' (thăng cấp T01 nên không tính TC3)'}. Hai người nên cùng kèm đội.</div></div>` : '';
+  const rules = `<details class="mr-rules"><summary>So sánh UM mới thăng cấp và UM+ GTF theo 0050M01/2026</summary><table class="tbl"><thead><tr><th></th><th>UM mới thăng cấp (không GTF)</th><th>UM+ GTF bổ nhiệm trong năm</th></tr></thead><tbody>
+    <tr><td>Tính là "UM+ mới" (TC3)</td><td>✓ nếu thăng cấp T02–T12/${year} (hoặc T01/${+year + 1}) và còn giữ UM+ 31/12</td><td>Chỉ khi đạt đủ: ≥ 2 ĐL <b>tự tuyển</b> (mã ${year}, 1HĐ & 16tr FYP, không SA, còn làm việc) · FYC trực tiếp + cá nhân (luật 50) ≥ 40 tr · còn UM+ 31/12</td></tr>
+    <tr><td>Cộng dồn ĐL tuyển mới có SX của đội họ (TC1)</td><td>✓ (thăng cấp T01–T12)</td><td>✗</td></tr>
+    <tr><td>Cộng dồn FYC cấp trực tiếp của họ (TC2)</td><td>✓</td><td>✗</td></tr>
+    <tr><td>FYC cá nhân của chính họ (TC2)</td><td>✓ (là cấp 1)</td><td>✓ (là cấp 1)</td></tr>
+    <tr><td>Bản thân tính là ĐL tuyển mới (TC1)</td><td colspan="2">✓ chỉ khi được cấp mã trong ${year} và đạt sản xuất</td></tr></tbody></table>
+    <p class="note">TC1 không tính SA và ĐL đã nghỉ tại 31/12. TC2 tính cả FYC của ĐL đã nghỉ và SA; FYC cá nhân UM+ tối đa 50% tổng (tức không vượt FYC cấp trực tiếp). Cấu trúc chốt 31/12.</p></details>`;
+  return `<div class="sec mr"><h4>MBA Pro ${+year + 1} · tra soát <span class="badge ${ci >= 0 ? 'b-green' : ''}">${ci >= 0 ? 'Tạm tính ' + esc(mb.cur.replace('MBA Pro ', '')) : 'Chưa có danh hiệu'}</span><span class="badge ${nOk === 4 ? 'b-green' : nOk === 3 ? 'b-amber' : 'b-red'}">${nOk}/4 điều kiện ${esc(lvS)}</span>${mb.progress ? `<span class="badge b-blue">${esc(mb.progress)}</span>` : ''}</h4>
+    <p class="note" style="margin:-4px 0 10px">Mục tiêu <b>${esc(lv)}</b> · còn <b>${left} tháng</b> (chốt 31/12/${year}) · số liệu 4 tiêu chí theo báo cáo MBA Pro của Manulife${mb.conv ? ` · danh hiệu chuyển đổi ${esc(mb.conv)}${mb.convUntil ? ' đến ' + dmy(mb.convUntil) : ''}` : ''}.</p>
+    ${meUp}<div class="mr-grid">${cards}</div>${actHtml}
+    <div class="mr-team"><h5>Đội trực tiếp · ai được tính vào tiêu chí nào</h5>${team || '<p class="muted small">Chưa có ĐL trực tiếp.</p>'}
+    <p class="note">Dashboard đếm được: ${f0(cB)} ĐL tuyển mới đạt 1HĐ&16tr · ${f0(cA)} đạt 3HĐ&40tr (gồm qua UM mới) · ${f0(um3.length)} UM mới tính TC3 · ${f0(gtfSt.filter((x) => x.ok).length)}/${f0(gtfs.length)} UM+ GTF đủ chuẩn. Nếu khác báo cáo MBA Pro (${f0(n1b)} · ${f0(n1a)} · ${f0(nu)}), lấy báo cáo làm chuẩn – thường do hợp đồng chưa qua 21 ngày cân nhắc hoặc cấu trúc đã đổi.</p></div>
+    ${rules}</div>`;
 }
 
 
@@ -2448,19 +2563,7 @@ function openPerson(code) {
     ${md ? `<p class="note">Báo cáo MDRT: ${esc(md.status || '')} · tạm tính ${esc(md.cur || '–')}${md.month ? ' từ ' + esc(String(md.month).replace(/(\d{4})(\d{2})/, '$2/$1')) : ''} · đã đạt MDRT chính thức ${f0(md.times)} lần${md.next ? ` · cần thêm ${money(md.need)} FYP để lên ${esc(md.next)}` : ''}.</p>` : ''}</div>`;
 
   // MBA Pro (UM+)
-  let mbaHtml = '';
-  if (a.um) {
-    const curIdx = mb ? MBA.levels.indexOf(mb.cur) : -1, tgt = Math.min(2, curIdx + 1), lvName = MBA.levels[tgt];
-    const n1a = N(mb?.n1a), n1b = N(mb?.n1b), fyc = N(mb?.fyc ?? a.mba_fyc), nu = N(mb?.newUm ?? a.mba_newum), p13 = mb?.p13 ?? a.p13d;
-    const c1ok = n1a >= MBA.n1a[tgt] || n1b >= MBA.n1b[tgt];
-    mbaHtml = `<div class="sec"><h4>MBA Pro ${+year + 1} <span class="badge ${curIdx >= 0 ? 'b-green' : ''}">${curIdx >= 0 ? 'Tạm tính ' + esc(mb.cur) : 'Chưa đạt'}</span>${mb?.progress ? `<span class="badge b-blue">${esc(mb.progress)}</span>` : ''}</h4>
-      <p class="note" style="margin:-4px 0 10px">Điều kiện để đạt <b>${esc(lvName)}</b> · đánh giá cả năm ${year}, còn <b>${left} tháng</b> (đến 31/12/${year}).</p>
-      <div class="cond ${c1ok ? 'ok' : 'miss'}"><span class="t">${c1ok ? '✓' : '✗'} ĐL tuyển mới trực tiếp có sản xuất</span><span class="r num">${f0(n1a)} (3CC+40tr) · ${f0(n1b)} (1CC+16tr)</span>${meter(Math.max(n1a / MBA.n1a[tgt], n1b / MBA.n1b[tgt]))}<span class="h">Cần ${MBA.n1a[tgt]} ĐL (3 HĐ & 40tr FYP) <b>hoặc</b> ${MBA.n1b[tgt]} ĐL (1 HĐ & 16tr FYP)${c1ok ? '' : ` · thiếu ${Math.max(0, MBA.n1a[tgt] - n1a)} hoặc ${Math.max(0, MBA.n1b[tgt] - n1b)} người`}</span></div>
-      ${cond('FYC cấp trực tiếp + cá nhân (sau luật 50)', fyc, MBA.fyc[tgt], money, left > 0 ? `cần ~${money((MBA.fyc[tgt] - fyc) / left)}/tháng` : '')}
-      ${cond('UM+ mới báo cáo trực tiếp', nu, MBA.newUm, f0, 'phát triển ít nhất 1 UM+ mới trong năm')}
-      ${cond('TLDTHD cấp báo cáo trực tiếp ≥ 70%', N(p13), MBA.p13, (v) => f1(v) + '%', '', p13 == null ? 'Chưa có số' : '')}
-      ${mb?.conv ? `<p class="note">Danh hiệu chuyển đổi: ${esc(mb.conv)}${mb.convUntil ? ' · đảm bảo đến ' + dmy(mb.convUntil) : ''}</p>` : ''}</div>`;
-  }
+  const mbaHtml = a.um ? mbaReview(a, left, year) : '';
   // Manulife Pro
   let mpHtml = '';
   if (mp && (mp.next || mp.official)) {
@@ -2561,16 +2664,25 @@ function pageTitles(c) {
     const rows = list.filter((a) => a.um).map((a) => {
       const mb = DS.mba.get(a.c) || {}; const ci = MBA.levels.indexOf(mb.cur); const t = Math.min(2, ci + 1);
       const c1 = N(mb.n1a) >= MBA.n1a[t] || N(mb.n1b) >= MBA.n1b[t], c2 = N(mb.fyc) >= MBA.fyc[t], c3 = N(mb.newUm) >= 1, c4 = mb.p13 == null || N(mb.p13) >= 70;
-      return { a, mb, ci, t, c: [c1, c2, c3, c4], ok: [c1, c2, c3, c4].filter(Boolean).length };
+      const gs = a.kids.filter(isGtfY).map((g) => ({ g, ...gtfTc3(g) })), nu = a.kids.filter(isNewUM);
+      return { a, mb, ci, t, c: [c1, c2, c3, c4], ok: [c1, c2, c3, c4].filter(Boolean).length, gs, nu };
     }).sort((x, y) => y.ci - x.ci || y.ok - x.ok || N(y.mb.fyc) - N(x.mb.fyc));
-    const ck = (b) => (b ? '<span class="badge b-green">✓</span>' : '<span class="badge b-red">✗</span>');
-    body = `<div class="kpis" style="margin-bottom:12px">${MBA.levels.map((l) => `<div class="kpi"><div class="lb">${l} tạm tính</div><div class="v">${rows.filter((r) => r.mb.cur === l).length}</div></div>`).join('')}<div class="kpi"><div class="lb">UM+ đủ 3/4 điều kiện mức kế</div><div class="v">${rows.filter((r) => r.ok === 3).length}</div><div class="s">Còn ${left} tháng</div></div><div class="kpi"><div class="lb">UM mới ${year} (cộng dồn lên quản lý)</div><div class="v">${list.filter(isNewUM).length}</div><div class="s">KQ cấp trực tiếp của UM mới được tính cả cho UM+ quản lý trực tiếp của họ</div></div></div>
-    <div class="tbl-wrap" style="max-height:620px"><table class="tbl"><thead><tr><th>UM+</th><th>Khu vực</th><th>Tạm tính</th><th>Mục tiêu</th><th>Tuyển mới SX</th><th class="r">FYC (luật 50)</th><th>UM+ mới</th><th>P13 ≥70%</th><th>Thiếu</th><th>Liên kết UM mới</th></tr></thead><tbody>
-    ${rows.map(({ a, mb, ci, t, c }) => `<tr class="click" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.t)}</span></td><td>${esc(a.a)}</td><td>${ci >= 0 ? `<span class="badge b-green">${esc(mb.cur.replace('MBA Pro ', ''))}</span>` : '–'}</td><td>${esc(MBA.levels[t].replace('MBA Pro ', ''))}</td>
-      <td>${ck(c[0])} <span class="small muted num">${f0(mb.n1a)} · ${f0(mb.n1b)}</span></td><td class="r">${ck(c[1])} <span class="num">${money(mb.fyc)}</span></td><td>${ck(c[2])} <span class="small num">${f0(mb.newUm)}</span></td><td>${ck(c[3])} <span class="small num">${mb.p13 == null ? '–' : f1(mb.p13) + '%'}</span></td>
-      <td class="small">${[!c[0] && `tuyển ${Math.max(0, MBA.n1a[t] - N(mb.n1a))} (3CC) / ${Math.max(0, MBA.n1b[t] - N(mb.n1b))} (1CC)`, !c[1] && `FYC ${money(MBA.fyc[t] - N(mb.fyc))}`, !c[2] && '1 UM+ mới', !c[3] && 'P13'].filter(Boolean).join(' · ') || '<span class="badge b-green">Đủ</span>'}</td>
-      <td class="small" style="white-space:normal">${(() => { const nu = a.kids.filter(isNewUM), me = isNewUM(a) && upOf(a)?.um ? upOf(a) : null; return [me ? `<span class="badge b-blue">UM mới</span> KQ cộng cho ${esc(me.n)}` : '', nu.length ? `${nu.length} UM mới trực tiếp: ${nu.map((u) => esc(u.n)).join(', ')} → cộng dồn` : ''].filter(Boolean).join('<br>') || '<span class="muted">–</span>'; })()}</td></tr>`).join('')}
-    </tbody></table></div>`;
+    const ck = (b, v) => `<span class="mt-ck ${b ? 'ok' : 'miss'}">${b ? '✓' : '✗'} ${v}</span>`;
+    const todo = ({ a, mb, t, c, gs }) => { const fy = MBA.fyc[t] - N(mb.fyc), nb = Math.max(0, MBA.n1b[t] - N(mb.n1b)), na = Math.max(0, MBA.n1a[t] - N(mb.n1a));
+      return [!c[0] && `+${nb} ĐL 1HĐ&16tr / +${na} ĐL 3HĐ&40tr`, !c[1] && `+${money(fy)} FYC${left > 0 ? ` (~${money(fy / left)}/th)` : ''}`,
+        !c[2] && (gs.length ? `1 UM+ mới: ${gs.map((x) => `GTF ${esc(x.g.n.split(' ').slice(-2).join(' '))} ${x.ok ? 'đủ chuẩn' : `thiếu ${[!x.okN && `${2 - x.n} ĐL`, !x.okF && money(40000 - x.fyc) + ' FYC'].filter(Boolean).join(' & ')}`}`).join('; ')}` : '1 UM+ mới (thăng cấp UM hoặc GTF đạt chuẩn)'),
+        !c[3] && `P13 lên 70%`].filter(Boolean); };
+    const gtfAll = rows.flatMap((r) => r.gs);
+    body = `<div class="kpis" style="margin-bottom:12px">${MBA.levels.map((l) => `<div class="kpi"><div class="lb">${l} tạm tính</div><div class="v">${rows.filter((r) => r.mb.cur === l).length}</div></div>`).join('')}<div class="kpi"><div class="lb">Chỉ thiếu 1 điều kiện mức kế</div><div class="v">${rows.filter((r) => r.ok === 3).length}</div><div class="s">Còn ${left} tháng – ưu tiên kèm</div></div><div class="kpi"><div class="lb">UM mới ${year} (cộng dồn lên quản lý)</div><div class="v">${list.filter(isNewUM).length}</div><div class="s">${list.filter(isNewUM3).length} tính TC3 (thăng T02–T12)</div></div><div class="kpi"><div class="lb">UM+ GTF ${year} đủ chuẩn TC3</div><div class="v">${gtfAll.filter((x) => x.ok).length}/${gtfAll.length}</div><div class="s">≥ 2 ĐL tự tuyển có SX & FYC ≥ 40 tr · đội GTF không cộng dồn</div></div></div>
+    <p class="note" style="margin:0 0 8px">Bấm vào từng UM+ để xem tra soát chi tiết: ai trong đội được tính tiêu chí nào và việc cần làm theo tên người.</p>
+    <div class="tbl-wrap" style="max-height:620px"><table class="tbl mt-tbl"><thead><tr><th>UM+</th><th>KV</th><th>Hiện tại → mục tiêu</th><th>Tiến độ</th><th>1 · Tuyển mới SX</th><th>2 · FYC luật 50</th><th>3 · UM+ mới</th><th>4 · P13</th><th style="min-width:300px">Cần làm thêm</th><th>Đội: UM mới · GTF</th></tr></thead><tbody>
+    ${rows.map((r) => { const { a, mb, ci, t, c, ok, gs, nu } = r, td = todo(r); return `<tr class="click" data-open="${esc(a.c)}"><td><b>${esc(a.n)}</b> <span class="muted small">${esc(a.t)}${isGtfY(a) ? ' · GTF' : isNewUM(a) ? ' · UM mới' : ''}</span></td><td>${esc(a.a)}</td>
+      <td>${ci >= 0 ? `<span class="badge b-green">${esc(mb.cur.replace('MBA Pro ', ''))}</span>` : '<span class="muted">–</span>'} → <b>${esc(MBA.levels[t].replace('MBA Pro ', ''))}</b></td>
+      <td><span class="badge ${ok === 4 ? 'b-green' : ok === 3 ? 'b-amber' : 'b-red'}">${ok}/4</span></td>
+      <td>${ck(c[0], `${f0(mb.n1b)}/${MBA.n1b[t]} · ${f0(mb.n1a)}/${MBA.n1a[t]}`)}</td><td>${ck(c[1], `${money(mb.fyc)}/${money(MBA.fyc[t])}`)}</td><td>${ck(c[2], f0(mb.newUm))}</td><td>${ck(c[3], mb.p13 == null ? 'miễn' : f1(mb.p13) + '%')}</td>
+      <td class="small" style="white-space:normal">${td.length ? td.map((x) => `• ${x}`).join('<br>') : '<span class="badge b-green">Đủ – giữ đến 31/12</span>'}</td>
+      <td class="small" style="white-space:normal">${[nu.length ? `UM mới: ${nu.map((u) => esc(u.n.split(' ').slice(-2).join(' '))).join(', ')}` : '', gs.length ? `GTF: ${gs.map((x) => `${esc(x.g.n.split(' ').slice(-2).join(' '))} ${x.ok ? '✓' : '✗'}`).join(', ')}` : ''].filter(Boolean).join('<br>') || '<span class="muted">–</span>'}</td></tr>`; }).join('')}
+    </tbody></table></div><p class="note">Cột 1: ĐL đạt 1HĐ&16tr / cần · ĐL đạt 3HĐ&40tr / cần (theo báo cáo MBA Pro). UM mới thăng cấp: kết quả đội cộng dồn lên quản lý. UM+ GTF: chỉ FYC cá nhân được tính, tính là UM+ mới khi đủ chuẩn GTF (0050M01/2026).</p>`;
   } else if (tab === 'fast') {
     const all = fastTrack(list), f = S.ftFilter || 'all';
     const order = { pot: 0, watch: 1, done: 2, closed: 3 };
